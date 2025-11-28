@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Rnd, RndDragCallback, RndResizeCallback } from 'react-rnd';
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from '../types';
 import { generateExercises } from '../services/geminiService';
+// Add MagicWandIcon import
 import { LoadingIcon, TrashIcon, SettingsIcon, ResetIcon, MagicWandIcon, PlayIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { useDebounce } from '../hooks/useDebounce';
 import { useResponsiveScale } from '../hooks/useResponsiveScale';
@@ -16,13 +16,14 @@ import {
     InteractivePicturePrompt, InteractiveOpenResponseTask, InteractiveDictoGloss, 
     InteractiveCollocationOddOneOut, InteractiveInformationTransfer, InteractiveListening, 
     InteractiveRegisterSort 
-} from './InteractiveExercises';
+} from './InteractiveExercises'; // Import all interactive components
+import { useActivityLogger } from '../ActivityContext'; // Import logger context
 
 export interface ExerciseBlockProps {
   blockState: ExerciseBlockState;
   onUpdate: (blockId: number, updates: Partial<ExerciseBlockState>) => void;
   onRemove: (blockId: number) => void;
-  onFocus: (blockId: number) => void;
+  onFocus: (blockId: number) => void; // Called onMouseDown on the block
   onDrag: RndDragCallback;
   onDragStop: RndDragCallback;
   onResize: RndResizeCallback;
@@ -31,9 +32,9 @@ export interface ExerciseBlockProps {
   isPresenting: boolean;
   onEnterPresentation: () => void;
   onExitPresentation: () => void;
-  onNextSlide: () => void;
-  onPrevSlide: () => void;
-  scale?: number;
+  onNextSlide: () => void; // Global next slide (for next block in app.tsx)
+  onPrevSlide: () => void; // Global prev slide (for prev block in app.tsx)
+  scale?: number; // Current zoom scale of the whiteboard
 }
 
 // Header Component
@@ -56,92 +57,136 @@ const Header = React.forwardRef<HTMLDivElement, {
   isPresenting?: boolean;
   onEnterPresentation?: () => void;
   onExitPresentation?: () => void;
-  onPrevItem?: () => void;
-  onNextItem?: () => void;
+  onPrevItem?: () => void; // Navigates items WITHIN this block
+  onNextItem?: () => void; // Navigates items WITHIN this block
   currentItem?: number;
   totalItems?: number;
 }>(({ 
     title, pedagogy, textColor, onRemove, onRegenerate, onToggleSettings, isSettingsOpen, isGenerated, onGenerate, 
     generateAmount, estimatedDuration, quantity, onQuantityChange, isSingleInstance,
     isPresenting, onEnterPresentation, onExitPresentation, onPrevItem, onNextItem, currentItem, totalItems
-}, ref) => (
-    <div ref={ref} className={`handle bg-slate-800 text-white p-3 ${isPresenting ? 'rounded-none p-6' : 'rounded-t-[14px]'} flex justify-between items-center cursor-move flex-shrink-0 border-b border-slate-700`}>
-        <div className="flex items-center gap-4 min-w-0 flex-1">
-            {isPresenting && (
-                 <button onClick={onExitPresentation} className="p-2 rounded-full hover:bg-slate-700 text-slate-400 hover:text-white transition-colors mr-2" title="Exit Presentation Mode">
-                    <XMarkIcon className="w-6 h-6" />
-                </button>
-            )}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                 <h3 className={`font-playful font-bold ${isPresenting ? 'text-3xl' : 'text-lg'} select-none ${textColor} tracking-wide truncate`}>{title}</h3>
-                 <div className="flex gap-2 items-center">
-                    <span className={`${isPresenting ? 'text-sm px-3 py-1.5' : 'text-[10px] px-2 py-1'} uppercase tracking-widest font-bold bg-slate-900/50 text-slate-400 rounded-full border border-slate-700 select-none whitespace-nowrap`}>{pedagogy}</span>
-                    <span className={`${isPresenting ? 'text-sm px-3 py-1.5' : 'text-[10px] px-2 py-1 hidden sm:flex'} font-bold bg-slate-700 text-slate-300 rounded-full border border-slate-600 select-none flex items-center gap-1 whitespace-nowrap`} title="Estimated completion time">
-                        <span>⏱</span> ~{estimatedDuration}m
-                    </span>
-                 </div>
+}, ref) => {
+    const { logger } = useActivityLogger();
+
+    const handleRemove = () => {
+        logger?.logFocusItem('Project Management', 'Exercise Block Removed', 0.1, null, 1, [], title);
+        onRemove();
+    };
+
+    const handleRegenerate = () => {
+        logger?.logFocusItem('Activity Management', 'Exercise Regenerated', 0.1, null, 1, [], title);
+        onRegenerate();
+    };
+
+    const handleGenerate = () => {
+        logger?.logFocusItem('Activity Management', 'Exercise Generated', 0.1, null, 1, [], `${title} x${generateAmount}`);
+        onGenerate();
+    };
+
+    const handleToggleSettings = () => {
+        logger?.logFocusItem('Settings', `Block Settings ${isSettingsOpen ? 'Closed' : 'Opened'}`, 0.1, null, 1, [], title);
+        onToggleSettings();
+    };
+
+    const handleEnterPresentation = () => {
+        logger?.startActivity(`presentation_${title.replace(/\s/g, '_')}_${Date.now()}`, 'presentation', `Presenting: ${title}`);
+        onEnterPresentation?.();
+    };
+
+    const handleExitPresentation = () => {
+        logger?.endActivity(); // Ends the presentation activity
+        onExitPresentation?.();
+    };
+
+    const handleNextItem = () => {
+        logger?.logFocusItem('Interaction', 'Presentation Next Item', 0.1, null, 1, [], `Block: ${title}, Item: ${currentItem + 1}/${totalItems}`);
+        onNextItem?.();
+    };
+
+    const handlePrevItem = () => {
+        logger?.logFocusItem('Interaction', 'Presentation Previous Item', 0.1, null, 1, [], `Block: ${title}, Item: ${currentItem - 1}/${totalItems}`);
+        onPrevItem?.();
+    };
+
+    return (
+        <div ref={ref} className={`handle bg-slate-800 text-white p-3 ${isPresenting ? 'rounded-none p-6' : 'rounded-t-2xl'} flex justify-between items-center cursor-move flex-shrink-0 border-b border-slate-700 relative z-10 font-casual`}>
+            <div className="flex items-center gap-4 min-w-0 flex-1">
+                {isPresenting && (
+                     <button onClick={handleExitPresentation} className="p-2 rounded-full hover:bg-slate-700 text-neutral-gray-400 hover:text-white transition-colors mr-2 relative z-50" title="Exit Presentation Mode">
+                        <XMarkIcon className="w-6 h-6" />
+                    </button>
+                )}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                     <h3 className={`font-playful font-bold ${isPresenting ? 'text-3xl' : 'text-lg'} select-none ${textColor} tracking-wide truncate`}>{title}</h3>
+                     <div className="flex gap-2 items-center">
+                        <span className={`${isPresenting ? 'text-sm px-3 py-1.5' : 'text-[10px] px-2 py-1'} uppercase tracking-widest font-bold bg-slate-900/50 text-neutral-gray-400 rounded-full border border-slate-700 select-none whitespace-nowrap`}>{pedagogy}</span>
+                        <span className={`${isPresenting ? 'text-sm px-3 py-1.5' : 'text-[10px] px-2 py-1 hidden sm:flex'} font-bold bg-slate-700 text-neutral-gray-300 rounded-full border border-slate-600 select-none flex items-center gap-1 whitespace-nowrap`} title="Estimated completion time">
+                            <span>⏱</span> ~{estimatedDuration}m
+                        </span>
+                     </div>
+                </div>
+            </div>
+            <div className="flex items-center space-x-2 flex-shrink-0 relative z-50">
+                 {/* Navigation Controls in Header for Presentation Mode */}
+                 {isPresenting && totalItems && totalItems > 1 && (
+                     <div className="flex items-center gap-4 mr-4 border-r border-slate-700 pr-4">
+                         <span className="text-sm font-mono font-bold text-neutral-gray-400">{currentItem} / {totalItems}</span>
+                         <button onClick={handlePrevItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === 1}><ChevronLeftIcon className="w-6 h-6" /></button>
+                         <button onClick={handleNextItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === totalItems}><ChevronRightIcon className="w-6 h-6" /></button>
+                     </div>
+                 )}
+
+                 {/* Qty Input (Hide in presentation) */}
+                 {!isGenerated && !isSingleInstance && !isPresenting && (
+                     <div className={`flex items-center bg-slate-900/50 rounded-lg px-2 py-1 border ${quantity ? 'border-primary-blue-500/50' : 'border-slate-600'} mr-1 transition-colors`}>
+                        <span className={`text-[10px] font-bold uppercase mr-1.5 ${quantity ? 'text-primary-blue-400' : 'text-neutral-gray-500'}`}>Qty</span>
+                        <input 
+                            type="number" 
+                            min="1" 
+                            max="50"
+                            value={generateAmount} 
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                onQuantityChange(isNaN(val) || val < 1 ? undefined : val);
+                            }}
+                            className={`w-6 bg-transparent text-center text-xs font-bold outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none ${quantity ? 'text-primary-blue-400' : 'text-neutral-gray-300'}`}
+                            title="Manually set amount (overrides auto-size)"
+                        />
+                     </div>
+                 )}
+
+                 {/* Standard Controls */}
+                 {!isPresenting && (
+                     <>
+                        {/* Presentation Button */}
+                         {isGenerated && (
+                             <button onClick={handleEnterPresentation} className="p-1.5 rounded-full hover:bg-accent-green-500/20 text-accent-green-400 hover:text-accent-green-300 transition-colors" title="Start Presentation Mode">
+                                <PlayIcon className="w-4 h-4" />
+                             </button>
+                         )}
+
+                         {isGenerated ? (
+                            <button onClick={handleRegenerate} className="p-1.5 rounded-full hover:bg-primary-blue-500/20 text-primary-blue-400 hover:text-primary-blue-300 transition-colors" title="Regenerate">
+                                <ResetIcon className="w-4 h-4" />
+                            </button>
+                         ) : (
+                            <button onClick={handleGenerate} className="px-3 py-1 rounded-full text-xs bg-gradient-to-r from-warm-orange-500 to-innovation-pink-500 text-white font-bold hover:brightness-110 transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap" title="Generate">
+                                <MagicWandIcon className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">Generate</span>
+                            </button>
+                         )}
+                         <button onClick={handleToggleSettings} className={`p-1.5 rounded-full ${isSettingsOpen ? 'bg-slate-700 text-white' : 'text-neutral-gray-400 hover:text-white'} transition-colors`} title="Settings">
+                            <SettingsIcon className="w-4 h-4" />
+                        </button>
+                        <button onClick={handleRemove} className="p-1.5 rounded-full hover:bg-energy-red-500/20 text-energy-red-400 hover:text-energy-red-300 transition-colors" title="Remove">
+                            <TrashIcon className="w-4 h-4" />
+                        </button>
+                     </>
+                 )}
             </div>
         </div>
-        <div className="flex items-center space-x-2 flex-shrink-0">
-             {/* Navigation Controls in Header for Presentation Mode */}
-             {isPresenting && totalItems && totalItems > 1 && (
-                 <div className="flex items-center gap-4 mr-4 border-r border-slate-700 pr-4">
-                     <span className="text-sm font-mono font-bold text-slate-400">{currentItem} / {totalItems}</span>
-                     <button onClick={onPrevItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === 1}><ChevronLeftIcon className="w-6 h-6" /></button>
-                     <button onClick={onNextItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === totalItems}><ChevronRightIcon className="w-6 h-6" /></button>
-                 </div>
-             )}
-
-             {/* Qty Input (Hide in presentation) */}
-             {!isGenerated && !isSingleInstance && !isPresenting && (
-                 <div className={`flex items-center bg-slate-900/50 rounded-lg px-2 py-1 border ${quantity ? 'border-blue-500/50' : 'border-slate-600'} mr-1 transition-colors`}>
-                    <span className={`text-[10px] font-bold uppercase mr-1.5 ${quantity ? 'text-blue-400' : 'text-slate-500'}`}>Qty</span>
-                    <input 
-                        type="number" 
-                        min="1" 
-                        max="50"
-                        value={generateAmount} 
-                        onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            onQuantityChange(isNaN(val) || val < 1 ? undefined : val);
-                        }}
-                        className={`w-6 bg-transparent text-center text-xs font-bold outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none ${quantity ? 'text-blue-400' : 'text-slate-300'}`}
-                        title="Manually set amount (overrides auto-size)"
-                    />
-                 </div>
-             )}
-
-             {/* Standard Controls */}
-             {!isPresenting && (
-                 <>
-                    {/* Presentation Button */}
-                     {isGenerated && (
-                         <button onClick={onEnterPresentation} className="p-1.5 rounded-full hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-colors" title="Start Presentation Mode">
-                            <PlayIcon className="w-4 h-4" />
-                         </button>
-                     )}
-
-                     {isGenerated ? (
-                        <button onClick={onRegenerate} className="p-1.5 rounded-full hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-colors" title="Regenerate">
-                            <ResetIcon className="w-4 h-4" />
-                        </button>
-                     ) : (
-                        <button onClick={onGenerate} className="px-3 py-1 rounded-full text-xs bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold hover:brightness-110 transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap" title="Generate">
-                            <MagicWandIcon className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Generate</span>
-                        </button>
-                     )}
-                     <button onClick={onToggleSettings} className={`p-1.5 rounded-full ${isSettingsOpen ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'} transition-colors`} title="Settings">
-                        <SettingsIcon className="w-4 h-4" />
-                    </button>
-                    <button onClick={onRemove} className="p-1.5 rounded-full hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors" title="Remove">
-                        <TrashIcon className="w-4 h-4" />
-                    </button>
-                 </>
-             )}
-        </div>
-    </div>
-));
+    );
+});
 Header.displayName = 'Header';
 
 // Settings Component
@@ -149,12 +194,34 @@ const Settings = React.forwardRef<HTMLDivElement, {
     blockState: ExerciseBlockState;
     onUpdate: (blockId: number, updates: Partial<ExerciseBlockState>) => void;
 }>(({ blockState, onUpdate }, ref) => {
+    const { logger } = useActivityLogger();
+
+    const handleDifficultyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newDifficulty = e.target.value as Difficulty;
+        onUpdate(blockState.id, { difficulty: newDifficulty });
+        logger?.logFocusItem('Settings', 'Block Difficulty Changed', 0.1, null, 1, [], `Block: ${blockState.exerciseType}, Set to: ${newDifficulty}`);
+    };
+
+    const handleToneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newTone = e.target.value as Tone;
+        onUpdate(blockState.id, { tone: newTone });
+        logger?.logFocusItem('Settings', 'Block Tone Changed', 0.1, null, 1, [], `Block: ${blockState.exerciseType}, Set to: ${newTone}`);
+    };
+
+    const handleThemeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newTheme = e.target.value;
+        onUpdate(blockState.id, { theme: newTheme });
+        logger?.logFocusItem('Settings', 'Block Theme Changed', 0.1, null, 1, [], `Block: ${blockState.exerciseType}, Set to: ${newTheme}`);
+    };
+
     return (
-        <div ref={ref} className="p-3 border-b border-slate-100 bg-slate-50 grid grid-cols-2 gap-3 flex-shrink-0">
+        <div ref={ref} className="p-3 border-b border-neutral-gray-100 bg-paper-bg grid grid-cols-2 gap-3 flex-shrink-0 relative z-10 font-casual">
+            <label htmlFor={`block-difficulty-${blockState.id}`} className="sr-only">Block Difficulty</label>
             <select
+                id={`block-difficulty-${blockState.id}`}
                 value={blockState.difficulty}
-                onChange={(e) => onUpdate(blockState.id, { difficulty: e.target.value as Difficulty })}
-                className="text-xs font-bold text-slate-600 p-2 rounded-lg border border-slate-300 bg-white w-full outline-none focus:ring-2 focus:ring-blue-400"
+                onChange={handleDifficultyChange}
+                className="text-xs font-bold text-neutral-gray-600 p-2 rounded-lg border border-neutral-gray-300 bg-white w-full outline-none focus:ring-2 focus:ring-primary-blue-400"
             >
                 {DIFFICULTY_LEVELS.map(d => (
                     <option key={d} value={d}>
@@ -162,18 +229,23 @@ const Settings = React.forwardRef<HTMLDivElement, {
                     </option>
                 ))}
             </select>
+            <label htmlFor={`block-tone-${blockState.id}`} className="sr-only">Block Tone</label>
             <select
+                id={`block-tone-${blockState.id}`}
                 value={blockState.tone}
-                onChange={(e) => onUpdate(blockState.id, { tone: e.target.value as Tone })}
-                className="text-xs font-bold text-slate-600 p-2 rounded-lg border border-slate-300 bg-white w-full outline-none focus:ring-2 focus:ring-blue-400"
+                onChange={handleToneChange}
+                className="text-xs font-bold text-neutral-gray-600 p-2 rounded-lg border border-neutral-gray-300 bg-white w-full outline-none focus:ring-2 focus:ring-primary-blue-400"
             >
                 {TONES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
+            <label htmlFor={`block-theme-${blockState.id}`} className="sr-only">Block Theme</label>
             <input
+                id={`block-theme-${blockState.id}`}
                 type="text"
                 value={blockState.theme}
-                onChange={(e) => onUpdate(blockState.id, { theme: e.target.value })}
-                className="col-span-2 text-xs font-bold text-slate-600 p-2 rounded-lg border border-slate-300 bg-white w-full outline-none focus:ring-2 focus:ring-blue-400 placeholder-slate-400"
+                onChange={handleThemeChange}
+                onBlur={handleThemeChange} // Log on blur for text input
+                className="col-span-2 text-xs font-bold text-neutral-gray-600 p-2 rounded-lg border border-neutral-gray-300 bg-white w-full outline-none focus:ring-2 focus:ring-primary-blue-400 placeholder-neutral-gray-400"
                 placeholder="Theme (e.g., travel, food)"
             />
         </div>
@@ -181,17 +253,29 @@ const Settings = React.forwardRef<HTMLDivElement, {
 });
 Settings.displayName = 'Settings';
 
-const ExerciseContent: React.FC<{ type: ExerciseType; content: any[]; colors: any; activeIndex?: number }> = ({ type, content, colors, activeIndex }) => {
+// ExerciseContent component now uses activeIndex to show a single question
+const ExerciseContent: React.FC<{ type: ExerciseType; content: any[]; colors: any; activeIndex?: number; blockId: number; exerciseType: ExerciseType }> = ({ type, content, colors, activeIndex, blockId, exerciseType }) => {
+    const { logger, startActivity, endActivity, logFocusItem } = useActivityLogger();
+
+    // Start activity for the specific exercise block content when it's first rendered in full
+    useEffect(() => {
+        startActivity(`exercise_content_${blockId}`, type as any, `Exercise: ${type}`);
+        return () => endActivity();
+    }, [blockId, type, startActivity, endActivity]);
+
     const renderExercise = (ex: any, i: number) => {
         let component;
+        // Generate a unique ID for each focus item to be used for logging
+        const focusItemId = `${blockId}_item_${i}`;
+        
         switch (type) {
             case ExerciseType.FITB:
             case ExerciseType.CollocationGapFill:
             case ExerciseType.PhrasalVerbGapFill:
-                component = <InteractiveFITB key={i} exercise={ex} colors={colors} />;
+                component = <InteractiveFITB key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                 break;
             case ExerciseType.WordFormation:
-                component = <InteractiveWordFormation key={i} exercise={ex} colors={colors} />;
+                component = <InteractiveWordFormation key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                 break;
             case ExerciseType.MultipleChoice:
             case ExerciseType.Prediction:
@@ -199,27 +283,27 @@ const ExerciseContent: React.FC<{ type: ExerciseType; content: any[]; colors: an
             case ExerciseType.SpotTheDifference:
             case ExerciseType.PolitenessScenarios:
             case ExerciseType.InferringMeaning:
-                component = <InteractiveMCQ key={i} exercise={ex} colors={colors} />;
+                component = <InteractiveMCQ key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                 break;
             case ExerciseType.SentenceScramble:
-                 component = <InteractiveSentenceScramble key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveSentenceScramble key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
             case ExerciseType.ClozeParagraph:
             case ExerciseType.DialogueCompletion:
-                 component = <InteractiveClozeOrDialogue key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveClozeOrDialogue key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
              case ExerciseType.Matching:
              case ExerciseType.FunctionMatching:
-                 component = <InteractiveMatching key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveMatching key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
              case ExerciseType.StorySequencing:
-                 component = <InteractiveStorySequencing key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveStorySequencing key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
              case ExerciseType.ErrorCorrection:
-                  component = <InteractiveErrorCorrection key={i} exercise={ex} colors={colors} />;
+                  component = <InteractiveErrorCorrection key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                   break;
             case ExerciseType.PicturePrompt:
-                 component = <InteractivePicturePrompt key={i} exercise={ex} colors={colors} />;
+                 component = <InteractivePicturePrompt key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
             case ExerciseType.MoralDilemma:
             case ExerciseType.FunctionalWriting:
@@ -228,58 +312,48 @@ const ExerciseContent: React.FC<{ type: ExerciseType; content: any[]; colors: an
             case ExerciseType.StorytellingFromPrompts:
             case ExerciseType.JustifyYourOpinion:
             case ExerciseType.PictureComparison:
-                 component = <InteractiveOpenResponseTask key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveOpenResponseTask key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
             case ExerciseType.ReadingGist:
-                 component = <InteractiveReadingGist key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveReadingGist key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
             case ExerciseType.ReadingDetail:
-                 component = <InteractiveReadingDetail key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveReadingDetail key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
             case ExerciseType.DictoGloss:
-                 component = <InteractiveDictoGloss key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveDictoGloss key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
             case ExerciseType.CollocationOddOneOut:
-                 component = <InteractiveCollocationOddOneOut key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveCollocationOddOneOut key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
             case ExerciseType.InformationTransfer:
-                 component = <InteractiveInformationTransfer key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveInformationTransfer key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
             case ExerciseType.ListeningSpecificInfo:
-                 component = <InteractiveListening key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveListening key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
             case ExerciseType.RegisterSort:
-                 component = <InteractiveRegisterSort key={i} exercise={ex} colors={colors} />;
+                 component = <InteractiveRegisterSort key={focusItemId} exercise={ex} colors={colors} focusItemId={focusItemId} logFocusItem={logFocusItem} />;
                  break;
             default:
                 component = <p className={colors.textOnLight}>Unsupported exercise type.</p>;
         }
 
-        // In presentation mode, only show the active index.
-        // We use 'hidden' class to preserve state in DOM but hide visually.
+        // In presentation mode, use 'hidden' for non-active slides to preserve state
         if (activeIndex !== undefined) {
             return (
-                <div key={i} className={`${activeIndex === i ? 'block' : 'hidden'} w-full`}>
+                <div key={focusItemId} className={`${activeIndex === i ? 'block' : 'hidden'} w-full`}>
                     {component}
                 </div>
             );
         }
         
         // Normal mode: render in list
-        return <div key={i} className="mb-8 last:mb-0">{component}</div>;
+        return <div key={focusItemId} className="mb-8 last:mb-0">{component}</div>;
     };
     
-    // If activeIndex is defined (Presentation Mode), wrap in centering div
-    if (activeIndex !== undefined) {
-        return (
-            <div className="flex flex-col justify-center items-center w-full h-full min-h-[50vh]">
-                <div className="w-full max-w-5xl transform transition-all">
-                     {content.map((ex, i) => renderExercise(ex, i))}
-                </div>
-            </div>
-        );
-    }
-    
+    // In presentation mode, we render all items but only one is visible at a time via CSS.
+    // This preserves the state of user inputs when navigating.
     return <div className="space-y-8">{content.map((ex, i) => renderExercise(ex, i))}</div>;
 };
 
@@ -302,41 +376,52 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     
+    const { logger, startActivity, endActivity } = useActivityLogger();
+
     // Presentation Mode Internal State
     const [currentSlide, setCurrentSlide] = useState(0);
 
     const headerRef = useRef<HTMLDivElement>(null);
     const settingsRef = useRef<HTMLDivElement>(null);
-    const contentWrapperRef = useRef<HTMLDivElement>(null);
+    const contentWrapperRef = useRef<HTMLDivElement>(null); // Ref for content inner wrapper
     
     // Scale for Presentation Mode
-    const presentationScale = useResponsiveScale(900, contentWrapperRef);
+    // Target width 900px, but it will scale up to 150% if possible or scale down to fit.
+    const presentationScale = useResponsiveScale(900, contentWrapperRef); 
 
     const debouncedTheme = useDebounce(theme, 500);
     const pedagogy = EXERCISE_PEDAGOGY[exerciseType] || 'Default';
     const colors = PEDAGOGY_COLORS[pedagogy];
 
-    const amount = useMemo(() => calculateExerciseAmount(exerciseType, height), [exerciseType, height]);
-    const generateAmount = quantity ?? amount;
+    const autoAmount = useMemo(() => calculateExerciseAmount(exerciseType, height), [exerciseType, height]);
+    const generateAmount = quantity ?? autoAmount;
     const estimatedDuration = useMemo(() => calculateExerciseDuration(exerciseType, height, quantity), [exerciseType, height, quantity]);
     const isSingleInstance = SINGLE_INSTANCE_TYPES.includes(exerciseType);
 
     // Precise Snap-to-Content Logic (Active only when NOT presenting)
     useEffect(() => {
+        // Only run resize observer if NOT presenting and content is generated
         if (!isGenerated || !contentWrapperRef.current || isPresenting) return;
 
         const resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 if (entry.target === contentWrapperRef.current) {
+                    // contentWidth & contentHeight are the intrinsic size of the content
                     const contentWidth = entry.contentRect.width;
                     const contentHeight = entry.contentRect.height;
                     
                     const headerHeight = headerRef.current?.offsetHeight || 0;
-                    const settingsHeight = settingsRef.current?.offsetHeight || 0;
+                    const settingsHeight = isSettingsOpen ? (settingsRef.current?.offsetHeight || 0) : 0;
                     
-                    const desiredWidth = Math.max(350, contentWidth + 48);
-                    const desiredHeight = headerHeight + settingsHeight + contentHeight + 48;
+                    // Add padding/border for the Rnd container (p-5 on content = 40px vertical/horizontal)
+                    // Border of the outer div (border-4 = 8px total)
+                    const horizontalPadding = 40 + 8; 
+                    const verticalPadding = 40 + 8;
 
+                    const desiredWidth = Math.max(350, contentWidth + horizontalPadding); // Min width to prevent UI crushing
+                    const desiredHeight = headerHeight + settingsHeight + contentHeight + verticalPadding;
+
+                    // Apply change if it differs significantly to prevent micro-jitter
                     if (Math.abs(desiredWidth - width) > 5 || Math.abs(desiredHeight - height) > 5) {
                          onUpdate(id, { 
                             width: desiredWidth,
@@ -351,8 +436,10 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
         return () => resizeObserver.disconnect();
     }, [content, isGenerated, isSettingsOpen, id, onUpdate, width, height, isPresenting]);
 
+
     const handleGenerate = useCallback(async () => {
         setIsLoading(true);
+        startActivity(`generate_block_${id}`, 'activity', `Generate Block: ${exerciseType}`);
         const result = await generateExercises(
             exerciseType, difficulty, tone, debouncedTheme, generateAmount, 
             focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
@@ -362,25 +449,30 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
         if (!('error' in result)) {
             onUpdate(id, { isGenerated: true });
         }
-    }, [exerciseType, difficulty, tone, debouncedTheme, generateAmount, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate, onUpdate, id]);
+        endActivity(); // End generation activity
+    }, [exerciseType, difficulty, tone, debouncedTheme, generateAmount, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate, onUpdate, id, startActivity, endActivity]);
 
     const handleRegenerate = () => {
         onUpdate(id, { isGenerated: false });
+        // Logger already handles logging in Header component
     };
     
-    // Presentation Navigation Handlers
+    // Presentation Navigation Handlers (for individual items within this block)
     const handleNextItem = useCallback(() => {
         if (Array.isArray(content) && currentSlide < content.length - 1) {
             setCurrentSlide(prev => prev + 1);
+            // Logger already handles logging in Header
         }
     }, [content, currentSlide]);
 
     const handlePrevItem = useCallback(() => {
         if (currentSlide > 0) {
             setCurrentSlide(prev => prev - 1);
+            // Logger already handles logging in Header
         }
     }, [currentSlide]);
 
+    // Reset slide index when entering presentation mode
     useEffect(() => {
         if (isPresenting) {
             setCurrentSlide(0);
@@ -409,7 +501,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
         if (isLoading) {
             return (
                 <div className="flex justify-center items-center h-full min-h-[200px]">
-                    <LoadingIcon className="w-12 h-12 text-slate-300 animate-spin" />
+                    <LoadingIcon className="w-12 h-12 text-neutral-gray-300 animate-spin" />
                 </div>
             );
         }
@@ -421,9 +513,9 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
         
         return (
             <>
-                {instruction && <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 font-casual">{instruction}</p>}
+                {instruction && <p className="text-xs font-bold uppercase tracking-widest text-neutral-gray-500 mb-4 font-casual">{instruction}</p>}
                 {('error' in content) ? (
-                    <div className="text-red-500 text-sm p-4 bg-red-50 rounded-xl border-2 border-red-100">
+                    <div className="text-energy-red-500 text-sm p-4 bg-energy-red-50 rounded-xl border-2 border-energy-red-100">
                         <p className="font-bold mb-1">Oops!</p>
                         <p>{content.error}</p>
                     </div>
@@ -432,7 +524,9 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
                         type={exerciseType} 
                         content={content} 
                         colors={colors} 
-                        activeIndex={isPresenting ? currentSlide : undefined} 
+                        activeIndex={isPresenting ? currentSlide : undefined} // Only pass activeIndex if presenting
+                        blockId={id} // Pass blockId for logging from InteractiveExercises
+                        exerciseType={exerciseType} // Pass exerciseType for logging from InteractiveExercises
                     />
                 )}
             </>
@@ -440,8 +534,10 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
     };
 
     // Presentation Mode Overrides
-    const presentationStyle = isPresenting ? "!fixed !inset-0 !z-[9999] !transform-none !w-screen !h-screen !rounded-none !border-0" : "";
-    const presentationBg = isPresenting ? "!bg-slate-900/95 !backdrop-blur-md" : "";
+    // Rnd is the invisible draggable/resizable wrapper.
+    // The inner div `card-visual` handles the actual visual styling and content.
+    const presentationRndStyle = isPresenting ? "!fixed !inset-0 !z-[9999] !transform-none !w-screen !h-screen !rounded-none !border-0" : "";
+    const presentationCardVisualClasses = isPresenting ? "max-w-7xl mx-auto rounded-lg border-x border-neutral-gray-700" : "rounded-2xl";
 
     return (
         <Rnd
@@ -457,15 +553,16 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
             minHeight={150}
             bounds={bounds}
             dragHandleClassName="handle"
-            scale={isPresenting ? 1 : scale}
+            scale={isPresenting ? 1 : scale} // Rnd's internal scale for dragging/resizing, independent of visual content scale
             style={{ zIndex: isPresenting ? 9999 : zIndex }}
-            className={`bg-white rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] flex flex-col border-4 ${colors.border} overflow-hidden transition-shadow hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)] ${presentationStyle} ${presentationBg}`}
+            className={`rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden transition-all hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)] ${presentationRndStyle}`}
             onMouseDown={() => onFocus(id)}
             onDoubleClick={() => {
                 if (isGenerated && !isPresenting && onEnterPresentation) onEnterPresentation();
             }}
         >
-            <div className={`flex flex-col h-full w-full ${isPresenting ? 'max-w-7xl mx-auto bg-white shadow-2xl rounded-lg border-x border-slate-700' : ''}`}>
+            {/* This inner div is the actual visible "paper card" */}
+            <div className={`card-visual flex flex-col h-full w-full bg-paper-bg border-4 ${colors.border} ${presentationCardVisualClasses}`}>
                 <Header
                     ref={headerRef}
                     title={exerciseType}
@@ -497,8 +594,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
                     <div 
                         ref={contentWrapperRef} 
                         className={`w-fit max-w-[900px] ${isGenerated ? '' : 'w-full'} origin-top transition-transform duration-200`}
-                         // Scale logic for Presentation Mode (150% focus)
-                         style={isPresenting ? { transform: `scale(${Math.max(1.5, presentationScale)})` } : {}}
+                         style={isPresenting ? { transform: `scale(${Math.min(1.5, Math.max(0.5, presentationScale))})` } : {}}
                     >
                         {renderContent()}
                     </div>

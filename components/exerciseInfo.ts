@@ -145,7 +145,7 @@ export const EXERCISE_INFO: Record<ExerciseType, ExerciseInfo> = {
   },
   [ExerciseType.DictoGloss]: {
     name: 'Dicto-Gloss (C-R)',
-    description: 'A student read a short, dense text, then hides it and tries to reconstruct it from memory. The focus is on noticing grammatical structures.',
+    description: 'A student reads a short, dense text, then hides it and tries to reconstruct it from memory. The focus is on noticing grammatical structures.',
     pedagogy: 'A powerful Consciousness-Raising task combining listening/reading and writing to force learners to pay close attention to form and structure.',
     example: 'Read: "Despite the rain, the festival went ahead." Reconstruct it from memory.',
     difficultyRating: Difficulty.C1,

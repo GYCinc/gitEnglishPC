@@ -1,9 +1,12 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ExerciseBlock from './ExerciseBlock';
 import { ExerciseType, Difficulty, Tone, ExerciseBlockState } from '../types';
+// Add MagicWandIcon import
 import { MagicWandIcon } from './icons';
-import GlobalSettings from './GlobalSettings';
+import { useActivityLogger } from '../ActivityContext'; // Import logger context
+
+// GlobalSettings is now a modal, not directly rendered by Whiteboard
+// import GlobalSettings from './GlobalSettings'; 
 
 interface WhiteboardProps {
   blocks: ExerciseBlockState[];
@@ -11,13 +14,13 @@ interface WhiteboardProps {
   onUpdateBlock: (blockId: number, updates: Partial<ExerciseBlockState>) => void;
   onRemoveBlock: (blockId: number) => void;
   onFocusBlock: (blockId: number) => void;
-  difficulty: Difficulty;
-  setDifficulty: (d: Difficulty) => void;
-  tone: Tone;
-  setTone: (t: Tone) => void;
-  theme: string;
-  setTheme: (t: string) => void;
-  totalTime: number;
+  difficulty: Difficulty; // Global settings, for logging initial block params
+  setDifficulty: (d: Difficulty) => void; // Global settings, not directly used here
+  tone: Tone; // Global settings, for logging initial block params
+  setTone: (t: Tone) => void; // Global settings, not directly used here
+  theme: string; // Global settings, for logging initial block params
+  setTheme: (t: string) => void; // Global settings, not directly used here
+  totalTime: number; // For logging overall session duration
   presentingBlockId: number | null;
   onEnterPresentation: (id: number) => void;
   onExitPresentation: () => void;
@@ -36,7 +39,8 @@ const SNAP_THRESHOLD = 10;
 
 const Whiteboard: React.FC<WhiteboardProps> = ({ 
     blocks, onAddBlock, onUpdateBlock, onRemoveBlock, onFocusBlock, 
-    difficulty, setDifficulty, tone, setTone, theme, setTheme, totalTime,
+    // These props are no longer directly used by Whiteboard to render GlobalSettings
+    difficulty, tone, theme, totalTime,
     presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide
 }) => {
   const [activeInteraction, setActiveInteraction] = useState<{ blockId: number } | null>(null);
@@ -47,20 +51,35 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const [isSpacePressed, setIsSpacePressed] = useState(false); // Track spacebar for alternative pan
 
   const canvasRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLElement>(null); // Ref for the main element to get clientWidth/Height
 
   const isWorkspaceEmpty = blocks.length === 0;
+  const { logger } = useActivityLogger();
 
   // -- PAN & ZOOM HANDLERS --
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Middle mouse (1) or Right mouse (2) to pan
-    if (e.button === 2 || e.button === 1) {
+    // Only allow panning if not already interacting with a block (dragging/resizing)
+    if (activeInteraction) return;
+
+    // Check if target is the background container (the big grid div) or the main container
+    const target = e.target as HTMLElement;
+    const isBackground = target.id === 'whiteboard-background' || target.id === 'whiteboard-main';
+
+    // Allow panning if:
+    // 1. Middle mouse (1) or Right mouse (2) is used anywhere
+    // 2. Left mouse (0) is used ON THE BACKGROUND (empty space) OR if Spacebar is held down
+    if (e.button === 1 || e.button === 2 || (e.button === 0 && (isBackground || isSpacePressed))) {
       setIsPanning(true);
       setLastMousePos({ x: e.clientX, y: e.clientY });
-      e.preventDefault();
+      
+      // Prevent default browser drag behaviors (e.g., image drag, text selection)
+      e.preventDefault(); 
+      e.stopPropagation(); // Stop propagation to prevent triggering onFocus for blocks
+      logger?.startActivity('canvas_panning', 'movement', 'Canvas Panning');
     }
   };
 
@@ -74,23 +93,65 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   };
 
   const handleMouseUp = () => {
-    setIsPanning(false);
+    if(isPanning) {
+        setIsPanning(false);
+        logger?.endActivity(); // End canvas panning activity
+    }
   };
 
   const handleWheel = (e: React.WheelEvent) => {
-    // Zoom on wheel
     e.preventDefault();
-    const scaleAmount = -e.deltaY * 0.001;
-    const newScale = Math.min(Math.max(0.1, scale + scaleAmount), 4);
+    // Multiplicative zoom for smoother feel
+    // zoomFactor > 1 zooms in, < 1 zooms out
+    const zoomFactor = Math.exp(-e.deltaY * 0.001); 
+    const newScale = Math.min(Math.max(0.1, scale * zoomFactor), 4);
     
-    // Optional: Zoom towards mouse pointer logic could go here
-    // For simplicity, we zoom center or current view
+    // Zoom towards mouse pointer for better UX
+    if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Calculate world coordinates before zoom
+        const worldX = (mouseX - pan.x) / scale;
+        const worldY = (mouseY - pan.y) / scale;
+
+        // Calculate new pan to keep world point under mouse
+        const newPanX = mouseX - worldX * newScale;
+        const newPanY = mouseY - worldY * newScale;
+
+        setPan({ x: newPanX, y: newPanY });
+        logger?.logFocusItem('Movement', 'Canvas Zoom', 0.1, null, 1, [], `Scale: ${newScale.toFixed(2)}`);
+    }
     setScale(newScale);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
-      e.preventDefault(); // Prevent right-click menu
+      e.preventDefault(); // Prevent right-click menu to allow right-click panning
   };
+  
+  // Track Spacebar for "Hand Tool" emulation
+  useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => { 
+          if (e.code === 'Space' && e.target === document.body) { // Only if space is pressed on body
+              e.preventDefault(); // Prevent scrolling page with space
+              setIsSpacePressed(true); 
+              logger?.logFocusItem('Movement', 'Spacebar Panning Enabled', 0.1);
+          }
+      };
+      const handleKeyUp = (e: KeyboardEvent) => { 
+          if (e.code === 'Space') {
+              setIsSpacePressed(false); 
+              logger?.logFocusItem('Movement', 'Spacebar Panning Disabled', 0.1);
+          }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('keyup', handleKeyUp);
+      return () => {
+          window.removeEventListener('keydown', handleKeyDown);
+          window.removeEventListener('keyup', handleKeyUp);
+      };
+  }, [logger]);
 
   // -- DROP LOGIC UPDATED FOR SCALE/PAN --
   
@@ -107,10 +168,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         // Convert screen coords to canvas coords:
-        // canvasX = (screenX - panX) / scale
+        // canvasX = (screenX - containerLeft - panX) / scale
         const x = (e.clientX - rect.left - pan.x) / scale;
         const y = (e.clientY - rect.top - pan.y) / scale;
         onAddBlock(type, x, y);
+        logger?.logFocusItem('Project Management', 'Block Added via Drag', 0.1, null, 1, [], `Type: ${type}, Pos: (${x.toFixed(0)}, ${y.toFixed(0)})`);
     }
   };
   
@@ -139,7 +201,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       const movingVPoints = [newPosition.x, newPosition.x + newPosition.width / 2, newPosition.x + newPosition.width];
       const movingHPoints = [newPosition.y, newPosition.y + newPosition.height / 2, newPosition.y + newPosition.height];
 
-      // Simple snapping logic
       for (const vp of vPoints) {
           for (let i = 0; i < movingVPoints.length; i++) {
               if (Math.abs(movingVPoints[i] - vp) < SNAP_THRESHOLD) {
@@ -190,10 +251,12 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       const blockCenterX = block.x + block.width / 2;
       const blockCenterY = block.y + block.height / 2;
 
+      // Center block in viewport accounting for scale
       const newPanX = (viewportW / 2) - (blockCenterX * scale);
       const newPanY = (viewportH / 2) - (blockCenterY * scale);
 
       setPan({ x: newPanX, y: newPanY });
+      logger?.logFocusItem('Movement', 'Center on Block', 0.1, null, 1, [], `Block: ${block.exerciseType}, Pos: (${block.x.toFixed(0)}, ${block.y.toFixed(0)})`);
   };
 
   const handleFocusAndCenter = (blockId: number) => {
@@ -208,7 +271,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     <main 
       ref={containerRef}
       id="whiteboard-main"
-      className={`flex-grow bg-slate-200 relative overflow-hidden ${isPanning ? 'cursor-grabbing' : 'cursor-default'}`}
+      className={`flex-grow bg-slate-200 relative overflow-hidden ${isPanning ? 'cursor-grabbing' : (isSpacePressed ? 'cursor-grab' : 'cursor-default')} font-casual`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -216,32 +279,21 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       onWheel={handleWheel}
       onContextMenu={handleContextMenu}
     >
-        <div className={`fixed top-4 left-4 right-4 z-50 pointer-events-none flex justify-center transition-opacity duration-300 ${presentingBlockId ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-            <div className="pointer-events-auto">
-                <GlobalSettings
-                  difficulty={difficulty}
-                  setDifficulty={setDifficulty}
-                  tone={tone}
-                  setTone={setTone}
-                  theme={theme}
-                  setTheme={setTheme}
-                  totalTime={totalTime}
-                />
-            </div>
-        </div>
-
         {isWorkspaceEmpty && (
-            <div className="absolute inset-0 flex flex-col justify-center items-center text-center text-slate-500 pointer-events-none p-4 z-0 select-none">
-                <MagicWandIcon />
+            <div className="absolute inset-0 flex flex-col justify-center items-center text-center text-neutral-gray-500 pointer-events-none p-4 z-0 select-none">
+                <MagicWandIcon className="w-16 h-16 text-neutral-gray-400" />
                 <h2 className="text-2xl font-bold mt-4">Welcome to the Practice Genie!</h2>
                 <p className="mt-2 text-lg">Your infinite whiteboard is empty.</p>
                 <p className="mt-1">Drag an exercise from the sidebar to anywhere on the canvas.</p>
-                <p className="mt-4 text-sm opacity-70">Right-click drag to pan • Scroll to zoom</p>
+                <p className="mt-4 text-sm opacity-70">
+                   <span className="bg-neutral-gray-300/50 px-2 py-1 rounded">Click & Drag</span> empty space to pan • Scroll to zoom
+                </p>
             </div>
         )}
 
         <div 
             ref={canvasRef}
+            id="whiteboard-background"
             className="absolute top-0 left-0 w-full h-full transition-transform duration-75 ease-out origin-top-left"
             style={{ 
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,

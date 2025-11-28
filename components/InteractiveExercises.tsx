@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     ExerciseType, IFITBExercise, ICollocationExercise, IPhrasalVerbGapFillExercise, 
@@ -52,7 +51,7 @@ export const FeedbackSection: React.FC<{
                         onClick={onCheck} 
                         disabled={loading || !hasInput} 
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm text-white transition-all shadow-md hover:shadow-lg active:scale-95 
-                        ${!hasInput ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:brightness-110'}`}
+                        ${!hasInput ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:brightness-110'}`}
                     >
                         {loading ? <LoadingIcon className="w-4 h-4 animate-spin" /> : <SparklesIcon className="w-4 h-4" />}
                         {loading ? 'Checking...' : 'Check with AI'}
@@ -60,13 +59,13 @@ export const FeedbackSection: React.FC<{
                 </div>
             )}
             {feedback && (
-                <div className="bg-indigo-50 p-4 rounded-2xl border-2 border-indigo-100 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <h5 className="font-bold text-indigo-800 mb-2 flex items-center gap-2 text-sm uppercase tracking-wide">
-                        <SparklesIcon className="w-4 h-4 text-indigo-600"/> Genie Feedback
+                <div className="bg-purple-50 p-4 rounded-2xl border-2 border-purple-100 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <h5 className="font-bold text-purple-900 mb-2 flex items-center gap-2 text-sm uppercase tracking-wide">
+                        <SparklesIcon className="w-4 h-4 text-purple-700"/> Genie Feedback
                     </h5>
-                    <p className="whitespace-pre-wrap text-indigo-900 text-sm leading-relaxed font-medium">{feedback}</p>
+                    <p className="whitespace-pre-wrap text-purple-950 text-sm leading-relaxed font-medium">{feedback}</p>
                     <div className="flex justify-end mt-2">
-                        <button onClick={onCheck} className="text-xs font-bold text-indigo-500 hover:text-indigo-700 underline">
+                        <button onClick={onCheck} className="text-xs font-bold text-purple-600 hover:text-purple-800 underline">
                             Check Again
                         </button>
                     </div>
@@ -90,8 +89,8 @@ export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationE
     };
     
     const statusClasses = {
-        correct: 'bg-green-100 border-green-500 text-green-800 ring-2 ring-green-200',
-        incorrect: 'bg-red-100 border-red-500 text-red-800 ring-2 ring-red-200',
+        correct: 'bg-green-100 border-green-500 text-green-900 ring-2 ring-green-200',
+        incorrect: 'bg-red-100 border-red-500 text-red-900 ring-2 ring-red-200',
         neutral: `${colors.chip.bg} ${colors.chip.border}`,
     };
 
@@ -101,8 +100,8 @@ export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationE
             {'phrasalVerb' in exercise && <p className="text-sm italic opacity-70 mb-2 font-playful">Phrasal Verb: {exercise.phrasalVerb}</p>}
             <p className={`leading-loose`}>
                 {exercise.question.split('[BLANK]')[0]}
-                <span onDrop={handleDrop} onDragOver={(e) => e.preventDefault()} className={`inline-flex items-center justify-center min-w-[100px] h-8 mx-1 px-2 border-b-2 border-dashed rounded-lg text-center align-baseline transition-all ${statusClasses[status]}`}>
-                    {droppedWord || <span className="opacity-30 text-xs">drop here</span>}
+                <span onDrop={handleDrop} onDragOver={(e) => e.preventDefault()} className={`inline-flex items-center justify-center min-w-[100px] h-8 mx-1 px-2 border-b-2 border-dashed rounded-lg text-center align-baseline transition-all ${statusClasses[status]} font-semibold`}>
+                    {droppedWord || <span className="opacity-30 text-xs font-normal">drop here</span>}
                 </span>
                 {exercise.question.split('[BLANK]')[1]}
             </p>
@@ -141,7 +140,7 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
                         setUserInput(e.target.value);
                         setFeedback(null);
                     }}
-                    className={`flex-grow p-2 rounded-xl border-2 ${colors.chip.border} bg-white focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all font-bold`}
+                    className={`flex-grow p-2 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all font-bold`}
                     placeholder="Type correct form..."
                 />
             </div>
@@ -198,8 +197,9 @@ export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPre
                     let buttonClass = `${colors.chip.bg} ${colors.chip.text} border-2 ${colors.chip.border} hover:-translate-y-0.5 hover:shadow-md`;
 
                     if (isAnswered) {
-                        if (isCorrect) buttonClass = 'bg-green-500 text-white border-green-600 shadow-inner';
-                        else if (isSelected) buttonClass = 'bg-red-500 text-white border-red-600';
+                        // Use 600 scale for better white-text contrast
+                        if (isCorrect) buttonClass = 'bg-green-600 text-white border-green-700 shadow-inner font-bold';
+                        else if (isSelected) buttonClass = 'bg-red-600 text-white border-red-700 font-bold';
                         else buttonClass = 'bg-slate-100 text-slate-400 border-slate-200 opacity-60';
                     }
                     return (
@@ -360,8 +360,8 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
                         let buttonClass = `bg-white border-2 ${colors.chip.border} ${colors.chip.text}`;
                         if (match) {
                             buttonClass = match.isCorrect 
-                                ? 'bg-green-100 text-green-800 border-green-500' 
-                                : 'bg-red-100 text-red-800 border-red-500';
+                                ? 'bg-green-100 text-green-900 border-green-500' 
+                                : 'bg-red-100 text-red-900 border-red-500';
                         } else if (isSelected) {
                             const selectedBg = colors.textOnLight.replace('text-', 'bg-');
                             buttonClass = `${selectedBg} text-white border-transparent scale-105 shadow-md`;
@@ -379,8 +379,8 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
                         if (isMatched) {
                             const match = matchEntry[1] as MatchInfo;
                             buttonClass = match.isCorrect 
-                               ? 'bg-green-100 text-green-800 border-green-500' 
-                               : 'bg-red-100 text-red-800 border-red-500';
+                               ? 'bg-green-100 text-green-900 border-green-500' 
+                               : 'bg-red-100 text-red-900 border-red-500';
                         }
                         
                         return <button key={answerIndex} onClick={() => handleSelectAnswer(answerIndex)} disabled={isMatched} className={`w-full p-3 rounded-xl text-sm font-medium text-left transition-all ${buttonClass}`}>{answer}</button>
@@ -406,9 +406,9 @@ export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionEx
 
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
-            <p className="mb-2 font-playful text-lg text-red-500/80">Incorrect:</p>
-            <div className="mb-4 p-3 bg-red-50 rounded-xl border-l-4 border-red-300 italic">"{exercise.incorrectSentence}"</div>
-            <p className="mb-2 font-playful text-lg text-green-600/80">Correct:</p>
+            <p className="mb-2 font-playful text-lg text-red-600">Incorrect:</p>
+            <div className="mb-4 p-3 bg-red-50 rounded-xl border-l-4 border-red-300 italic text-red-900">"{exercise.incorrectSentence}"</div>
+            <p className="mb-2 font-playful text-lg text-green-600">Correct:</p>
             <input
                 type="text"
                 value={userInput}
@@ -416,7 +416,7 @@ export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionEx
                     setUserInput(e.target.value);
                     setFeedback(null);
                 }}
-                className={`w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all font-medium`}
+                className={`w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all font-medium`}
                 placeholder="Type corrected sentence..."
             />
              <FeedbackSection 
@@ -482,7 +482,7 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
                         onDragOver={(e) => e.preventDefault()}
                         className={`p-3 rounded-xl cursor-grab active:cursor-grabbing bg-white border-2 ${colors.chip.border} shadow-sm hover:shadow-md transition-all`}
                     >
-                       <span className="font-bold mr-2 text-slate-400">{i+1}.</span> {part}
+                       <span className="font-bold mr-2 text-slate-500">{i+1}.</span> {part}
                     </li>
                 ))}
             </ul>
@@ -513,7 +513,7 @@ export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExerci
         setLoading(false);
     };
 
-    const inputStyle = `w-full p-2 rounded-xl border-2 ${colors.chip.border} bg-white focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
+    const inputStyle = `w-full p-2 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
     
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
@@ -524,7 +524,7 @@ export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExerci
             <div className="space-y-4">
                 {exercise.questions.map((q, i) => (
                     <div key={i} className="bg-slate-50 p-3 rounded-xl">
-                        <label className="block text-sm font-bold mb-2">{q.question}</label>
+                        <label className="block text-sm font-bold mb-2 text-slate-700">{q.question}</label>
                         <input 
                             type="text" 
                             className={inputStyle} 
@@ -560,7 +560,7 @@ export const InteractivePicturePrompt: React.FC<{ exercise: IPicturePromptExerci
       setLoading(false);
   };
 
-  const textareaStyle = `w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
+  const textareaStyle = `w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
   
   return (
     <div className={`text-base font-casual ${colors.textOnLight}`}>
@@ -641,12 +641,12 @@ export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExer
       setLoading(false);
   };
 
-  const textareaStyle = `w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all font-casual`;
+  const textareaStyle = `w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all font-casual`;
 
   return (
     <div className={`text-base font-casual ${colors.textOnLight}`}>
       <h4 className="font-playful text-xl mb-3">{exercise.title}</h4>
-      <div className="mb-4 p-4 bg-indigo-50/50 rounded-2xl border-2 border-dashed border-indigo-100">
+      <div className="mb-4 p-4 bg-purple-50/50 rounded-2xl border-2 border-purple-100">
           {typeof promptContent === 'string' ? <p className="italic text-lg">{promptContent}</p> : promptContent}
       </div>
       <label className="font-bold mb-2 block text-sm uppercase opacity-70">{instruction}</label>
@@ -684,7 +684,7 @@ export const InteractiveDictoGloss: React.FC<{ exercise: IDictoGlossExercise; co
     };
 
     const buttonBg = colors.textOnLight.replace('text-', 'bg-');
-    const textareaStyle = `mt-4 w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
+    const textareaStyle = `mt-4 w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
     
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
@@ -742,7 +742,7 @@ export const InteractiveInformationTransfer: React.FC<{ exercise: IInformationTr
         setLoading(false);
     };
 
-    const inputStyle = `w-full p-2 rounded-lg border-2 ${colors.chip.border} bg-white focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none`;
+    const inputStyle = `w-full p-2 rounded-lg border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none`;
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
             <h4 className="font-playful text-xl mb-2">{exercise.title}</h4>
@@ -750,7 +750,7 @@ export const InteractiveInformationTransfer: React.FC<{ exercise: IInformationTr
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {exercise.formFields.map((field, i) => (
                     <div key={i} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <label className="block text-xs font-bold uppercase mb-1 opacity-70">{field}</label>
+                        <label className="block text-sm font-bold mb-2 text-slate-700">{field}</label>
                         <input 
                             type="text" 
                             className={inputStyle}
@@ -785,7 +785,7 @@ export const InteractiveListening: React.FC<{ exercise: IListeningSpecificInfoEx
         setLoading(false);
     };
 
-    const inputStyle = `w-full p-2 rounded-xl border-2 ${colors.chip.border} bg-white focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none`;
+    const inputStyle = `w-full p-2 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none`;
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
             <h4 className="font-playful text-xl mb-2">{exercise.title}</h4>
@@ -797,7 +797,7 @@ export const InteractiveListening: React.FC<{ exercise: IListeningSpecificInfoEx
             <div className="space-y-4">
                 {exercise.questions.map((q, i) => (
                     <div key={i}>
-                        <label className="block text-sm font-bold mb-2">{q.question}</label>
+                        <label className="block text-sm font-bold mb-2 text-slate-700">{q.question}</label>
                         <input 
                             type="text" 
                             className={inputStyle} 
@@ -869,7 +869,7 @@ export const InteractiveRegisterSort: React.FC<{ exercise: IRegisterSortExercise
                         <h5 className={`font-black text-center text-sm uppercase mb-3 tracking-wider ${colors.chip.text}`}>{category}</h5>
                         <div className="space-y-2 flex flex-col items-start">
                             {classified[category].map(phrase => (
-                                <Chip key={phrase} text={phrase} draggable onDragStart={(e) => handleDragStart(e, phrase)} chipColors={colors.chip} />
+                               <Chip key={phrase} text={phrase} draggable onDragStart={(e) => handleDragStart(e, phrase)} chipColors={colors.chip} />
                             ))}
                         </div>
                     </div>

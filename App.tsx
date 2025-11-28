@@ -2,6 +2,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Whiteboard from './components/Whiteboard';
+import RadialMenu from './components/RadialMenu'; // New import
+import GlobalSettings from './components/GlobalSettings'; // Refactored GlobalSettings
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from './types';
 import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration } from './constants';
 import { MenuIcon } from './components/icons';
@@ -92,6 +94,7 @@ const App: React.FC = () => {
   });
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // New state for modal
   const [presentingBlockId, setPresentingBlockId] = useState<number | null>(null);
 
   // Save state to localStorage whenever it changes
@@ -112,6 +115,7 @@ const App: React.FC = () => {
   const enterPresentation = useCallback((blockId: number) => {
       setPresentingBlockId(blockId);
       setIsSidebarOpen(false); // Auto-close sidebar for better view
+      setIsSettingsModalOpen(false); // Auto-close settings modal
   }, []);
 
   const exitPresentation = useCallback(() => {
@@ -133,6 +137,75 @@ const App: React.FC = () => {
           setPresentingBlockId(blocks[currentIndex - 1].id);
       }
   }, [blocks, presentingBlockId]);
+
+  // Export/Import/Clear Logic
+  const handleExportState = useCallback(() => {
+      const data = {
+          version: '2.1.0',
+          timestamp: new Date().toISOString(),
+          state: {
+              blocks,
+              difficulty,
+              tone,
+              theme,
+              focusVocabulary,
+              inclusionRate,
+              focusGrammar,
+              grammarInclusionRate
+          }
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `practice-genie-project-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+  }, [blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
+
+  const handleImportState = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+          try {
+              const json = JSON.parse(event.target?.result as string);
+              if (json.state) {
+                  const { state } = json;
+                  if (state.blocks) setBlocks(state.blocks);
+                  if (state.difficulty) setDifficulty(state.difficulty);
+                  if (state.tone) setTone(state.tone);
+                  if (state.theme) setTheme(state.theme);
+                  if (state.focusVocabulary) setFocusVocabulary(state.focusVocabulary);
+                  if (state.inclusionRate) setInclusionRate(state.inclusionRate);
+                  if (state.focusGrammar) setFocusGrammar(state.focusGrammar);
+                  if (state.grammarInclusionRate) setGrammarInclusionRate(state.grammarInclusionRate);
+                  
+                  // Update Z-index counter based on imported blocks
+                  if (state.blocks && state.blocks.length > 0) {
+                       const maxZ = Math.max(...state.blocks.map((b: any) => b.zIndex || 0));
+                       setZCounter(maxZ + 1);
+                  }
+              }
+          } catch (error) {
+              console.error("Failed to parse project file", error);
+              alert("Invalid project file.");
+          }
+      };
+      reader.readAsText(file);
+      // Reset input
+      e.target.value = '';
+  }, []);
+
+  const handleClearBoard = useCallback(() => {
+      if (window.confirm("Are you sure you want to clear the entire whiteboard? This cannot be undone unless you have exported your project.")) {
+          setBlocks([]);
+          // Optionally reset other states or keep them
+      }
+  }, []);
 
 
   const addBlock = useCallback((type: ExerciseType, dropX?: number, dropY?: number) => {
@@ -223,7 +296,26 @@ const App: React.FC = () => {
   }, [zCounter]);
 
   return (
-    <div className="h-screen w-screen flex font-sans antialiased overflow-hidden bg-slate-800">
+    <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800">
+      {/* Radial Menu replaces fixed top bar */}
+      <RadialMenu 
+          onToggleSettings={() => setIsSettingsModalOpen(true)}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onExportState={handleExportState}
+          onAddExercise={() => addBlock(Difficulty.B1)} // Quick add uses default difficulty
+      />
+
+      {/* Settings Modal - conditionally rendered */}
+      {isSettingsModalOpen && (
+          <GlobalSettings 
+              difficulty={difficulty} setDifficulty={setDifficulty}
+              tone={tone} setTone={setTone}
+              theme={theme} setTheme={setTheme}
+              totalTime={totalTime}
+              onClose={() => setIsSettingsModalOpen(false)}
+          />
+      )}
+
       <Sidebar 
         isSidebarOpen={isSidebarOpen}
         focusVocabulary={focusVocabulary}
@@ -234,24 +326,22 @@ const App: React.FC = () => {
         setFocusGrammar={setFocusGrammar}
         grammarInclusionRate={grammarInclusionRate}
         setGrammarInclusionRate={setGrammarInclusionRate}
-        onAddExercise={(type) => addBlock(type)}
+        onAddExercise={(type) => addBlock(type)} // Sidebar add allows specific type
+        onExportState={handleExportState}
+        onImportState={handleImportState}
+        onClearBoard={handleClearBoard}
       />
-      {/* Overlay for mobile */}
-      {isSidebarOpen && (
-        <div 
-            onClick={() => setIsSidebarOpen(false)} 
-            className="fixed inset-0 bg-black/60 z-30 lg:hidden"
-            aria-hidden="true"
-        ></div>
-      )}
+      
+      {/* Overlay for mobile - Smooth transition */}
+      <div 
+          onClick={() => setIsSidebarOpen(false)} 
+          className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ease-in-out ${
+            isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+          aria-hidden="true"
+      ></div>
+
       <div className="flex-grow flex flex-col relative">
-        <button 
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-700/80 text-white rounded-full backdrop-blur-sm"
-          aria-label="Toggle sidebar"
-        >
-            <MenuIcon />
-        </button>
         <Whiteboard 
           blocks={blocks}
           onAddBlock={addBlock}

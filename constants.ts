@@ -1,8 +1,26 @@
-
 import { ExerciseType, Difficulty, Tone } from './types';
 
 export const DIFFICULTY_LEVELS = Object.values(Difficulty);
 export const TONES = Object.values(Tone);
+
+export const VALID_STUDENT_IDS = [
+  'aarontutor',
+  'andrea-always-aims-above-average-2026',
+  'carlos-premium-english-2025',
+  'david-saves-snacks-2025',
+  'edwin-enjoys-every-english-exam-2026',
+  'francisco-finds-five-funny-facts-2026',
+  'jocelyn-explains-meeting-mania-2026',
+  'kyrylo-keeps-kicking-knowledge-keys-2026',
+  'leidy-2025-wallyworld',
+  'maarten-makes-many-major-moves-2026',
+  'matias-masters-many-magic-maps-2026',
+  'nicolas-never-needs-new-notes-2026',
+  'norbert-never-naps-near-noon-2026',
+  'ruslan-rarely-runs-round-rooms-2026',
+  'sergio-sees-seven-super-stars-2026',
+  'test'
+];
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   [Difficulty.A1]: 'A1 (Beginner)',
@@ -149,77 +167,78 @@ type ColorScheme = {
   bgOnDark: string;
 };
 
+// PROFESSIONAL BUSINESS Palette - adapted for WCAG AA on #fffbf0 (warm paper) background
 export const PEDAGOGY_COLORS: Record<string, ColorScheme> = {
   'PPP': {
-    textOnDark: 'text-cyan-300',
-    textOnLight: 'text-slate-700',
-    border: 'border-cyan-400',
-    shadow: 'shadow-cyan-500/30',
-    chip: { bg: 'bg-cyan-50', text: 'text-cyan-800', border: 'border-cyan-300' },
-    bgOnDark: 'bg-cyan-900/40'
+    textOnDark: 'text-primary-blue-300', // Confident blue on dark
+    textOnLight: 'text-primary-blue-800', // Darker blue on paper for contrast
+    border: 'border-primary-blue-400',
+    shadow: 'shadow-primary-blue-500/30',
+    chip: { bg: 'bg-primary-blue-50', text: 'text-primary-blue-900', border: 'border-primary-blue-300' },
+    bgOnDark: 'bg-primary-blue-900/40'
   },
   'Input': {
-    textOnDark: 'text-emerald-300',
-    textOnLight: 'text-slate-700',
-    border: 'border-emerald-400',
-    shadow: 'shadow-emerald-500/30',
-    chip: { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-300' },
-    bgOnDark: 'bg-emerald-900/40'
+    textOnDark: 'text-secondary-purple-300', // Creative purple on dark
+    textOnLight: 'text-secondary-purple-800', // Darker purple on paper for contrast
+    border: 'border-secondary-purple-400',
+    shadow: 'shadow-secondary-purple-500/30',
+    chip: { bg: 'bg-secondary-purple-50', text: 'text-secondary-purple-900', border: 'border-secondary-purple-300' },
+    bgOnDark: 'bg-secondary-purple-900/40'
   },
   'Lexis': {
-    textOnDark: 'text-fuchsia-300',
-    textOnLight: 'text-slate-700',
-    border: 'border-fuchsia-400',
-    shadow: 'shadow-fuchsia-500/30',
-    chip: { bg: 'bg-fuchsia-50', text: 'text-fuchsia-800', border: 'border-fuchsia-300' },
-    bgOnDark: 'bg-fuchsia-900/40'
+    textOnDark: 'text-accent-green-300', // Growth green on dark
+    textOnLight: 'text-accent-green-800', // Darker green on paper for contrast
+    border: 'border-accent-green-400',
+    shadow: 'shadow-accent-green-500/30',
+    chip: { bg: 'bg-accent-green-50', text: 'text-accent-green-900', border: 'border-accent-green-300' },
+    bgOnDark: 'bg-accent-green-900/40'
   },
   'Skills': {
-    textOnDark: 'text-amber-300',
-    textOnLight: 'text-slate-700',
-    border: 'border-amber-400',
-    shadow: 'shadow-amber-500/30',
-    chip: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-300' },
-    bgOnDark: 'bg-amber-900/40'
+    textOnDark: 'text-neutral-gray-300', // Professional gray on dark
+    textOnLight: 'text-neutral-gray-800', // Darker gray on paper for contrast
+    border: 'border-neutral-gray-400',
+    shadow: 'shadow-neutral-gray-500/30',
+    chip: { bg: 'bg-neutral-gray-50', text: 'text-neutral-gray-900', border: 'border-neutral-gray-300' },
+    bgOnDark: 'bg-neutral-gray-900/40'
   },
   'TBLT': {
-    textOnDark: 'text-indigo-300',
-    textOnLight: 'text-slate-700',
-    border: 'border-indigo-400',
-    shadow: 'shadow-indigo-500/30',
-    chip: { bg: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-300' },
-    bgOnDark: 'bg-indigo-900/40'
+    textOnDark: 'text-warm-orange-300', // Warm orange on dark (from Creative palette as Accent)
+    textOnLight: 'text-warm-orange-800', // Darker orange on paper
+    border: 'border-warm-orange-400',
+    shadow: 'shadow-warm-orange-500/30',
+    chip: { bg: 'bg-warm-orange-50', text: 'text-warm-orange-900', border: 'border-warm-orange-300' },
+    bgOnDark: 'bg-warm-orange-900/40'
   },
   'Social English': {
-    textOnDark: 'text-rose-300',
-    textOnLight: 'text-slate-700',
-    border: 'border-rose-400',
-    shadow: 'shadow-rose-500/30',
-    chip: { bg: 'bg-rose-50', text: 'text-rose-800', border: 'border-rose-300' },
-    bgOnDark: 'bg-rose-900/40'
+    textOnDark: 'text-calm-teal-300', // Calm teal on dark (from Trust palette as Primary)
+    textOnLight: 'text-calm-teal-800', // Darker teal on paper
+    border: 'border-calm-teal-400',
+    shadow: 'shadow-calm-teal-500/30',
+    chip: { bg: 'bg-calm-teal-50', text: 'text-calm-teal-900', border: 'border-calm-teal-300' },
+    bgOnDark: 'bg-calm-teal-900/40'
   },
   'C-R': {
-    textOnDark: 'text-lime-300',
-    textOnLight: 'text-slate-700',
-    border: 'border-lime-400',
-    shadow: 'shadow-lime-500/30',
-    chip: { bg: 'bg-lime-50', text: 'text-lime-800', border: 'border-lime-300' },
-    bgOnDark: 'bg-lime-900/40'
+    textOnDark: 'text-fresh-lime-300', // Fresh lime on dark (from Creative palette as Accent)
+    textOnLight: 'text-fresh-lime-800', // Darker lime on paper
+    border: 'border-fresh-lime-400',
+    shadow: 'shadow-fresh-lime-500/30',
+    chip: { bg: 'bg-fresh-lime-50', text: 'text-fresh-lime-900', border: 'border-fresh-lime-300' },
+    bgOnDark: 'bg-fresh-lime-900/40'
   },
   'Production': {
-    textOnDark: 'text-violet-300',
-    textOnLight: 'text-slate-700',
-    border: 'border-violet-400',
-    shadow: 'shadow-violet-500/30',
-    chip: { bg: 'bg-violet-50', text: 'text-violet-800', border: 'border-violet-300' },
-    bgOnDark: 'bg-violet-900/40'
+    textOnDark: 'text-innovation-pink-300', // Innovation pink on dark (from Tech palette)
+    textOnLight: 'text-innovation-pink-800', // Darker pink on paper
+    border: 'border-innovation-pink-400',
+    shadow: 'shadow-innovation-pink-500/30',
+    chip: { bg: 'bg-innovation-pink-50', text: 'text-innovation-pink-900', border: 'border-innovation-pink-300' },
+    bgOnDark: 'bg-innovation-pink-900/40'
   },
-  'Default': {
+  'Default': { // Fallback, uses slate for professionalism
     textOnDark: 'text-slate-300',
-    textOnLight: 'text-slate-700',
+    textOnLight: 'text-slate-900',
     border: 'border-slate-400',
     shadow: 'shadow-slate-500/30',
-    chip: { bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-300' },
+    chip: { bg: 'bg-slate-50', text: 'text-slate-900', border: 'border-slate-300' },
     bgOnDark: 'bg-slate-900/40'
   }
 };
