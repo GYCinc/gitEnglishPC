@@ -68,42 +68,50 @@ const Header = React.forwardRef<HTMLDivElement, {
 }, ref) => {
     const { logger } = useActivityLogger();
 
-    const handleRemove = () => {
+    const handleRemove = (e: React.MouseEvent) => {
+        e.stopPropagation();
         logger?.logFocusItem('Project Management', 'Exercise Block Removed', 0.1, null, 1, [], title);
         onRemove();
     };
 
-    const handleRegenerate = () => {
+    const handleRegenerate = (e: React.MouseEvent) => {
+        e.stopPropagation();
         logger?.logFocusItem('Activity Management', 'Exercise Regenerated', 0.1, null, 1, [], title);
         onRegenerate();
     };
 
-    const handleGenerate = () => {
+    const handleGenerate = (e: React.MouseEvent) => {
+        e.stopPropagation();
         logger?.logFocusItem('Activity Management', 'Exercise Generated', 0.1, null, 1, [], `${title} x${generateAmount}`);
         onGenerate();
     };
 
-    const handleToggleSettings = () => {
+    const handleToggleSettings = (e: React.MouseEvent) => {
+        e.stopPropagation();
         logger?.logFocusItem('Settings', `Block Settings ${isSettingsOpen ? 'Closed' : 'Opened'}`, 0.1, null, 1, [], title);
         onToggleSettings();
     };
 
-    const handleEnterPresentation = () => {
+    const handleEnterPresentation = (e: React.MouseEvent) => {
+        e.stopPropagation();
         logger?.startActivity(`presentation_${title.replace(/\s/g, '_')}_${Date.now()}`, 'presentation', `Presenting: ${title}`);
         onEnterPresentation?.();
     };
 
-    const handleExitPresentation = () => {
+    const handleExitPresentation = (e: React.MouseEvent) => {
+        e.stopPropagation();
         logger?.endActivity(); // Ends the presentation activity
         onExitPresentation?.();
     };
 
-    const handleNextItem = () => {
+    const handleNextItem = (e: React.MouseEvent) => {
+        e.stopPropagation();
         logger?.logFocusItem('Interaction', 'Presentation Next Item', 0.1, null, 1, [], `Block: ${title}, Item: ${currentItem + 1}/${totalItems}`);
         onNextItem?.();
     };
 
-    const handlePrevItem = () => {
+    const handlePrevItem = (e: React.MouseEvent) => {
+        e.stopPropagation();
         logger?.logFocusItem('Interaction', 'Presentation Previous Item', 0.1, null, 1, [], `Block: ${title}, Item: ${currentItem - 1}/${totalItems}`);
         onPrevItem?.();
     };
@@ -112,7 +120,7 @@ const Header = React.forwardRef<HTMLDivElement, {
         <div ref={ref} className={`handle bg-slate-800 text-white p-3 ${isPresenting ? 'rounded-none p-6' : 'rounded-t-2xl'} flex justify-between items-center cursor-move flex-shrink-0 border-b border-slate-700 relative z-10 font-casual`}>
             <div className="flex items-center gap-4 min-w-0 flex-1">
                 {isPresenting && (
-                     <button onClick={handleExitPresentation} className="p-2 rounded-full hover:bg-slate-700 text-neutral-gray-400 hover:text-white transition-colors mr-2 relative z-50" title="Exit Presentation Mode">
+                     <button onMouseDown={(e) => e.stopPropagation()} onClick={handleExitPresentation} className="p-2 rounded-full hover:bg-slate-700 text-neutral-gray-400 hover:text-white transition-colors mr-2 relative z-50" title="Exit Presentation Mode">
                         <XMarkIcon className="w-6 h-6" />
                     </button>
                 )}
@@ -131,8 +139,8 @@ const Header = React.forwardRef<HTMLDivElement, {
                  {isPresenting && totalItems && totalItems > 1 && (
                      <div className="flex items-center gap-4 mr-4 border-r border-slate-700 pr-4">
                          <span className="text-sm font-mono font-bold text-neutral-gray-400">{currentItem} / {totalItems}</span>
-                         <button onClick={handlePrevItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === 1}><ChevronLeftIcon className="w-6 h-6" /></button>
-                         <button onClick={handleNextItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === totalItems}><ChevronRightIcon className="w-6 h-6" /></button>
+                          <button onMouseDown={(e) => e.stopPropagation()} onClick={handlePrevItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === 1}><ChevronLeftIcon className="w-6 h-6" /></button>
+                          <button onMouseDown={(e) => e.stopPropagation()} onClick={handleNextItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === totalItems}><ChevronRightIcon className="w-6 h-6" /></button>
                      </div>
                  )}
 
@@ -149,6 +157,7 @@ const Header = React.forwardRef<HTMLDivElement, {
                                 const val = parseInt(e.target.value);
                                 onQuantityChange(isNaN(val) || val < 1 ? undefined : val);
                             }}
+                             onMouseDown={(e) => e.stopPropagation()}
                             className={`w-6 bg-transparent text-center text-xs font-bold outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none ${quantity ? 'text-primary-blue-400' : 'text-neutral-gray-300'}`}
                             title="Manually set amount (overrides auto-size)"
                         />
@@ -160,25 +169,25 @@ const Header = React.forwardRef<HTMLDivElement, {
                      <>
                         {/* Presentation Button */}
                          {isGenerated && (
-                             <button onClick={handleEnterPresentation} className="p-1.5 rounded-full hover:bg-accent-green-500/20 text-accent-green-400 hover:text-accent-green-300 transition-colors" title="Start Presentation Mode">
+                             <button onMouseDown={(e) => e.stopPropagation()} onClick={handleEnterPresentation} className="p-1.5 rounded-full hover:bg-accent-green-500/20 text-accent-green-400 hover:text-accent-green-300 transition-colors" title="Start Presentation Mode">
                                 <PlayIcon className="w-4 h-4" />
                              </button>
                          )}
 
                          {isGenerated ? (
-                            <button onClick={handleRegenerate} className="p-1.5 rounded-full hover:bg-primary-blue-500/20 text-primary-blue-400 hover:text-primary-blue-300 transition-colors" title="Regenerate">
+                            <button onMouseDown={(e) => e.stopPropagation()} onClick={handleRegenerate} className="p-1.5 rounded-full hover:bg-primary-blue-500/20 text-primary-blue-400 hover:text-primary-blue-300 transition-colors" title="Regenerate">
                                 <ResetIcon className="w-4 h-4" />
                             </button>
                          ) : (
-                            <button onClick={handleGenerate} className="px-3 py-1 rounded-full text-xs bg-gradient-to-r from-warm-orange-500 to-innovation-pink-500 text-white font-bold hover:brightness-110 transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap" title="Generate">
+                            <button onMouseDown={(e) => e.stopPropagation()} onClick={handleGenerate} className="px-3 py-1 rounded-full text-xs bg-gradient-to-r from-warm-orange-500 to-innovation-pink-500 text-white font-bold hover:brightness-110 transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap" title="Generate">
                                 <MagicWandIcon className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">Generate</span>
                             </button>
                          )}
-                         <button onClick={handleToggleSettings} className={`p-1.5 rounded-full ${isSettingsOpen ? 'bg-slate-700 text-white' : 'text-neutral-gray-400 hover:text-white'} transition-colors`} title="Settings">
+                         <button onMouseDown={(e) => e.stopPropagation()} onClick={handleToggleSettings} className={`p-1.5 rounded-full ${isSettingsOpen ? 'bg-slate-700 text-white' : 'text-neutral-gray-400 hover:text-white'} transition-colors`} title="Settings">
                             <SettingsIcon className="w-4 h-4" />
                         </button>
-                        <button onClick={handleRemove} className="p-1.5 rounded-full hover:bg-energy-red-500/20 text-energy-red-400 hover:text-energy-red-300 transition-colors" title="Remove">
+                        <button onMouseDown={(e) => e.stopPropagation()} onClick={handleRemove} className="p-1.5 rounded-full hover:bg-energy-red-500/20 text-energy-red-400 hover:text-energy-red-300 transition-colors" title="Remove">
                             <TrashIcon className="w-4 h-4" />
                         </button>
                      </>

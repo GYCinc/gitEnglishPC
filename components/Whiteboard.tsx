@@ -259,12 +259,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       logger?.logFocusItem('Movement', 'Center on Block', 0.1, null, 1, [], `Block: ${block.exerciseType}, Pos: (${block.x.toFixed(0)}, ${block.y.toFixed(0)})`);
   };
 
-  const handleFocusAndCenter = (blockId: number) => {
+  const handleFocus = (blockId: number) => {
       onFocusBlock(blockId);
-      const block = blocks.find(b => b.id === blockId);
-      if (block) {
-          centerOnBlock(block);
-      }
+      // Removed centerOnBlock(block) to prevent jarring movement on every click
   };
 
   return (
@@ -332,7 +329,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
                     blockState={block}
                     onUpdate={(blockId, updates) => onUpdateBlock(blockId, updates)}
                     onRemove={onRemoveBlock}
-                    onFocus={handleFocusAndCenter}
+                    onFocus={handleFocus}
                     onDrag={(e, data) => handleInteraction(block.id, { ...block, x: data.x, y: data.y })}
                     onDragStop={(e, data) => handleInteractionStop(block.id, { ...block, x: data.x, y: data.y })}
                     onResize={(e, direction, ref, delta, position) => handleInteraction(block.id, { ...block, width: parseInt(ref.style.width, 10), height: parseInt(ref.style.height, 10), ...position })}
