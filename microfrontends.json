@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/microfrontends.json",
+  "applications": {
+    "git-english-pc": {
+      "development": {
+        "fallback": "git-english-pc.vercel.app"
+      }
+    }
+  }
+}
