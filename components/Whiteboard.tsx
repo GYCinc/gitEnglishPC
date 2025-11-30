@@ -1,12 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ExerciseBlock from './ExerciseBlock';
 import { ExerciseType, Difficulty, Tone, ExerciseBlockState } from '../types';
-// Add MagicWandIcon import
 import { MagicWandIcon } from './icons';
 import { useActivityLogger } from '../ActivityContext'; // Import logger context
-
-// GlobalSettings is now a modal, not directly rendered by Whiteboard
-// import GlobalSettings from './GlobalSettings'; 
 
 interface WhiteboardProps {
   blocks: ExerciseBlockState[];
@@ -14,18 +10,20 @@ interface WhiteboardProps {
   onUpdateBlock: (blockId: number, updates: Partial<ExerciseBlockState>) => void;
   onRemoveBlock: (blockId: number) => void;
   onFocusBlock: (blockId: number) => void;
-  difficulty: Difficulty; // Global settings, for logging initial block params
-  setDifficulty: (d: Difficulty) => void; // Global settings, not directly used here
-  tone: Tone; // Global settings, for logging initial block params
-  setTone: (t: Tone) => void; // Global settings, not directly used here
-  theme: string; // Global settings, for logging initial block params
-  setTheme: (t: string) => void; // Global settings, not directly used here
-  totalTime: number; // For logging overall session duration
+  // Props for presentation mode
   presentingBlockId: number | null;
   onEnterPresentation: (id: number) => void;
   onExitPresentation: () => void;
   onNextSlide: () => void;
   onPrevSlide: () => void;
+  // Global settings setters are no longer passed here as GlobalSettings is handled in App.tsx
+  difficulty: Difficulty;
+  setDifficulty: (d: Difficulty) => void;
+  tone: Tone;
+  setTone: (t: Tone) => void;
+  theme: string;
+  setTheme: (t: string) => void;
+  totalTime: number;
 }
 
 type SnapLine = {
@@ -39,8 +37,6 @@ const SNAP_THRESHOLD = 10;
 
 const Whiteboard: React.FC<WhiteboardProps> = ({ 
     blocks, onAddBlock, onUpdateBlock, onRemoveBlock, onFocusBlock, 
-    // These props are no longer directly used by Whiteboard to render GlobalSettings
-    difficulty, tone, theme, totalTime,
     presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide
 }) => {
   const [activeInteraction, setActiveInteraction] = useState<{ blockId: number } | null>(null);

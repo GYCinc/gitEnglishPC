@@ -2,7 +2,8 @@ import { useState, useEffect, RefObject } from 'react';
 
 export const useResponsiveScale = (
   targetWidth: number,
-  contentRef: RefObject<HTMLElement> // Refers to the inner content div's ideal width
+  contentRef: RefObject<HTMLElement>, // Refers to the inner content div's ideal width
+  maxScale: number = 1.5 // Default max scale, can be overridden
 ) => {
   const [scale, setScale] = useState(1);
 
@@ -14,8 +15,8 @@ export const useResponsiveScale = (
         
         // Calculate scale to fit the content's ideal width (targetWidth) within the viewport
         // with some padding.
-        const horizontalPadding = 100; // Total left/right padding
-        const verticalPadding = 100; // Total top/bottom padding
+        const horizontalPadding = 40; // Reduced padding for better fit in presentation
+        const verticalPadding = 40;
 
         const effectiveViewportWidth = viewportWidth - horizontalPadding;
         const effectiveViewportHeight = viewportHeight - verticalPadding;
@@ -27,22 +28,28 @@ export const useResponsiveScale = (
         // This is more complex because content height is dynamic. For now, prioritize width.
         // If content height becomes an issue, we can introduce max-height/overflow-y or a more complex scale.
 
-        const maxScaleUp = 1.5;   // Target 150% zoom
         const minScaleDown = 0.5; // Allow scaling down to 50%
 
         let newScale = 1;
 
-        // If the content, when displayed at maxScaleUp, is wider than the effective viewport,
+        // If the content, when displayed at maxScale, is wider than the effective viewport,
         // we must scale down to fit the width.
-        if (targetWidth * maxScaleUp > effectiveViewportWidth) {
+        if (targetWidth * maxScale > effectiveViewportWidth) {
           newScale = scaleToFitWidth;
         } else {
-          // Otherwise, we can try to scale up to the desired maxScaleUp
-          newScale = maxScaleUp;
+          // Otherwise, we can try to scale up to the desired maxScale
+          newScale = maxScale;
+        }
+
+        // Also check height constraint if in presentation mode (implied by high maxScale)
+        if (maxScale > 2 && contentRef.current) {
+             const contentHeight = contentRef.current.scrollHeight;
+             const scaleToFitHeight = effectiveViewportHeight / contentHeight;
+             newScale = Math.min(newScale, scaleToFitHeight);
         }
         
         // Ensure scale is within acceptable min/max bounds
-        newScale = Math.min(maxScaleUp, Math.max(minScaleDown, newScale));
+        newScale = Math.min(maxScale, Math.max(minScaleDown, newScale));
         
         setScale(newScale);
       }
@@ -58,7 +65,7 @@ export const useResponsiveScale = (
       window.removeEventListener('resize', calculateScale);
       clearTimeout(timeout);
     };
-  }, [targetWidth, contentRef]); // Depend on contentRef to ensure recalculation if the ref target changes
+  }, [targetWidth, contentRef, maxScale]); // Depend on maxScale
 
   return scale;
 };

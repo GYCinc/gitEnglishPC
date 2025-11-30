@@ -16,6 +16,9 @@ import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is available via module im
  *   // ... user interacts ...
  *   logger.logFocusItem('Grammar', 'Past Perfect', 45.5, 1.0);
  *
+ *   // ... high frequency tracking ...
+ *   logger.logStreamEvent('cursor_move', { x: 100, y: 200, t: 123456789 });
+ *
  *   // ... user finishes exercise ...
  *   logger.endActivity();
  *
@@ -26,7 +29,7 @@ import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is available via module im
 
 // Define explicit types for validation
 export type ActivityType = 'consciousness_raising' | 'drill' | 'quiz' | 'reading' | 'writing' | 'presentation' | 'interaction' | 'config_change' | 'project_action' | 'ui_event' | 'navigation';
-export type FocusCategory = 'Grammar' | 'Vocabulary' | 'Pronunciation' | 'Fluency' | 'Coherence' | 'Interaction' | 'Listening' | 'Task Achievement' | 'General UI' | 'Settings' | 'Project Management' | 'Movement';
+export type FocusCategory = 'Grammar' | 'Vocabulary' | 'Pronunciation' | 'Fluency' | 'Coherence' | 'Interaction' | 'Listening' | 'Task Achievement' | 'General UI' | 'Settings' | 'Project Management' | 'Movement' | 'Attention';
 
 export interface FocusItem {
   category: FocusCategory;
@@ -38,12 +41,19 @@ export interface FocusItem {
   content_text: string | null; // Optional: The specific sentence/word practiced or UI state
 }
 
+export interface StreamEvent {
+    type: string; // e.g., 'cursor', 'scroll', 'resize'
+    data: any;    // { x, y, timestamp, ... }
+    timestamp: number;
+}
+
 export interface Activity {
   activity_id: string; // Unique ID for this exercise instance or UI flow
   activity_type: ActivityType;
   activity_name: string; // Human readable name
   duration_seconds: number;
   focus_items: FocusItem[];
+  stream_data: StreamEvent[]; // Buffer for high-frequency data
   metadata: { [key: string]: any }; // Additional data
 }
 
@@ -64,6 +74,10 @@ export class ActivityLogger {
   private timestampEnd: string | null;
   private activities: Activity[];
   private currentActivity: (Omit<Activity, 'duration_seconds'> & { start_time: number }) | null;
+
+  // Buffer settings
+  private streamBuffer: StreamEvent[] = [];
+  private readonly BUFFER_LIMIT = 500; // Auto-flush (or prune) limit to prevent memory leaks if endActivity isn't called
 
   constructor(moduleId: string, studentId: string) {
     this.moduleId = moduleId;
@@ -107,8 +121,10 @@ export class ActivityLogger {
       activity_name: name,
       start_time: performance.now(), // High precision timer
       focus_items: [],
+      stream_data: [],
       metadata: {  }, // Initialize metadata
     };
+    this.streamBuffer = []; // Reset buffer
     console.log(`[ActivityLogger] Activity started: ${name} (${activityId})`);
   }
 
@@ -132,9 +148,9 @@ export class ActivityLogger {
     contentText: string | null = null,
   ): void {
     if (!this.currentActivity) {
-      console.error(
-        "[ActivityLogger] No active activity. Call startActivity() first.",
-      );
+      // If no activity is active, we can either ignore or auto-start a generic one.
+      // For now, let's warn.
+      // console.warn("[ActivityLogger] No active activity for logFocusItem.");
       return;
     }
 
@@ -147,7 +163,32 @@ export class ActivityLogger {
       errors: errors,
       content_text: contentText,
     });
-    console.log(`[ActivityLogger] Logged focus item: ${category} - ${concept}`);
+    // Verbose logging disabled to reduce noise
+    // console.log(`[ActivityLogger] Logged focus item: ${category} - ${concept}`);
+  }
+
+  /**
+   * Log high-frequency stream events (cursor, scroll, etc.)
+   * These are buffered and added to the activity upon completion.
+   */
+  logStreamEvent(type: string, data: any): void {
+      if (!this.currentActivity) return;
+
+      const event: StreamEvent = {
+          type,
+          data,
+          timestamp: Date.now()
+      };
+
+      this.streamBuffer.push(event);
+
+      // Simple safety check
+      if (this.streamBuffer.length > this.BUFFER_LIMIT) {
+          // If buffer is full, we flush it to the current activity's stream_data immediately
+          // to prevent memory issues, although ideally stream_data handles it.
+          this.currentActivity.stream_data.push(...this.streamBuffer);
+          this.streamBuffer = [];
+      }
   }
 
   /**
@@ -171,6 +212,12 @@ export class ActivityLogger {
     const duration =
       (performance.now() - this.currentActivity.start_time) / 1000;
 
+    // Flush remaining stream buffer
+    if (this.streamBuffer.length > 0) {
+        this.currentActivity.stream_data.push(...this.streamBuffer);
+        this.streamBuffer = [];
+    }
+
     // Construct the final activity object
     const activity: Activity = {
       activity_id: this.currentActivity.activity_id,
@@ -178,11 +225,12 @@ export class ActivityLogger {
       activity_name: this.currentActivity.activity_name,
       duration_seconds: parseFloat(duration.toFixed(2)),
       focus_items: this.currentActivity.focus_items,
+      stream_data: this.currentActivity.stream_data,
       metadata: this.currentActivity.metadata,
     };
 
     this.activities.push(activity);
-    console.log(`[ActivityLogger] Activity ended: ${activity.activity_name}`);
+    console.log(`[ActivityLogger] Activity ended: ${activity.activity_name}. Stream events: ${activity.stream_data.length}`);
     this.currentActivity = null;
   }
 

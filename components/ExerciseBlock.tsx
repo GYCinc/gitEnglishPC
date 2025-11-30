@@ -2,10 +2,10 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Rnd, RndDragCallback, RndResizeCallback } from 'react-rnd';
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from '../types';
 import { generateExercises } from '../services/geminiService';
-// Add MagicWandIcon import
-import { LoadingIcon, TrashIcon, SettingsIcon, ResetIcon, MagicWandIcon, PlayIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from './icons';
+import { LoadingIcon, TrashIcon, SettingsIcon, ResetIcon, PlayIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon, MagicWandIcon } from './icons';
 import { useDebounce } from '../hooks/useDebounce';
 import { useResponsiveScale } from '../hooks/useResponsiveScale';
+import { useAttentionTracker } from '../hooks/useAttentionTracker'; // Import new hook
 import { DIFFICULTY_LEVELS, TONES, PEDAGOGY_COLORS, EXERCISE_PEDAGOGY, calculateExerciseAmount, calculateExerciseDuration, SINGLE_INSTANCE_TYPES, DIFFICULTY_LABELS } from '../constants';
 import ExerciseTemplate from './ExerciseTemplate';
 import { EXERCISE_INSTRUCTIONS } from './exerciseInstructions';
@@ -95,11 +95,13 @@ const Header = React.forwardRef<HTMLDivElement, {
     const handleEnterPresentation = (e: React.MouseEvent) => {
         e.stopPropagation();
         logger?.startActivity(`presentation_${title.replace(/\s/g, '_')}_${Date.now()}`, 'presentation', `Presenting: ${title}`);
+        logger?.logFocusItem('Interaction', 'Entered Live Mode', 0.1);
         onEnterPresentation?.();
     };
 
     const handleExitPresentation = (e: React.MouseEvent) => {
         e.stopPropagation();
+        logger?.logFocusItem('Interaction', 'Exited Live Mode', 0.1);
         logger?.endActivity(); // Ends the presentation activity
         onExitPresentation?.();
     };
@@ -120,7 +122,7 @@ const Header = React.forwardRef<HTMLDivElement, {
         <div ref={ref} className={`handle bg-slate-800 text-white p-3 ${isPresenting ? 'rounded-none p-6' : 'rounded-t-2xl'} flex justify-between items-center cursor-move flex-shrink-0 border-b border-slate-700 relative z-10 font-casual`}>
             <div className="flex items-center gap-4 min-w-0 flex-1">
                 {isPresenting && (
-                     <button onMouseDown={(e) => e.stopPropagation()} onClick={handleExitPresentation} className="p-2 rounded-full hover:bg-slate-700 text-neutral-gray-400 hover:text-white transition-colors mr-2 relative z-50" title="Exit Presentation Mode">
+                     <button onMouseDown={(e) => e.stopPropagation()} onClick={handleExitPresentation} className="p-2 rounded-full hover:bg-slate-700 text-neutral-gray-400 hover:text-white transition-colors mr-2 relative z-50" title="Exit Live Mode">
                         <XMarkIcon className="w-6 h-6" />
                     </button>
                 )}
@@ -167,10 +169,16 @@ const Header = React.forwardRef<HTMLDivElement, {
                  {/* Standard Controls */}
                  {!isPresenting && (
                      <>
-                        {/* Presentation Button */}
+                        {/* Presentation Button - Prominent Live Mode */}
                          {isGenerated && (
-                             <button onMouseDown={(e) => e.stopPropagation()} onClick={handleEnterPresentation} className="p-1.5 rounded-full hover:bg-accent-green-500/20 text-accent-green-400 hover:text-accent-green-300 transition-colors" title="Start Presentation Mode">
-                                <PlayIcon className="w-4 h-4" />
+                             <button
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={handleEnterPresentation}
+                                className="px-3 py-1.5 rounded-full bg-red-600 text-white font-bold hover:bg-red-500 transition-all shadow-lg hover:shadow-red-500/30 active:scale-95 flex items-center gap-2 mr-2 animate-pulse-slow"
+                                title="Start Live Mode"
+                             >
+                                <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                                <span className="text-xs uppercase tracking-wider">Live</span>
                              </button>
                          )}
 
@@ -394,9 +402,13 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
     const settingsRef = useRef<HTMLDivElement>(null);
     const contentWrapperRef = useRef<HTMLDivElement>(null); // Ref for content inner wrapper
     
-    // Scale for Presentation Mode
-    // Target width 900px, but it will scale up to 150% if possible or scale down to fit.
-    const presentationScale = useResponsiveScale(900, contentWrapperRef); 
+    // Scale for Presentation Mode - Huge Max Scale for "Zoom into your face" effect
+    // 5.0 is a safe upper limit to fill 4k screens even if the component is small
+    const presentationScale = useResponsiveScale(900, contentWrapperRef, 5.0);
+
+    // Attach tracking to content
+    // We only track when there is content and we are presenting or interacting
+    useAttentionTracker(contentWrapperRef, isGenerated, 100);
 
     const debouncedTheme = useDebounce(theme, 500);
     const pedagogy = EXERCISE_PEDAGOGY[exerciseType] || 'Default';
@@ -545,8 +557,9 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
     // Presentation Mode Overrides
     // Rnd is the invisible draggable/resizable wrapper.
     // The inner div `card-visual` handles the actual visual styling and content.
-    const presentationRndStyle = isPresenting ? "!fixed !inset-0 !z-[9999] !transform-none !w-screen !h-screen !rounded-none !border-0" : "";
-    const presentationCardVisualClasses = isPresenting ? "max-w-7xl mx-auto rounded-lg border-x border-neutral-gray-700" : "rounded-2xl";
+    const presentationRndStyle = isPresenting ? "!fixed !inset-0 !z-[9999] !transform-none !w-screen !h-screen !rounded-none !border-0 flex justify-center items-center" : "";
+    // Remove max-w restriction in presentation mode to allow full scaling
+    const presentationCardVisualClasses = isPresenting ? "rounded-lg border-x border-neutral-gray-700" : "rounded-2xl";
 
     return (
         <Rnd
@@ -602,8 +615,8 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
                 <div className={`p-5 min-h-0 overflow-hidden flex-grow overflow-y-auto custom-scrollbar-light ${isPresenting ? 'flex justify-center items-center' : ''}`}>
                     <div 
                         ref={contentWrapperRef} 
-                        className={`w-fit max-w-[900px] ${isGenerated ? '' : 'w-full'} origin-top transition-transform duration-200`}
-                         style={isPresenting ? { transform: `scale(${Math.min(1.5, Math.max(0.5, presentationScale))})` } : {}}
+                        className={`w-fit max-w-[900px] ${isGenerated ? '' : 'w-full'} origin-center transition-transform duration-200`}
+                         style={isPresenting ? { transform: `scale(${presentationScale})` } : {}}
                     >
                         {renderContent()}
                     </div>
