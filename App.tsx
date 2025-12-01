@@ -5,7 +5,7 @@ import Whiteboard from './components/Whiteboard';
 import RadialMenu from './components/RadialMenu'; // New import
 import GlobalSettings from './components/GlobalSettings'; // Refactored GlobalSettings
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from './types';
-import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration } from './constants';
+import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration, DIFFICULTY_LEVELS } from './constants';
 import { MenuIcon } from './components/icons';
 
 const APP_PREFIX = 'practiceGenie-';
@@ -295,6 +295,12 @@ const App: React.FC = () => {
     );
   }, [zCounter]);
 
+  const cycleDifficulty = useCallback(() => {
+    const currentIndex = DIFFICULTY_LEVELS.indexOf(difficulty);
+    const nextIndex = (currentIndex + 1) % DIFFICULTY_LEVELS.length;
+    setDifficulty(DIFFICULTY_LEVELS[nextIndex] as Difficulty);
+  }, [difficulty]);
+
   return (
     <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800">
       {/* Radial Menu replaces fixed top bar */}
@@ -302,7 +308,8 @@ const App: React.FC = () => {
           onToggleSettings={() => setIsSettingsModalOpen(true)}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onExportState={handleExportState}
-          onAddExercise={() => addBlock(Difficulty.B1)} // Quick add uses default difficulty
+          difficulty={difficulty}
+          onCycleDifficulty={cycleDifficulty}
       />
 
       {/* Settings Modal - conditionally rendered */}
