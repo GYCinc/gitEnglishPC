@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { SettingsIcon, PlusIcon, DownloadIcon, MenuIcon, XMarkIcon, ThemeIcon } from './icons';
+import { SettingsIcon, DifficultyIcon, DownloadIcon, MenuIcon, XMarkIcon, ThemeIcon } from './icons';
 
 interface RadialMenuProps {
     onToggleSettings: () => void;
     onToggleSidebar: () => void;
     onExportState: () => void;
-    onAddExercise: () => void; // Added for quick add block
+    difficulty: string;
+    onCycleDifficulty: () => void;
 }
 
-const RadialMenu: React.FC<RadialMenuProps> = ({ onToggleSettings, onToggleSidebar, onExportState, onAddExercise }) => {
+const RadialMenu: React.FC<RadialMenuProps> = ({ onToggleSettings, onToggleSidebar, onExportState, difficulty, onCycleDifficulty }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
@@ -33,7 +34,7 @@ const RadialMenu: React.FC<RadialMenuProps> = ({ onToggleSettings, onToggleSideb
 
     const menuItems = [
         { icon: <SettingsIcon className="w-5 h-5" />, label: "Config", action: onToggleSettings },
-        { icon: <PlusIcon className="w-5 h-5" />, label: "Add Block", action: onAddExercise }, // Changed action
+        { icon: <DifficultyIcon className="w-5 h-5" />, label: `Difficulty: ${difficulty}`, action: onCycleDifficulty },
         { icon: <DownloadIcon className="w-5 h-5" />, label: "Export", action: onExportState },
         { icon: <ThemeIcon className="w-5 h-5" />, label: "Themes", action: () => console.log("Theme toggle - Future feature"), /* Placeholder for future theme logic */ }, 
     ];
