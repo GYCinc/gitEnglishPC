@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import Whiteboard from './components/Whiteboard';
 import RadialMenu from './components/RadialMenu'; // New import
 import GlobalSettings from './components/GlobalSettings'; // Refactored GlobalSettings
+import CollaborativeStudio from './components/CollaborativeStudio'; // New Component
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from './types';
 import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration, DIFFICULTY_LEVELS } from './constants';
 import { MenuIcon } from './components/icons';
@@ -96,6 +97,9 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // New state for modal
   const [presentingBlockId, setPresentingBlockId] = useState<number | null>(null);
+
+  // View state: 'whiteboard' or 'studio'
+  const [currentView, setCurrentView] = useState<'whiteboard' | 'studio'>('whiteboard');
 
   // Save state to localStorage whenever it changes
   useEffect(() => { localStorage.setItem(BLOCKS_KEY, JSON.stringify(blocks)) }, [blocks]);
@@ -209,6 +213,11 @@ const App: React.FC = () => {
 
 
   const addBlock = useCallback((type: ExerciseType, dropX?: number, dropY?: number) => {
+    // Force view to whiteboard if a block is added
+    if (currentView !== 'whiteboard') {
+        setCurrentView('whiteboard');
+    }
+
     setBlocks(prevBlocks => {
       const { width: newBlockWidth, height: newBlockHeight } = EXERCISE_SIZE_OVERRIDES[type] || DEFAULT_BLOCK_DIMENSIONS;
 
@@ -270,7 +279,7 @@ const App: React.FC = () => {
 
       return [...prevBlocks, newBlock];
     });
-  }, [difficulty, tone, theme, zCounter, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
+  }, [difficulty, tone, theme, zCounter, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate, currentView]);
 
   const updateBlock = useCallback((blockId: number, updates: Partial<ExerciseBlockState>) => {
     setBlocks(prevBlocks =>
@@ -310,6 +319,8 @@ const App: React.FC = () => {
           onExportState={handleExportState}
           difficulty={difficulty}
           onCycleDifficulty={cycleDifficulty}
+          onToggleStudio={() => setCurrentView(prev => prev === 'studio' ? 'whiteboard' : 'studio')}
+          isStudioOpen={currentView === 'studio'}
       />
 
       {/* Settings Modal - conditionally rendered */}
@@ -323,21 +334,24 @@ const App: React.FC = () => {
           />
       )}
 
-      <Sidebar 
-        isSidebarOpen={isSidebarOpen}
-        focusVocabulary={focusVocabulary}
-        setFocusVocabulary={setFocusVocabulary}
-        inclusionRate={inclusionRate}
-        setInclusionRate={setInclusionRate}
-        focusGrammar={focusGrammar}
-        setFocusGrammar={setFocusGrammar}
-        grammarInclusionRate={grammarInclusionRate}
-        setGrammarInclusionRate={setGrammarInclusionRate}
-        onAddExercise={(type) => addBlock(type)} // Sidebar add allows specific type
-        onExportState={handleExportState}
-        onImportState={handleImportState}
-        onClearBoard={handleClearBoard}
-      />
+      {/* Sidebar only for whiteboard */}
+      {currentView === 'whiteboard' && (
+          <Sidebar
+            isSidebarOpen={isSidebarOpen}
+            focusVocabulary={focusVocabulary}
+            setFocusVocabulary={setFocusVocabulary}
+            inclusionRate={inclusionRate}
+            setInclusionRate={setInclusionRate}
+            focusGrammar={focusGrammar}
+            setFocusGrammar={setFocusGrammar}
+            grammarInclusionRate={grammarInclusionRate}
+            setGrammarInclusionRate={setGrammarInclusionRate}
+            onAddExercise={(type) => addBlock(type)} // Sidebar add allows specific type
+            onExportState={handleExportState}
+            onImportState={handleImportState}
+            onClearBoard={handleClearBoard}
+          />
+      )}
       
       {/* Overlay for mobile - Smooth transition */}
       <div 
@@ -349,25 +363,29 @@ const App: React.FC = () => {
       ></div>
 
       <div className="flex-grow flex flex-col relative">
-        <Whiteboard 
-          blocks={blocks}
-          onAddBlock={addBlock}
-          onUpdateBlock={updateBlock} 
-          onRemoveBlock={removeBlock} 
-          onFocusBlock={focusBlock}
-          difficulty={difficulty}
-          setDifficulty={setDifficulty}
-          tone={tone}
-          setTone={setTone}
-          theme={theme}
-          setTheme={setTheme}
-          totalTime={totalTime}
-          presentingBlockId={presentingBlockId}
-          onEnterPresentation={enterPresentation}
-          onExitPresentation={exitPresentation}
-          onNextSlide={nextSlide}
-          onPrevSlide={prevSlide}
-        />
+        {currentView === 'whiteboard' ? (
+             <Whiteboard
+                blocks={blocks}
+                onAddBlock={addBlock}
+                onUpdateBlock={updateBlock}
+                onRemoveBlock={removeBlock}
+                onFocusBlock={focusBlock}
+                difficulty={difficulty}
+                setDifficulty={setDifficulty}
+                tone={tone}
+                setTone={setTone}
+                theme={theme}
+                setTheme={setTheme}
+                totalTime={totalTime}
+                presentingBlockId={presentingBlockId}
+                onEnterPresentation={enterPresentation}
+                onExitPresentation={exitPresentation}
+                onNextSlide={nextSlide}
+                onPrevSlide={prevSlide}
+              />
+        ) : (
+             <CollaborativeStudio />
+        )}
       </div>
     </div>
   );
