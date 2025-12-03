@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SettingsIcon, DifficultyIcon, DownloadIcon, MenuIcon, XMarkIcon, ThemeIcon } from './icons';
+import { SettingsIcon, DifficultyIcon, DownloadIcon, MenuIcon, XMarkIcon, ThemeIcon, UsersIcon } from './icons';
 
 interface RadialMenuProps {
     onToggleSettings: () => void;
@@ -7,9 +7,11 @@ interface RadialMenuProps {
     onExportState: () => void;
     difficulty: string;
     onCycleDifficulty: () => void;
+    onToggleStudio: () => void; // New prop
+    isStudioOpen: boolean; // New prop
 }
 
-const RadialMenu: React.FC<RadialMenuProps> = ({ onToggleSettings, onToggleSidebar, onExportState, difficulty, onCycleDifficulty }) => {
+const RadialMenu: React.FC<RadialMenuProps> = ({ onToggleSettings, onToggleSidebar, onExportState, difficulty, onCycleDifficulty, onToggleStudio, isStudioOpen }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
@@ -36,7 +38,7 @@ const RadialMenu: React.FC<RadialMenuProps> = ({ onToggleSettings, onToggleSideb
         { icon: <SettingsIcon className="w-5 h-5" />, label: "Config", action: onToggleSettings },
         { icon: <DifficultyIcon className="w-5 h-5" />, label: `Difficulty: ${difficulty}`, action: onCycleDifficulty },
         { icon: <DownloadIcon className="w-5 h-5" />, label: "Export", action: onExportState },
-        { icon: <ThemeIcon className="w-5 h-5" />, label: "Themes", action: () => console.log("Theme toggle - Future feature"), /* Placeholder for future theme logic */ }, 
+        { icon: <UsersIcon className="w-5 h-5" />, label: isStudioOpen ? "Whiteboard" : "Studio", action: onToggleStudio },
     ];
 
     const radius = 80; // Distance of satellites from center
