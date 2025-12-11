@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useActivityLogger } from '../ActivityContext';
 import { useDebounce } from './useDebounce'; // Reuse debounce if needed, or implement throttling
 

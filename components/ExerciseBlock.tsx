@@ -24,13 +24,12 @@ export interface ExerciseBlockProps {
   onUpdate: (blockId: number, updates: Partial<ExerciseBlockState>) => void;
   onRemove: (blockId: number) => void;
   onFocus: (blockId: number) => void; // Called onMouseDown on the block
-  onDrag: RndDragCallback;
-  onDragStop: RndDragCallback;
-  onResize: RndResizeCallback;
-  onResizeStop: RndResizeCallback;
+  // Stable handlers for interaction (replacing inline Rnd callbacks)
+  onInteraction: (blockId: number, newPos: {x: number, y: number, width: number, height: number}) => void;
+  onInteractionStop: (blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => void;
   bounds: string;
   isPresenting: boolean;
-  onEnterPresentation: () => void;
+  onEnterPresentation: (id: number) => void; // Expects ID to be passed
   onExitPresentation: () => void;
   onNextSlide: () => void; // Global next slide (for next block in app.tsx)
   onPrevSlide: () => void; // Global prev slide (for prev block in app.tsx)
@@ -382,9 +381,9 @@ const PlaceholderView: React.FC<{ amount: number; exerciseType: ExerciseType; }>
     </div>
 );
 
-const ExerciseBlock: React.FC<ExerciseBlockProps> = ({ 
+const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     blockState, onUpdate, onRemove, onFocus, bounds,
-    onDrag, onDragStop, onResize, onResizeStop,
+    onInteraction, onInteractionStop,
     isPresenting, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide,
     scale = 1
 }) => {
@@ -554,6 +553,33 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
         );
     };
 
+    // Stable handlers to create interaction data and pass to parent
+    const handleDrag: RndDragCallback = useCallback((e, data) => {
+        onInteraction(id, { ...blockState, x: data.x, y: data.y });
+    }, [id, blockState, onInteraction]);
+
+    const handleDragStop: RndDragCallback = useCallback((e, data) => {
+        onInteractionStop(id, { ...blockState, x: data.x, y: data.y });
+    }, [id, blockState, onInteractionStop]);
+
+    const handleResize: RndResizeCallback = useCallback((e, direction, ref, delta, position) => {
+        onInteraction(id, {
+            ...blockState,
+            width: parseInt(ref.style.width, 10),
+            height: parseInt(ref.style.height, 10),
+            ...position
+        });
+    }, [id, blockState, onInteraction]);
+
+    const handleResizeStop: RndResizeCallback = useCallback((e, direction, ref, delta, position) => {
+        onInteractionStop(id, {
+            ...blockState,
+            width: parseInt(ref.style.width, 10),
+            height: parseInt(ref.style.height, 10),
+            ...position
+        });
+    }, [id, blockState, onInteractionStop]);
+
     // Presentation Mode Overrides
     // Rnd is the invisible draggable/resizable wrapper.
     // The inner div `card-visual` handles the actual visual styling and content.
@@ -565,10 +591,10 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
         <Rnd
             size={isPresenting ? { width: '100%', height: '100%' } : { width, height }}
             position={isPresenting ? { x: 0, y: 0 } : { x, y }}
-            onDrag={onDrag}
-            onDragStop={onDragStop}
-            onResize={onResize}
-            onResizeStop={onResizeStop}
+            onDrag={handleDrag}
+            onDragStop={handleDragStop}
+            onResize={handleResize}
+            onResizeStop={handleResizeStop}
             disableDragging={isPresenting}
             enableResizing={!isPresenting}
             minWidth={350}
@@ -580,7 +606,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
             className={`rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden transition-all hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)] ${presentationRndStyle}`}
             onMouseDown={() => onFocus(id)}
             onDoubleClick={() => {
-                if (isGenerated && !isPresenting && onEnterPresentation) onEnterPresentation();
+                if (isGenerated && !isPresenting && onEnterPresentation) onEnterPresentation(id);
             }}
         >
             {/* This inner div is the actual visible "paper card" */}
@@ -602,7 +628,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
                     onQuantityChange={(val) => onUpdate(id, { quantity: val })}
                     isSingleInstance={isSingleInstance}
                     isPresenting={isPresenting}
-                    onEnterPresentation={onEnterPresentation}
+                    onEnterPresentation={() => onEnterPresentation(id)}
                     onExitPresentation={onExitPresentation}
                     onPrevItem={handlePrevItem}
                     onNextItem={handleNextItem}
@@ -624,6 +650,6 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
             </div>
         </Rnd>
     );
-};
+});
 
 export default ExerciseBlock;

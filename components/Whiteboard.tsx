@@ -185,7 +185,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     return { vPoints, hPoints };
   }, []);
 
-  const calculateSnapping = (
+  const calculateSnapping = useCallback((
       movingBlock: ExerciseBlockState, 
       allBlocks: ExerciseBlockState[],
       newPosition: { x: number, y: number, width: number, height: number }
@@ -218,24 +218,30 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
           if (snappedY !== newPosition.y) break;
       }
       return { snappedX, snappedY, newSnapLines };
-  };
+  }, [getSnapPoints]);
 
-  const handleInteraction = (blockId: number, newPos: {x: number, y: number, width: number, height: number}) => {
+  const handleInteraction = useCallback((blockId: number, newPos: {x: number, y: number, width: number, height: number}) => {
+    // We cannot use 'blocks' state directly here if we want stability across pan/zoom IF 'blocks' changes on every pan.
+    // However, blocks DOES NOT change on pan. Pan is local state in Whiteboard.
+    // So 'blocks' is stable during pan.
+
+    // We need to find the block object.
+    // Using blocks from closure.
     const block = blocks.find(b => b.id === blockId);
     if (!block) return;
-    if (!activeInteraction) {
-        setActiveInteraction({ blockId });
-    }
+
+    setActiveInteraction(prev => prev || { blockId });
+
     const { snappedX, snappedY, newSnapLines } = calculateSnapping(block, blocks, newPos);
     setSnapLines(newSnapLines);
     onUpdateBlock(blockId, { ...newPos, x: snappedX, y: snappedY });
-  };
+  }, [blocks, calculateSnapping, onUpdateBlock]);
   
-  const handleInteractionStop = (blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => {
+  const handleInteractionStop = useCallback((blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => {
       onUpdateBlock(blockId, finalPos);
       setActiveInteraction(null);
       setSnapLines([]);
-  }
+  }, [onUpdateBlock]);
 
   // -- AUTO-CENTER LOGIC --
   const centerOnBlock = (block: ExerciseBlockState) => {
@@ -255,10 +261,10 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       logger?.logFocusItem('Movement', 'Center on Block', 0.1, null, 1, [], `Block: ${block.exerciseType}, Pos: (${block.x.toFixed(0)}, ${block.y.toFixed(0)})`);
   };
 
-  const handleFocus = (blockId: number) => {
+  const handleFocus = useCallback((blockId: number) => {
       onFocusBlock(blockId);
       // Removed centerOnBlock(block) to prevent jarring movement on every click
-  };
+  }, [onFocusBlock]);
 
   return (
     <main 
@@ -323,16 +329,14 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
                 <ExerciseBlock
                     key={block.id}
                     blockState={block}
-                    onUpdate={(blockId, updates) => onUpdateBlock(blockId, updates)}
+                    onUpdate={onUpdateBlock}
                     onRemove={onRemoveBlock}
                     onFocus={handleFocus}
-                    onDrag={(e, data) => handleInteraction(block.id, { ...block, x: data.x, y: data.y })}
-                    onDragStop={(e, data) => handleInteractionStop(block.id, { ...block, x: data.x, y: data.y })}
-                    onResize={(e, direction, ref, delta, position) => handleInteraction(block.id, { ...block, width: parseInt(ref.style.width, 10), height: parseInt(ref.style.height, 10), ...position })}
-                    onResizeStop={(e, direction, ref, delta, position) => handleInteractionStop(block.id, { ...block, width: parseInt(ref.style.width, 10), height: parseInt(ref.style.height, 10), ...position })}
+                    onInteraction={handleInteraction}
+                    onInteractionStop={handleInteractionStop}
                     bounds="parent"
                     isPresenting={presentingBlockId === block.id}
-                    onEnterPresentation={() => onEnterPresentation(block.id)}
+                    onEnterPresentation={onEnterPresentation}
                     onExitPresentation={onExitPresentation}
                     onNextSlide={onNextSlide}
                     onPrevSlide={onPrevSlide}
