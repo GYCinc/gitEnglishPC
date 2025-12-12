@@ -225,7 +225,8 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        const initialWords = exercise.scrambledWords.map((word, index) => ({ word, id: index }));
+        const words = exercise.scrambledWords || [];
+        const initialWords = words.map((word, index) => ({ word, id: index }));
         setBank(initialWords);
         setSolution([]);
         setFeedback(null);
@@ -430,7 +431,7 @@ export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionEx
 };
 
 export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingExercise; colors: any; }> = ({ exercise, colors }) => {
-    const [parts, setParts] = useState(() => shuffleArray(exercise.storyParts));
+    const [parts, setParts] = useState(() => shuffleArray(exercise.storyParts || []));
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
     const dragItem = useRef<number | null>(null);
     const dragOverItem = useRef<number | null>(null);
@@ -456,7 +457,8 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
     };
 
     const checkAnswer = () => {
-        const isCorrect = parts.join('') === exercise.storyParts.join('');
+        const originalParts = exercise.storyParts || [];
+        const isCorrect = parts.join('') === originalParts.join('');
         setStatus(isCorrect ? 'correct' : 'incorrect');
     };
 

@@ -297,7 +297,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             style={{ 
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
                 backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)',
-                backgroundSize: '20px 20px',
+                // Scale the background pattern size inversely to keep dots visible (fixed visual size approx 20px)
+                backgroundSize: `${20 / scale}px ${20 / scale}px`,
                 width: '100000px', // Massive virtual size
                 height: '100000px',
                 pointerEvents: isPanning ? 'none' : 'auto' // Optimize drag performance
@@ -334,7 +335,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
                     onFocus={handleFocus}
                     onInteraction={handleInteraction}
                     onInteractionStop={handleInteractionStop}
-                    bounds="parent"
                     isPresenting={presentingBlockId === block.id}
                     onEnterPresentation={onEnterPresentation}
                     onExitPresentation={onExitPresentation}

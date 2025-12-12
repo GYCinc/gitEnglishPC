@@ -292,9 +292,9 @@ const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = ({ type, onA
         logFocusItem('Project Management', 'Drag Exercise Card', 0.1, null, 1, [], type);
     };
 
-    const handleClick = () => {
+    const handleDoubleClick = () => {
         onAdd(type);
-        logFocusItem('Project Management', 'Click Exercise Card', 0.1, null, 1, [], type);
+        logFocusItem('Project Management', 'Double Click Exercise Card', 0.1, null, 1, [], type);
     };
 
     const pedagogy = EXERCISE_PEDAGOGY[type] || 'Default';
@@ -308,8 +308,8 @@ const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = ({ type, onA
             <button
                 draggable
                 onDragStart={handleDragStart}
-                onClick={handleClick}
-                className={`w-full text-left p-2.5 rounded-md cursor-pointer active:scale-95 transition-all duration-200 border ${colors.border} ${colors.bgOnDark} hover:bg-opacity-100 hover:translate-x-1 hover:shadow-lg group-hover:ring-1 ring-opacity-50 ring-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:${colors.border.replace('border-', 'ring-')}`}
+                onDoubleClick={handleDoubleClick}
+                className={`w-full text-left p-2.5 rounded-md cursor-grab active:cursor-grabbing active:scale-95 transition-all duration-200 border ${colors.border} ${colors.bgOnDark} hover:bg-opacity-100 hover:translate-x-1 hover:shadow-lg group-hover:ring-1 ring-opacity-50 ring-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:${colors.border.replace('border-', 'ring-')}`}
                 aria-label={`Add ${type} exercise`}
             >
                 <div className="flex justify-between items-center">
@@ -341,7 +341,7 @@ const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = ({ type, onA
                     <p className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Example</p>
                     <p className="text-xs text-slate-300 font-mono italic">"{info.example}"</p>
                 </div>
-                <p className="text-[10px] text-slate-500 text-center uppercase tracking-widest pt-1">Click to add • Drag to place</p>
+                <p className="text-[10px] text-slate-500 text-center uppercase tracking-widest pt-1">Double-click to add • Drag to place</p>
             </div>
         </div>
     );

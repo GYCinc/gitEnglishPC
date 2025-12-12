@@ -4,7 +4,7 @@ import { ExerciseType, Difficulty, Tone } from '../types';
 // Ensure API_KEY is set in the environment
 const apiKey = process.env.API_KEY || "DUMMY_KEY_FOR_VERIFICATION";
 if (!process.env.API_KEY) {
-  console.warn("API_KEY environment variable not set. Gemini API calls will fail or be mocked.");
+  // console.warn("API_KEY environment variable not set. Gemini API calls will fail or be mocked.");
 }
 
 const ai = new GoogleGenAI({ apiKey });
@@ -568,17 +568,215 @@ export const generateExercises = async (
   grammarInclusionRate: number
 ) => {
   if (process.env.API_KEY === undefined) {
-      console.warn("Using DUMMY data for verification as API Key is missing.");
-      // Dummy data map for verification
-      if (exerciseType === ExerciseType.FITB) {
-          return Array.from({ length: amount }).map((_, i) => ({
-              question: `This is a [BLANK] sentence #${i+1}.`,
-              answer: "dummy",
-              wordBank: ["dummy", "fake", "wrong", "test"]
-          }));
-      }
-      // Add more dummy data types if needed, otherwise fallback to error
-      return { error: "Dummy data not implemented for this type." };
+      // console.warn("Using DUMMY data for verification as API Key is missing.");
+
+      // Robust Mock Data Generation for all supported types
+      return Array.from({ length: amount }).map((_, i) => {
+          const id = i + 1;
+          switch (exerciseType) {
+              case ExerciseType.FITB:
+                  return {
+                      question: `The weather in ${theme} is usually [BLANK] during the summer.`,
+                      answer: "sunny",
+                      wordBank: ["sunny", "rainy", "snowing", "cold"].sort(() => Math.random() - 0.5)
+                  };
+              case ExerciseType.CollocationGapFill:
+                   return {
+                      question: `Can you [BLANK] me a favor?`,
+                      answer: "do",
+                      collocation: "do a favor",
+                      wordBank: ["do", "make", "have", "give"].sort(() => Math.random() - 0.5)
+                   };
+              case ExerciseType.PhrasalVerbGapFill:
+                  return {
+                      question: `I need to find [BLANK] who is responsible for this.`,
+                      answer: "out",
+                      phrasalVerb: "find out",
+                      wordBank: ["out", "in", "up", "on"].sort(() => Math.random() - 0.5)
+                  };
+              case ExerciseType.WordFormation:
+                  return {
+                      question: `The [BLANK] was very successful.`,
+                      rootWord: "perform",
+                      answer: "performance"
+                  };
+              case ExerciseType.MultipleChoice:
+                  return {
+                      question: `What is the capital of France?`,
+                      options: ["Paris", "London", "Berlin", "Madrid"].sort(() => Math.random() - 0.5),
+                      correctAnswer: "Paris"
+                  };
+              case ExerciseType.SentenceScramble:
+                  return {
+                      scrambledWords: ["The", "cat", "sat", "on", "the", "mat"].sort(() => Math.random() - 0.5),
+                      correct: "The cat sat on the mat"
+                  };
+              case ExerciseType.ClozeParagraph:
+                  return {
+                      paragraph: `Yesterday, I went to the [BLANK]. I bought some [BLANK] and milk.`,
+                      answers: ["store", "bread"],
+                      wordBank: ["store", "bread", "park", "shoes", "cars"].sort(() => Math.random() - 0.5)
+                  };
+              case ExerciseType.Matching:
+                  return {
+                      prompts: ["Hello", "Goodbye", "Thank you"],
+                      answers: ["Hola", "Adios", "Gracias"].sort(() => Math.random() - 0.5)
+                  };
+              case ExerciseType.FunctionMatching:
+                  return {
+                      prompts: ["Could you help me?", "I'm sorry.", "That's great!"],
+                      answers: ["Request", "Apology", "Congratulations"].sort(() => Math.random() - 0.5)
+                  };
+              case ExerciseType.ErrorCorrection:
+                  return {
+                      incorrectSentence: "She don't like apples.",
+                      correctSentence: "She doesn't like apples."
+                  };
+              case ExerciseType.DialogueCompletion:
+                  return {
+                      dialogue: "A: How are you?\nB: I am [BLANK], thanks.",
+                      answers: ["fine"],
+                      wordBank: ["fine", "bad", "green"].sort(() => Math.random() - 0.5)
+                  };
+              case ExerciseType.StorySequencing:
+                  return {
+                      title: "A Morning Routine",
+                      storyParts: [
+                          "First, I woke up.",
+                          "Then, I brushed my teeth.",
+                          "Finally, I ate breakfast."
+                      ].sort(() => Math.random() - 0.5)
+                  };
+              case ExerciseType.Prediction:
+                  return {
+                      storyStart: "John dropped the vase.",
+                      options: ["It broke.", "It flew away.", "It turned into gold."],
+                      correctAnswer: "It broke."
+                  };
+              case ExerciseType.RuleDiscovery:
+                   return {
+                      sentences: ["I played.", "She walked.", "They talked."],
+                      question: "How do we form the past simple of regular verbs?",
+                      options: ["Add -ed", "Add -ing", "Add -s"],
+                      correctAnswer: "Add -ed"
+                   };
+              case ExerciseType.SpotTheDifference:
+                  return {
+                      sentenceA: "I stopped to eat.",
+                      sentenceB: "I stopped eating.",
+                      question: "Which one means I was no longer eating?",
+                      options: ["Sentence B", "Sentence A", "Both"],
+                      correctAnswer: "Sentence B"
+                  };
+              case ExerciseType.MoralDilemma:
+                  return {
+                      title: "The Wallet",
+                      dilemma: "You find a wallet with $1000 and an ID inside. The owner lives far away. Do you keep it or return it?"
+                  };
+              case ExerciseType.ReadingGist:
+                  return {
+                      title: "The Solar System",
+                      text: "The Solar System formed 4.6 billion years ago from the gravitational collapse of a giant interstellar molecular cloud. The vast majority of the system's mass is in the Sun, with the majority of the remaining mass contained in Jupiter.",
+                      question: "What is the main topic?",
+                      options: ["Formation of Solar System", "Jupiter's Mass", "Clouds"],
+                      correctAnswer: "Formation of Solar System"
+                  };
+              case ExerciseType.ReadingDetail:
+                   return {
+                      title: "Bus Schedule",
+                      text: "Bus 501 departs at 8:00 AM and arrives at 9:00 AM. Bus 502 departs at 8:30 AM.",
+                      questions: [{ question: "When does Bus 501 arrive?", answer: "9:00 AM" }]
+                   };
+              case ExerciseType.FunctionalWriting:
+                  return {
+                      title: "Email to a Friend",
+                      scenario: "You haven't seen your friend in a long time.",
+                      task: "Write an email inviting them to coffee."
+                  };
+              case ExerciseType.DictoGloss:
+                  return {
+                      title: "Photosynthesis",
+                      text: "Photosynthesis is the process by which green plants and some other organisms use sunlight to synthesize foods from carbon dioxide and water."
+                  };
+              case ExerciseType.CollocationOddOneOut:
+                  return {
+                      keyword: "make",
+                      options: ["a mistake", "a decision", "homework", "a cake"],
+                      correctAnswer: "homework" // do homework
+                  };
+              case ExerciseType.InformationTransfer:
+                  return {
+                      title: "John's Profile",
+                      text: "John Doe is a 30-year-old software engineer from New York.",
+                      formFields: ["Name", "Age", "Job", "City"]
+                  };
+              case ExerciseType.ListeningSpecificInfo:
+                  return {
+                      title: "Train Announcement",
+                      audioText: "Attention passengers, the train to London will depart from Platform 9.",
+                      questions: [{ question: "Which platform?", answer: "Platform 9" }]
+                  };
+              case ExerciseType.ProblemSolvingScenario:
+                  return {
+                      title: "Lost in the City",
+                      scenario: "You are lost in a foreign city and your phone battery is dead. You have a map but don't speak the language."
+                  };
+              case ExerciseType.RolePlayScenario:
+                  return {
+                      title: "At the Restaurant",
+                      character: "Customer",
+                      situation: "You ordered soup but it is cold.",
+                      task: "Complain politely to the waiter."
+                  };
+              case ExerciseType.StorytellingFromPrompts:
+                  return {
+                      title: "The Old Key",
+                      prompts: ["key", "attic", "mystery"],
+                      task: "Write a story using these words."
+                  };
+              case ExerciseType.JustifyYourOpinion:
+                  return {
+                      title: "Social Media",
+                      statement: "Social media does more harm than good.",
+                      task: "Do you agree or disagree? Why?"
+                  };
+              case ExerciseType.PictureComparison:
+                   return {
+                      title: "City vs Country",
+                      promptA: "A busy city street with tall buildings and traffic.",
+                      promptB: "A quiet country lane with trees and a small cottage.",
+                      task: "Compare the two places."
+                   };
+              case ExerciseType.RegisterSort:
+                  return {
+                      title: "Greetings",
+                      categories: ["Formal", "Informal"],
+                      phrases: ["Hello", "Hi", "Good morning", "What's up"],
+                      solution: [
+                          { phrase: "Good morning", category: "Formal" },
+                          { phrase: "Hello", category: "Formal" },
+                          { phrase: "Hi", category: "Informal" },
+                          { phrase: "What's up", category: "Informal" }
+                      ]
+                  };
+              case ExerciseType.PolitenessScenarios:
+                  return {
+                      scenario: "You stepped on someone's foot.",
+                      question: "What do you say?",
+                      options: ["Sorry.", "Watch out.", "It was your fault."],
+                      correctAnswer: "Sorry."
+                  };
+              case ExerciseType.InferringMeaning:
+                   return {
+                      dialogue: "A: Are you coming to the party?\nB: I have a lot of work.",
+                      question: "What does B mean?",
+                      options: ["B is coming.", "B is not coming.", "B is unsure."],
+                      correctAnswer: "B is not coming."
+                   };
+              default:
+                   return { error: "Mock data not yet implemented for this specific type." };
+          }
+      });
   }
 
   try {
@@ -651,7 +849,7 @@ export const checkAnswerWithAI = async (
   userResponse: any
 ) => {
   if (process.env.API_KEY === undefined) {
-      return "This is dummy feedback because the API Key is missing. Great job!";
+      return "Feedback Simulation: Excellent work! Your answer demonstrates a solid understanding of the concept. (API Key missing - providing mock feedback)";
   }
 
   const prompt = `
