@@ -98,7 +98,14 @@ const App: React.FC = () => {
   const [presentingBlockId, setPresentingBlockId] = useState<number | null>(null);
 
   // Save state to localStorage whenever it changes
-  useEffect(() => { localStorage.setItem(BLOCKS_KEY, JSON.stringify(blocks)) }, [blocks]);
+  // Debounce blocks persistence to avoid synchronous JSON.stringify on every drag frame
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      localStorage.setItem(BLOCKS_KEY, JSON.stringify(blocks));
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [blocks]);
+
   useEffect(() => { localStorage.setItem(DIFFICULTY_KEY, difficulty) }, [difficulty]);
   useEffect(() => { localStorage.setItem(TONE_KEY, tone) }, [tone]);
   useEffect(() => { localStorage.setItem(THEME_KEY, theme) }, [theme]);
