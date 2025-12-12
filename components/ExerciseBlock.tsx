@@ -27,7 +27,6 @@ export interface ExerciseBlockProps {
   // Stable handlers for interaction (replacing inline Rnd callbacks)
   onInteraction: (blockId: number, newPos: {x: number, y: number, width: number, height: number}) => void;
   onInteractionStop: (blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => void;
-  bounds: string;
   isPresenting: boolean;
   onEnterPresentation: (id: number) => void; // Expects ID to be passed
   onExitPresentation: () => void;
@@ -176,7 +175,7 @@ const Header = React.forwardRef<HTMLDivElement, {
                                 className="px-3 py-1.5 rounded-full bg-red-600 text-white font-bold hover:bg-red-500 transition-all shadow-lg hover:shadow-red-500/30 active:scale-95 flex items-center gap-2 mr-2 animate-pulse-slow"
                                 title="Start Live Mode"
                              >
-                                <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                                <PlayIcon className="w-3.5 h-3.5 fill-current" />
                                 <span className="text-xs uppercase tracking-wider">Live</span>
                              </button>
                          )}
@@ -382,7 +381,7 @@ const PlaceholderView: React.FC<{ amount: number; exerciseType: ExerciseType; }>
 );
 
 const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
-    blockState, onUpdate, onRemove, onFocus, bounds,
+    blockState, onUpdate, onRemove, onFocus,
     onInteraction, onInteractionStop,
     isPresenting, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide,
     scale = 1
@@ -599,7 +598,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
             enableResizing={!isPresenting}
             minWidth={350}
             minHeight={150}
-            bounds={bounds}
+            // Remove bounds="parent" to allow dragging anywhere, including "above" the initial viewport
             dragHandleClassName="handle"
             scale={isPresenting ? 1 : scale} // Rnd's internal scale for dragging/resizing, independent of visual content scale
             style={{ zIndex: isPresenting ? 9999 : zIndex }}

@@ -16,6 +16,7 @@ const RadialMenu: React.FC<RadialMenuProps> = ({ onToggleSettings, onToggleSideb
     // Close menu on click outside or Escape
     useEffect(() => {
         const handleGlobalClick = (e: MouseEvent) => {
+            // Prevent closing if clicking inside the menu container itself (handled by stopPropagation, but extra safety here)
             if (isOpen && !(e.target as Element).closest('#radial-menu-container')) {
                 setIsOpen(false);
             }
@@ -48,7 +49,10 @@ const RadialMenu: React.FC<RadialMenuProps> = ({ onToggleSettings, onToggleSideb
         >
             {/* Main Orb */}
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={(e) => {
+                    e.stopPropagation(); // Prevent global click listener from immediately closing it
+                    setIsOpen(!isOpen);
+                }}
                 className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 z-[102]
                             ${isOpen ? 'bg-blue-800 text-white rotate-90 scale-110' : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 hover:shadow-blue-500/30'}
                             border-4 border-white/20 backdrop-blur-sm ring-1 ring-black/5`}
