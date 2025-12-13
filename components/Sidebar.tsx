@@ -297,11 +297,20 @@ const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = ({ type, onA
         logFocusItem('Project Management', 'Double Click Exercise Card', 0.1, null, 1, [], type);
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onAdd(type);
+            logFocusItem('Project Management', 'Keyboard Add Exercise Card', 0.1, null, 1, [], type);
+        }
+    };
+
     const pedagogy = EXERCISE_PEDAGOGY[type] || 'Default';
     const colors = PEDAGOGY_COLORS[pedagogy];
     const info = EXERCISE_INFO[type];
     const displayName = type.split('(')[0].trim();
     const SpecificIcon = EXERCISE_ICONS[type] || PencilSquareIcon;
+    const tooltipId = `tooltip-${type.replace(/\s+/g, '-').toLowerCase()}`;
 
     return (
         <div className="relative group">
@@ -309,8 +318,10 @@ const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = ({ type, onA
                 draggable
                 onDragStart={handleDragStart}
                 onDoubleClick={handleDoubleClick}
+                onKeyDown={handleKeyDown}
                 className={`w-full text-left p-2.5 rounded-md cursor-grab active:cursor-grabbing active:scale-95 transition-all duration-200 border ${colors.border} ${colors.bgOnDark} hover:bg-opacity-100 hover:translate-x-1 hover:shadow-lg group-hover:ring-1 ring-opacity-50 ring-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:${colors.border.replace('border-', 'ring-')}`}
                 aria-label={`Add ${type} exercise`}
+                aria-describedby={tooltipId}
             >
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3 min-w-0">
@@ -325,10 +336,14 @@ const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = ({ type, onA
                 </div>
             </button>
             {/* Tooltip */}
-            <div className={`absolute left-full top-0 ml-4 w-72 
+            <div
+                id={tooltipId}
+                role="tooltip"
+                className={`absolute left-full top-0 ml-4 w-72
                            p-4 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl 
-                           opacity-0 group-hover:opacity-100 invisible group-hover:visible 
-                           transition-all duration-200 z-50 translate-y-2 group-hover:translate-y-0 pointer-events-none`}>
+                           opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 invisible group-hover:visible group-focus-within:visible
+                           transition-all duration-200 z-50 translate-y-2 group-hover:translate-y-0 group-focus-within:translate-y-0 pointer-events-none`}
+            >
                 <div className={`absolute top-4 -left-2 w-4 h-4 bg-slate-900 border-b border-l border-slate-700 transform rotate-45`}></div>
                 <h4 className={`font-bold ${colors.textOnDark} text-base mb-1.5`}>{info.name}</h4>
                 <div className="flex items-center gap-2 mb-3">
