@@ -55,6 +55,13 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const isWorkspaceEmpty = blocks.length === 0;
   const { logger } = useActivityLogger();
 
+  // Optimization: Keep a ref to blocks to avoid re-creating handleInteraction on every render
+  // This prevents all ExerciseBlocks from re-rendering when one is dragged
+  const blocksRef = useRef(blocks);
+  useEffect(() => {
+    blocksRef.current = blocks;
+  }, [blocks]);
+
   // -- PAN & ZOOM HANDLERS --
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -221,21 +228,19 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   }, [getSnapPoints]);
 
   const handleInteraction = useCallback((blockId: number, newPos: {x: number, y: number, width: number, height: number}) => {
-    // We cannot use 'blocks' state directly here if we want stability across pan/zoom IF 'blocks' changes on every pan.
-    // However, blocks DOES NOT change on pan. Pan is local state in Whiteboard.
-    // So 'blocks' is stable during pan.
+    // Optimization: Use ref to avoid dependency on 'blocks' which changes every frame during drag
+    const currentBlocks = blocksRef.current;
 
     // We need to find the block object.
-    // Using blocks from closure.
-    const block = blocks.find(b => b.id === blockId);
+    const block = currentBlocks.find(b => b.id === blockId);
     if (!block) return;
 
     setActiveInteraction(prev => prev || { blockId });
 
-    const { snappedX, snappedY, newSnapLines } = calculateSnapping(block, blocks, newPos);
+    const { snappedX, snappedY, newSnapLines } = calculateSnapping(block, currentBlocks, newPos);
     setSnapLines(newSnapLines);
     onUpdateBlock(blockId, { ...newPos, x: snappedX, y: snappedY });
-  }, [blocks, calculateSnapping, onUpdateBlock]);
+  }, [calculateSnapping, onUpdateBlock]);
   
   const handleInteractionStop = useCallback((blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => {
       onUpdateBlock(blockId, finalPos);
