@@ -86,13 +86,6 @@ const App: React.FC = () => {
       return saved ? Number(saved) : 50;
   });
 
-  const [zCounter, setZCounter] = useState(() => {
-    if (blocks.length > 0) {
-        return Math.max(...blocks.map(b => b.zIndex)) + 1;
-    }
-    return 1;
-  });
-  
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // New state for modal
   const [presentingBlockId, setPresentingBlockId] = useState<number | null>(null);
@@ -191,11 +184,6 @@ const App: React.FC = () => {
                   if (state.focusGrammar) setFocusGrammar(state.focusGrammar);
                   if (state.grammarInclusionRate) setGrammarInclusionRate(state.grammarInclusionRate);
                   
-                  // Update Z-index counter based on imported blocks
-                  if (state.blocks && state.blocks.length > 0) {
-                       const maxZ = Math.max(...state.blocks.map((b: any) => b.zIndex || 0));
-                       setZCounter(maxZ + 1);
-                  }
               }
           } catch (error) {
               console.error("Failed to parse project file", error);
@@ -255,7 +243,9 @@ const App: React.FC = () => {
           }
       }
 
-      const newZ = zCounter + 1;
+      const maxZ = Math.max(0, ...prevBlocks.map(b => b.zIndex || 0));
+      const newZ = maxZ + 1;
+
       const newBlock: ExerciseBlockState = {
         id: Date.now(),
         exerciseType: type,
@@ -273,11 +263,10 @@ const App: React.FC = () => {
         zIndex: newZ,
         isGenerated: false,
       };
-      setZCounter(newZ);
 
       return [...prevBlocks, newBlock];
     });
-  }, [difficulty, tone, theme, zCounter, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
+  }, [difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
 
   const updateBlock = useCallback((blockId: number, updates: Partial<ExerciseBlockState>) => {
     setBlocks(prevBlocks =>
@@ -293,14 +282,15 @@ const App: React.FC = () => {
   }, [presentingBlockId, exitPresentation]);
 
   const focusBlock = useCallback((blockId: number) => {
-    const newZ = zCounter + 1;
-    setZCounter(newZ);
-    setBlocks(prevBlocks =>
-      prevBlocks.map(block =>
+    setBlocks(prevBlocks => {
+      const maxZ = Math.max(0, ...prevBlocks.map(b => b.zIndex || 0));
+      const newZ = maxZ + 1;
+
+      return prevBlocks.map(block =>
         block.id === blockId ? { ...block, zIndex: newZ } : block
-      )
-    );
-  }, [zCounter]);
+      );
+    });
+  }, []);
 
   const cycleDifficulty = useCallback(() => {
     const currentIndex = DIFFICULTY_LEVELS.indexOf(difficulty);
