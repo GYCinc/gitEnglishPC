@@ -402,7 +402,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     
     // Scale for Presentation Mode - Huge Max Scale for "Zoom into your face" effect
     // 5.0 is a safe upper limit to fill 4k screens even if the component is small
-    const presentationScale = useResponsiveScale(900, contentWrapperRef, 5.0);
+    const presentationScale = useResponsiveScale(900, contentWrapperRef, 5.0, isPresenting);
 
     // Attach tracking to content
     // We only track when there is content and we are presenting or interacting

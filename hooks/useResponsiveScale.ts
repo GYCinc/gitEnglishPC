@@ -3,11 +3,14 @@ import { useState, useEffect, RefObject } from 'react';
 export const useResponsiveScale = (
   targetWidth: number,
   contentRef: RefObject<HTMLElement>, // Refers to the inner content div's ideal width
-  maxScale: number = 1.5 // Default max scale, can be overridden
+  maxScale: number = 1.5, // Default max scale, can be overridden
+  enabled: boolean = true // Control whether the listener is active
 ) => {
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
+    if (!enabled) return;
+
     const calculateScale = () => {
       if (contentRef.current) {
         const viewportWidth = window.innerWidth;
@@ -65,7 +68,7 @@ export const useResponsiveScale = (
       window.removeEventListener('resize', calculateScale);
       clearTimeout(timeout);
     };
-  }, [targetWidth, contentRef, maxScale]); // Depend on maxScale
+  }, [targetWidth, contentRef, maxScale, enabled]);
 
-  return scale;
+  return enabled ? scale : 1;
 };
