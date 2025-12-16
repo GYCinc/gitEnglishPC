@@ -552,32 +552,44 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
         );
     };
 
+    // Use ref to keep track of latest block state to prevent re-creation of callbacks on every drag frame
+    // This optimization prevents Rnd from receiving new props on every drag event (60fps)
+    const blockStateRef = useRef(blockState);
+    useEffect(() => {
+        blockStateRef.current = blockState;
+    }, [blockState]);
+
     // Stable handlers to create interaction data and pass to parent
     const handleDrag: RndDragCallback = useCallback((e, data) => {
-        onInteraction(id, { ...blockState, x: data.x, y: data.y });
-    }, [id, blockState, onInteraction]);
+        // Read from ref to get latest state without adding it to dependencies
+        const currentBlock = blockStateRef.current;
+        onInteraction(id, { ...currentBlock, x: data.x, y: data.y });
+    }, [id, onInteraction]); // Stable dependencies
 
     const handleDragStop: RndDragCallback = useCallback((e, data) => {
-        onInteractionStop(id, { ...blockState, x: data.x, y: data.y });
-    }, [id, blockState, onInteractionStop]);
+        const currentBlock = blockStateRef.current;
+        onInteractionStop(id, { ...currentBlock, x: data.x, y: data.y });
+    }, [id, onInteractionStop]); // Stable dependencies
 
     const handleResize: RndResizeCallback = useCallback((e, direction, ref, delta, position) => {
+        const currentBlock = blockStateRef.current;
         onInteraction(id, {
-            ...blockState,
+            ...currentBlock,
             width: parseInt(ref.style.width, 10),
             height: parseInt(ref.style.height, 10),
             ...position
         });
-    }, [id, blockState, onInteraction]);
+    }, [id, onInteraction]); // Stable dependencies
 
     const handleResizeStop: RndResizeCallback = useCallback((e, direction, ref, delta, position) => {
+        const currentBlock = blockStateRef.current;
         onInteractionStop(id, {
-            ...blockState,
+            ...currentBlock,
             width: parseInt(ref.style.width, 10),
             height: parseInt(ref.style.height, 10),
             ...position
         });
-    }, [id, blockState, onInteractionStop]);
+    }, [id, onInteractionStop]); // Stable dependencies
 
     // Presentation Mode Overrides
     // Rnd is the invisible draggable/resizable wrapper.
