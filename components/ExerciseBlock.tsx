@@ -36,7 +36,7 @@ export interface ExerciseBlockProps {
 }
 
 // Header Component
-const Header = React.forwardRef<HTMLDivElement, {
+const Header = React.memo(React.forwardRef<HTMLDivElement, {
   title: string;
   pedagogy: string;
   textColor: string;
@@ -64,57 +64,68 @@ const Header = React.forwardRef<HTMLDivElement, {
     generateAmount, estimatedDuration, quantity, onQuantityChange, isSingleInstance,
     isPresenting, onEnterPresentation, onExitPresentation, onPrevItem, onNextItem, currentItem, totalItems
 }, ref) => {
+    // Header is now memoized to prevent re-renders during drag operations.
+    // Callbacks passed here must be stable.
+
+    // Note: We are logging interactions inside the callbacks which are passed as props or defined here.
+    // Since Header is memoized, we need to ensure logging doesn't break memoization if logger changes.
+    // However, logger from context is stable enough or we assume it is.
+
+    // We can't use hooks here for logic that depends on block props unless passed in.
+    // The previous implementation had logging logic inside handlers defined in Header.
+    // We will keep them here.
+
     const { logger } = useActivityLogger();
 
-    const handleRemove = (e: React.MouseEvent) => {
+    const handleRemove = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         logger?.logFocusItem('Project Management', 'Exercise Block Removed', 0.1, null, 1, [], title);
         onRemove();
-    };
+    }, [logger, onRemove, title]);
 
-    const handleRegenerate = (e: React.MouseEvent) => {
+    const handleRegenerate = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         logger?.logFocusItem('Activity Management', 'Exercise Regenerated', 0.1, null, 1, [], title);
         onRegenerate();
-    };
+    }, [logger, onRegenerate, title]);
 
-    const handleGenerate = (e: React.MouseEvent) => {
+    const handleGenerate = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         logger?.logFocusItem('Activity Management', 'Exercise Generated', 0.1, null, 1, [], `${title} x${generateAmount}`);
         onGenerate();
-    };
+    }, [logger, onGenerate, title, generateAmount]);
 
-    const handleToggleSettings = (e: React.MouseEvent) => {
+    const handleToggleSettings = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         logger?.logFocusItem('Settings', `Block Settings ${isSettingsOpen ? 'Closed' : 'Opened'}`, 0.1, null, 1, [], title);
         onToggleSettings();
-    };
+    }, [logger, onToggleSettings, isSettingsOpen, title]);
 
-    const handleEnterPresentation = (e: React.MouseEvent) => {
+    const handleEnterPresentation = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         logger?.startActivity(`presentation_${title.replace(/\s/g, '_')}_${Date.now()}`, 'presentation', `Presenting: ${title}`);
         logger?.logFocusItem('Interaction', 'Entered Live Mode', 0.1);
         onEnterPresentation?.();
-    };
+    }, [logger, onEnterPresentation, title]);
 
-    const handleExitPresentation = (e: React.MouseEvent) => {
+    const handleExitPresentation = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         logger?.logFocusItem('Interaction', 'Exited Live Mode', 0.1);
         logger?.endActivity(); // Ends the presentation activity
         onExitPresentation?.();
-    };
+    }, [logger, onExitPresentation]);
 
-    const handleNextItem = (e: React.MouseEvent) => {
+    const handleNextItem = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        logger?.logFocusItem('Interaction', 'Presentation Next Item', 0.1, null, 1, [], `Block: ${title}, Item: ${currentItem + 1}/${totalItems}`);
+        logger?.logFocusItem('Interaction', 'Presentation Next Item', 0.1, null, 1, [], `Block: ${title}, Item: ${(currentItem || 0) + 1}/${totalItems}`);
         onNextItem?.();
-    };
+    }, [logger, onNextItem, currentItem, totalItems, title]);
 
-    const handlePrevItem = (e: React.MouseEvent) => {
+    const handlePrevItem = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        logger?.logFocusItem('Interaction', 'Presentation Previous Item', 0.1, null, 1, [], `Block: ${title}, Item: ${currentItem - 1}/${totalItems}`);
+        logger?.logFocusItem('Interaction', 'Presentation Previous Item', 0.1, null, 1, [], `Block: ${title}, Item: ${(currentItem || 0) - 1}/${totalItems}`);
         onPrevItem?.();
-    };
+    }, [logger, onPrevItem, currentItem, totalItems, title]);
 
     return (
         <div ref={ref} className={`handle bg-slate-800 text-white p-3 ${isPresenting ? 'rounded-none p-6' : 'rounded-t-2xl'} flex justify-between items-center cursor-move flex-shrink-0 border-b border-slate-700 relative z-10 font-casual`}>
@@ -201,40 +212,45 @@ const Header = React.forwardRef<HTMLDivElement, {
             </div>
         </div>
     );
-});
+}));
 Header.displayName = 'Header';
 
 // Settings Component
-const Settings = React.forwardRef<HTMLDivElement, {
-    blockState: ExerciseBlockState;
+// Refactored to accept granular props to avoid re-render on block position change (drag)
+const Settings = React.memo(React.forwardRef<HTMLDivElement, {
+    id: number;
+    difficulty: Difficulty;
+    tone: Tone;
+    theme: string;
+    exerciseType: ExerciseType;
     onUpdate: (blockId: number, updates: Partial<ExerciseBlockState>) => void;
-}>(({ blockState, onUpdate }, ref) => {
+}>(({ id, difficulty, tone, theme, exerciseType, onUpdate }, ref) => {
     const { logger } = useActivityLogger();
 
-    const handleDifficultyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleDifficultyChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
         const newDifficulty = e.target.value as Difficulty;
-        onUpdate(blockState.id, { difficulty: newDifficulty });
-        logger?.logFocusItem('Settings', 'Block Difficulty Changed', 0.1, null, 1, [], `Block: ${blockState.exerciseType}, Set to: ${newDifficulty}`);
-    };
+        onUpdate(id, { difficulty: newDifficulty });
+        logger?.logFocusItem('Settings', 'Block Difficulty Changed', 0.1, null, 1, [], `Block: ${exerciseType}, Set to: ${newDifficulty}`);
+    }, [id, exerciseType, onUpdate, logger]);
 
-    const handleToneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleToneChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
         const newTone = e.target.value as Tone;
-        onUpdate(blockState.id, { tone: newTone });
-        logger?.logFocusItem('Settings', 'Block Tone Changed', 0.1, null, 1, [], `Block: ${blockState.exerciseType}, Set to: ${newTone}`);
-    };
+        onUpdate(id, { tone: newTone });
+        logger?.logFocusItem('Settings', 'Block Tone Changed', 0.1, null, 1, [], `Block: ${exerciseType}, Set to: ${newTone}`);
+    }, [id, exerciseType, onUpdate, logger]);
 
-    const handleThemeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleThemeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const newTheme = e.target.value;
-        onUpdate(blockState.id, { theme: newTheme });
-        logger?.logFocusItem('Settings', 'Block Theme Changed', 0.1, null, 1, [], `Block: ${blockState.exerciseType}, Set to: ${newTheme}`);
-    };
+        onUpdate(id, { theme: newTheme });
+        logger?.logFocusItem('Settings', 'Block Theme Changed', 0.1, null, 1, [], `Block: ${exerciseType}, Set to: ${newTheme}`);
+    }, [id, exerciseType, onUpdate, logger]);
 
     return (
         <div ref={ref} className="p-3 border-b border-neutral-gray-100 bg-paper-bg grid grid-cols-2 gap-3 flex-shrink-0 relative z-10 font-casual">
-            <label htmlFor={`block-difficulty-${blockState.id}`} className="sr-only">Block Difficulty</label>
+            <label htmlFor={`block-difficulty-${id}`} className="sr-only">Block Difficulty</label>
             <select
-                id={`block-difficulty-${blockState.id}`}
-                value={blockState.difficulty}
+                id={`block-difficulty-${id}`}
+                value={difficulty}
                 onChange={handleDifficultyChange}
                 className="text-xs font-bold text-neutral-gray-600 p-2 rounded-lg border border-neutral-gray-300 bg-white w-full outline-none focus:ring-2 focus:ring-primary-blue-400"
             >
@@ -244,20 +260,20 @@ const Settings = React.forwardRef<HTMLDivElement, {
                     </option>
                 ))}
             </select>
-            <label htmlFor={`block-tone-${blockState.id}`} className="sr-only">Block Tone</label>
+            <label htmlFor={`block-tone-${id}`} className="sr-only">Block Tone</label>
             <select
-                id={`block-tone-${blockState.id}`}
-                value={blockState.tone}
+                id={`block-tone-${id}`}
+                value={tone}
                 onChange={handleToneChange}
                 className="text-xs font-bold text-neutral-gray-600 p-2 rounded-lg border border-neutral-gray-300 bg-white w-full outline-none focus:ring-2 focus:ring-primary-blue-400"
             >
                 {TONES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <label htmlFor={`block-theme-${blockState.id}`} className="sr-only">Block Theme</label>
+            <label htmlFor={`block-theme-${id}`} className="sr-only">Block Theme</label>
             <input
-                id={`block-theme-${blockState.id}`}
+                id={`block-theme-${id}`}
                 type="text"
-                value={blockState.theme}
+                value={theme}
                 onChange={handleThemeChange}
                 onBlur={handleThemeChange} // Log on blur for text input
                 className="col-span-2 text-xs font-bold text-neutral-gray-600 p-2 rounded-lg border border-neutral-gray-300 bg-white w-full outline-none focus:ring-2 focus:ring-primary-blue-400 placeholder-neutral-gray-400"
@@ -265,11 +281,11 @@ const Settings = React.forwardRef<HTMLDivElement, {
             />
         </div>
     );
-});
+}));
 Settings.displayName = 'Settings';
 
 // ExerciseContent component now uses activeIndex to show a single question
-const ExerciseContent: React.FC<{ type: ExerciseType; content: any[]; colors: any; activeIndex?: number; blockId: number; exerciseType: ExerciseType }> = ({ type, content, colors, activeIndex, blockId, exerciseType }) => {
+const ExerciseContent: React.FC<{ type: ExerciseType; content: any[]; colors: any; activeIndex?: number; blockId: number; exerciseType: ExerciseType }> = React.memo(({ type, content, colors, activeIndex, blockId, exerciseType }) => {
     const { logger, startActivity, endActivity, logFocusItem } = useActivityLogger();
 
     // Start activity for the specific exercise block content when it's first rendered in full
@@ -370,15 +386,15 @@ const ExerciseContent: React.FC<{ type: ExerciseType; content: any[]; colors: an
     // In presentation mode, we render all items but only one is visible at a time via CSS.
     // This preserves the state of user inputs when navigating.
     return <div className="space-y-8">{content.map((ex, i) => renderExercise(ex, i))}</div>;
-};
+});
 
-const PlaceholderView: React.FC<{ amount: number; exerciseType: ExerciseType; }> = ({ amount, exerciseType }) => (
+const PlaceholderView: React.FC<{ amount: number; exerciseType: ExerciseType; }> = React.memo(({ amount, exerciseType }) => (
     <div className="space-y-4">
         {Array.from({ length: amount }).map((_, i) => (
             <ExerciseTemplate key={i} type={exerciseType} index={i} />
         ))}
     </div>
-);
+));
 
 const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     blockState, onUpdate, onRemove, onFocus,
@@ -471,23 +487,24 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
         endActivity(); // End generation activity
     }, [exerciseType, difficulty, tone, debouncedTheme, generateAmount, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate, onUpdate, id, startActivity, endActivity]);
 
-    const handleRegenerate = () => {
+    // Stable callback for regenerate
+    const handleRegenerate = useCallback(() => {
         onUpdate(id, { isGenerated: false });
-        // Logger already handles logging in Header component
-    };
+        // Logger handled in Header component
+    }, [onUpdate, id]);
     
     // Presentation Navigation Handlers (for individual items within this block)
     const handleNextItem = useCallback(() => {
         if (Array.isArray(content) && currentSlide < content.length - 1) {
             setCurrentSlide(prev => prev + 1);
-            // Logger already handles logging in Header
+            // Logger handled in Header
         }
     }, [content, currentSlide]);
 
     const handlePrevItem = useCallback(() => {
         if (currentSlide > 0) {
             setCurrentSlide(prev => prev - 1);
-            // Logger already handles logging in Header
+            // Logger handled in Header
         }
     }, [currentSlide]);
 
@@ -579,6 +596,12 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
         });
     }, [id, blockState, onInteractionStop]);
 
+    // Stable wrappers for inline callbacks passed to Header
+    const handleRemoveWrapper = useCallback(() => onRemove(id), [onRemove, id]);
+    const handleToggleSettingsWrapper = useCallback(() => setIsSettingsOpen(prev => !prev), []);
+    const handleQuantityChangeWrapper = useCallback((val: number | undefined) => onUpdate(id, { quantity: val }), [onUpdate, id]);
+    const handleEnterPresentationWrapper = useCallback(() => onEnterPresentation && onEnterPresentation(id), [onEnterPresentation, id]);
+
     // Presentation Mode Overrides
     // Rnd is the invisible draggable/resizable wrapper.
     // The inner div `card-visual` handles the actual visual styling and content.
@@ -615,19 +638,19 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
                     title={exerciseType}
                     pedagogy={pedagogy}
                     textColor={colors.textOnDark}
-                    onRemove={() => onRemove(id)}
+                    onRemove={handleRemoveWrapper}
                     onRegenerate={handleRegenerate}
-                    onToggleSettings={() => setIsSettingsOpen(prev => !prev)}
+                    onToggleSettings={handleToggleSettingsWrapper}
                     isSettingsOpen={isSettingsOpen}
                     isGenerated={isGenerated}
                     onGenerate={handleGenerate}
                     generateAmount={generateAmount}
                     estimatedDuration={estimatedDuration}
                     quantity={quantity}
-                    onQuantityChange={(val) => onUpdate(id, { quantity: val })}
+                    onQuantityChange={handleQuantityChangeWrapper}
                     isSingleInstance={isSingleInstance}
                     isPresenting={isPresenting}
-                    onEnterPresentation={() => onEnterPresentation(id)}
+                    onEnterPresentation={handleEnterPresentationWrapper}
                     onExitPresentation={onExitPresentation}
                     onPrevItem={handlePrevItem}
                     onNextItem={handleNextItem}
@@ -635,7 +658,17 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
                     totalItems={Array.isArray(content) ? content.length : 1}
                 />
 
-                {isSettingsOpen && !isPresenting && <Settings ref={settingsRef} blockState={blockState} onUpdate={onUpdate} />}
+                {isSettingsOpen && !isPresenting && (
+                    <Settings
+                        ref={settingsRef}
+                        id={id}
+                        difficulty={difficulty}
+                        tone={tone}
+                        theme={theme}
+                        exerciseType={exerciseType}
+                        onUpdate={onUpdate}
+                    />
+                )}
                 
                 <div className={`p-5 min-h-0 overflow-hidden flex-grow overflow-y-auto custom-scrollbar-light ${isPresenting ? 'flex justify-center items-center' : ''}`}>
                     <div 
