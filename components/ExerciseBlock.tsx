@@ -409,6 +409,11 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     
     const { logger, startActivity, endActivity } = useActivityLogger();
 
+    // Optimization: Keep a ref to blockState to avoid re-creating interaction handlers on every render
+    const blockStateRef = useRef(blockState);
+    // Update ref on every render
+    blockStateRef.current = blockState;
+
     // Presentation Mode Internal State
     const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -456,8 +461,13 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
                     const desiredWidth = Math.max(350, contentWidth + horizontalPadding); // Min width to prevent UI crushing
                     const desiredHeight = headerHeight + settingsHeight + contentHeight + verticalPadding;
 
+                    // Optimization: Read current width/height from ref to avoid adding them to dependency array
+                    // This prevents destroying and recreating the ResizeObserver on every size update (thrashing)
+                    const currentWidth = blockStateRef.current.width;
+                    const currentHeight = blockStateRef.current.height;
+
                     // Apply change if it differs significantly to prevent micro-jitter
-                    if (Math.abs(desiredWidth - width) > 5 || Math.abs(desiredHeight - height) > 5) {
+                    if (Math.abs(desiredWidth - currentWidth) > 5 || Math.abs(desiredHeight - currentHeight) > 5) {
                          onUpdate(id, { 
                             width: desiredWidth,
                             height: desiredHeight 
@@ -469,7 +479,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
 
         resizeObserver.observe(contentWrapperRef.current);
         return () => resizeObserver.disconnect();
-    }, [content, isGenerated, isSettingsOpen, id, onUpdate, width, height, isPresenting]);
+    }, [content, isGenerated, isSettingsOpen, id, onUpdate, isPresenting]); // Removed width, height to prevent loop
 
 
     const handleGenerate = useCallback(async () => {
@@ -570,31 +580,36 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     };
 
     // Stable handlers to create interaction data and pass to parent
+    // Optimization: Use blockStateRef to keep these callbacks stable (avoid recreation on every drag frame)
     const handleDrag: RndDragCallback = useCallback((e, data) => {
-        onInteraction(id, { ...blockState, x: data.x, y: data.y });
-    }, [id, blockState, onInteraction]);
+        const state = blockStateRef.current;
+        onInteraction(id, { ...state, x: data.x, y: data.y });
+    }, [id, onInteraction]);
 
     const handleDragStop: RndDragCallback = useCallback((e, data) => {
-        onInteractionStop(id, { ...blockState, x: data.x, y: data.y });
-    }, [id, blockState, onInteractionStop]);
+        const state = blockStateRef.current;
+        onInteractionStop(id, { ...state, x: data.x, y: data.y });
+    }, [id, onInteractionStop]);
 
     const handleResize: RndResizeCallback = useCallback((e, direction, ref, delta, position) => {
+        const state = blockStateRef.current;
         onInteraction(id, {
-            ...blockState,
+            ...state,
             width: parseInt(ref.style.width, 10),
             height: parseInt(ref.style.height, 10),
             ...position
         });
-    }, [id, blockState, onInteraction]);
+    }, [id, onInteraction]);
 
     const handleResizeStop: RndResizeCallback = useCallback((e, direction, ref, delta, position) => {
+        const state = blockStateRef.current;
         onInteractionStop(id, {
-            ...blockState,
+            ...state,
             width: parseInt(ref.style.width, 10),
             height: parseInt(ref.style.height, 10),
             ...position
         });
-    }, [id, blockState, onInteractionStop]);
+    }, [id, onInteractionStop]);
 
     // Stable wrappers for inline callbacks passed to Header
     const handleRemoveWrapper = useCallback(() => onRemove(id), [onRemove, id]);
