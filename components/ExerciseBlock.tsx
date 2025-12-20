@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { Rnd, RndDragCallback, RndResizeCallback } from 'react-rnd';
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from '../types';
 import { generateExercises } from '../services/geminiService';
@@ -579,22 +579,26 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
         );
     };
 
+    // Ref pattern to keep callbacks stable despite blockState changes during drag
+    const blockStateRef = useRef(blockState);
+    useLayoutEffect(() => {
+        blockStateRef.current = blockState;
+    }, [blockState]);
+
     // Stable handlers to create interaction data and pass to parent
     // Optimization: Use blockStateRef to keep these callbacks stable (avoid recreation on every drag frame)
     const handleDrag: RndDragCallback = useCallback((e, data) => {
-        const state = blockStateRef.current;
-        onInteraction(id, { ...state, x: data.x, y: data.y });
+        onInteraction(id, { ...blockStateRef.current, x: data.x, y: data.y });
     }, [id, onInteraction]);
 
     const handleDragStop: RndDragCallback = useCallback((e, data) => {
-        const state = blockStateRef.current;
-        onInteractionStop(id, { ...state, x: data.x, y: data.y });
+        onInteractionStop(id, { ...blockStateRef.current, x: data.x, y: data.y });
     }, [id, onInteractionStop]);
 
     const handleResize: RndResizeCallback = useCallback((e, direction, ref, delta, position) => {
         const state = blockStateRef.current;
         onInteraction(id, {
-            ...state,
+            ...blockStateRef.current,
             width: parseInt(ref.style.width, 10),
             height: parseInt(ref.style.height, 10),
             ...position
@@ -604,7 +608,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     const handleResizeStop: RndResizeCallback = useCallback((e, direction, ref, delta, position) => {
         const state = blockStateRef.current;
         onInteractionStop(id, {
-            ...state,
+            ...blockStateRef.current,
             width: parseInt(ref.style.width, 10),
             height: parseInt(ref.style.height, 10),
             ...position
