@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { Rnd, RndDragCallback, RndResizeCallback } from 'react-rnd';
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from '../types';
 import { generateExercises } from '../services/geminiService';
@@ -569,32 +569,38 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
         );
     };
 
+    // Ref pattern to keep callbacks stable despite blockState changes during drag
+    const blockStateRef = useRef(blockState);
+    useLayoutEffect(() => {
+        blockStateRef.current = blockState;
+    }, [blockState]);
+
     // Stable handlers to create interaction data and pass to parent
     const handleDrag: RndDragCallback = useCallback((e, data) => {
-        onInteraction(id, { ...blockState, x: data.x, y: data.y });
-    }, [id, blockState, onInteraction]);
+        onInteraction(id, { ...blockStateRef.current, x: data.x, y: data.y });
+    }, [id, onInteraction]);
 
     const handleDragStop: RndDragCallback = useCallback((e, data) => {
-        onInteractionStop(id, { ...blockState, x: data.x, y: data.y });
-    }, [id, blockState, onInteractionStop]);
+        onInteractionStop(id, { ...blockStateRef.current, x: data.x, y: data.y });
+    }, [id, onInteractionStop]);
 
     const handleResize: RndResizeCallback = useCallback((e, direction, ref, delta, position) => {
         onInteraction(id, {
-            ...blockState,
+            ...blockStateRef.current,
             width: parseInt(ref.style.width, 10),
             height: parseInt(ref.style.height, 10),
             ...position
         });
-    }, [id, blockState, onInteraction]);
+    }, [id, onInteraction]);
 
     const handleResizeStop: RndResizeCallback = useCallback((e, direction, ref, delta, position) => {
         onInteractionStop(id, {
-            ...blockState,
+            ...blockStateRef.current,
             width: parseInt(ref.style.width, 10),
             height: parseInt(ref.style.height, 10),
             ...position
         });
-    }, [id, blockState, onInteractionStop]);
+    }, [id, onInteractionStop]);
 
     // Stable wrappers for inline callbacks passed to Header
     const handleRemoveWrapper = useCallback(() => onRemove(id), [onRemove, id]);
