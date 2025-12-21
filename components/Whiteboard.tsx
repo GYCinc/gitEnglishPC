@@ -62,6 +62,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     blocksRef.current = blocks;
   }, [blocks]);
 
+  // Performance: Cache snap points during interaction to avoid O(N) recalculation on every drag frame
+  const snapPointsCache = useRef<{ vPoints: number[], hPoints: number[] } | null>(null);
+
   // -- PAN & ZOOM HANDLERS --
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -197,7 +200,14 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       allBlocks: ExerciseBlockState[],
       newPosition: { x: number, y: number, width: number, height: number }
   ) => {
-      const { vPoints, hPoints } = getSnapPoints(allBlocks, movingBlock.id);
+      // Optimization: Use cached points if available to avoid O(N) iteration
+      let points = snapPointsCache.current;
+      if (!points) {
+         points = getSnapPoints(allBlocks, movingBlock.id);
+         snapPointsCache.current = points;
+      }
+
+      const { vPoints, hPoints } = points;
       let snappedX = newPosition.x;
       let snappedY = newPosition.y;
       const newSnapLines: SnapLine[] = [];
@@ -246,6 +256,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       onUpdateBlock(blockId, finalPos);
       setActiveInteraction(null);
       setSnapLines([]);
+      // Clear the snap points cache when interaction ends
+      snapPointsCache.current = null;
   }, [onUpdateBlock]);
 
   // -- AUTO-CENTER LOGIC --
