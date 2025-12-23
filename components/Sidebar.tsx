@@ -423,11 +423,11 @@ interface SidebarProps {
     onClearBoard: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ 
+const Sidebar = React.memo(({
     focusVocabulary, setFocusVocabulary, inclusionRate, setInclusionRate,
     focusGrammar, setFocusGrammar, grammarInclusionRate, setGrammarInclusionRate,
     isSidebarOpen, onAddExercise, onExportState, onImportState, onClearBoard
-}) => {
+}: SidebarProps) => {
   const [openCategory, setOpenCategory] = useState<string | null>('PPP');
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const { logger, logFocusItem } = useActivityLogger();
@@ -600,6 +600,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       `}</style>
     </aside>
   );
-};
+});
 
 export default Sidebar;

@@ -9,7 +9,7 @@ interface RadialMenuProps {
     onCycleDifficulty: () => void;
 }
 
-const RadialMenu: React.FC<RadialMenuProps> = ({ onToggleSettings, onToggleSidebar, onExportState, difficulty, onCycleDifficulty }) => {
+const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportState, difficulty, onCycleDifficulty }: RadialMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
@@ -99,6 +99,6 @@ const RadialMenu: React.FC<RadialMenuProps> = ({ onToggleSettings, onToggleSideb
             )}
         </div>
     );
-};
+});
 
 export default RadialMenu;
