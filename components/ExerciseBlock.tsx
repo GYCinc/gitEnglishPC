@@ -411,8 +411,10 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
 
     // Optimization: Keep a ref to blockState to avoid re-creating interaction handlers on every render
     const blockStateRef = useRef(blockState);
-    // Update ref on every render
-    blockStateRef.current = blockState;
+    // Update ref via useLayoutEffect to ensure it's up-to-date before any effects or event handlers run
+    useLayoutEffect(() => {
+        blockStateRef.current = blockState;
+    }, [blockState]);
 
     // Presentation Mode Internal State
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -578,12 +580,6 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
             </>
         );
     };
-
-    // Ref pattern to keep callbacks stable despite blockState changes during drag
-    const blockStateRef = useRef(blockState);
-    useLayoutEffect(() => {
-        blockStateRef.current = blockState;
-    }, [blockState]);
 
     // Stable handlers to create interaction data and pass to parent
     // Optimization: Use blockStateRef to keep these callbacks stable (avoid recreation on every drag frame)
