@@ -493,9 +493,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
         );
         setContent(result);
         setIsLoading(false);
-        if (!('error' in result)) {
-            onUpdate(id, { isGenerated: true });
-        }
+        onUpdate(id, { isGenerated: true });
         endActivity(); // End generation activity
     }, [exerciseType, difficulty, tone, debouncedTheme, generateAmount, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate, onUpdate, id, startActivity, endActivity]);
 
