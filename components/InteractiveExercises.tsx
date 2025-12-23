@@ -168,7 +168,7 @@ export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPre
         <div className={`text-base font-casual ${colors.textOnLight}`}>
             {'sentences' in exercise && (
                 <div className={`mb-4 p-3 rounded-xl bg-white/50 border-2 ${colors.chip.border} italic space-y-1`}>
-                    {exercise.sentences.map((s, i) => <p key={i}>"{s}"</p>)}
+                    {(exercise.sentences || []).map((s, i) => <p key={i}>"{s}"</p>)}
                 </div>
             )}
             {'sentenceA' in exercise && (
@@ -191,7 +191,7 @@ export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPre
                 {'question' in exercise ? exercise.question : ('storyStart' in exercise ? exercise.storyStart : '')}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {exercise.options.map(option => {
+                {(exercise.options || []).map(option => {
                     const isCorrect = option === exercise.correctAnswer;
                     const isSelected = option === selected;
                     let buttonClass = `${colors.chip.bg} ${colors.chip.text} border-2 ${colors.chip.border} hover:-translate-y-0.5 hover:shadow-md`;
@@ -330,9 +330,15 @@ export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExe
 
 export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunctionMatchingExercise; colors: any; }> = ({ exercise, colors }) => {
     type MatchInfo = { answerIndex: number; isCorrect: boolean };
-    const [shuffledAnswers, setShuffledAnswers] = useState(() => shuffleArray(exercise.answers));
+    const [shuffledAnswers, setShuffledAnswers] = useState(() => shuffleArray(exercise.answers || []));
     const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
     const [matches, setMatches] = useState<Record<number, MatchInfo>>({});
+
+    useEffect(() => {
+        setShuffledAnswers(shuffleArray(exercise.answers || []));
+        setMatches({});
+        setSelectedPrompt(null);
+    }, [exercise]);
 
     const handleSelectPrompt = (promptIndex: number) => {
         if (matches[promptIndex]) return;
@@ -354,7 +360,7 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
             <p className="mb-3 font-bold text-sm opacity-70 uppercase">Connect the pairs</p>
             <div className="flex gap-4 md:gap-8">
                 <div className="flex-1 space-y-2">
-                    {exercise.prompts.map((prompt, promptIndex) => {
+                    {(exercise.prompts || []).map((prompt, promptIndex) => {
                         const match = matches[promptIndex];
                         const isSelected = selectedPrompt === promptIndex;
                         

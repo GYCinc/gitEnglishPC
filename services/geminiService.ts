@@ -577,6 +577,19 @@ export const generateExercises = async (
               wordBank: ["dummy", "fake", "wrong", "test"]
           }));
       }
+      if (exerciseType === ExerciseType.Matching) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              prompts: [`Prompt A #${i+1}`, `Prompt B #${i+1}`, `Prompt C #${i+1}`],
+              answers: [`Answer A #${i+1}`, `Answer B #${i+1}`, `Answer C #${i+1}`]
+          }));
+      }
+      if (exerciseType === ExerciseType.MultipleChoice) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              question: `What is the correct answer for question #${i+1}?`,
+              options: ["Option A", "Option B", "Option C", "Option D"],
+              correctAnswer: "Option A"
+          }));
+      }
       // Add more dummy data types if needed, otherwise fallback to error
       return { error: "Dummy data not implemented for this type." };
   }
