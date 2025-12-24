@@ -9,3 +9,7 @@
 ## 2024-05-22 - Ref-Based Event Handlers for Frequent Updates
 **Learning:** For components receiving high-frequency prop updates (like a dragging block receiving its own position), recreating event handlers (e.g., `onDrag`) on every render forces child components (like `react-rnd`) to re-bind listeners or re-process props.
 **Action:** Use a `useRef` updated via `useLayoutEffect` to store the latest state, and access this ref inside stable `useCallback` handlers. This keeps the handler function identity stable across renders.
+
+## 2025-12-24 - Preventing Tree-Wide Re-renders via Ref-Stable Callbacks
+**Learning:** When a root component passes configuration callbacks (like `addBlock`) to memoized children (like `Sidebar`), any change in the dependencies of that callback (like typing in a text input for `Theme`) forces the callback to recreate, which in turn forces the memoized children to re-render. This propagates updates unnecessarily.
+**Action:** Use a `stateRef` in the root component to hold the current values of all dependencies. Read from `stateRef.current` inside the callback so the callback itself has zero dependencies (`[]`) and remains stable, preventing child re-renders.

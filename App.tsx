@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Whiteboard from './components/Whiteboard';
 import RadialMenu from './components/RadialMenu'; // New import
@@ -90,6 +90,31 @@ const App: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // New state for modal
   const [presentingBlockId, setPresentingBlockId] = useState<number | null>(null);
 
+  // Optimization: Use a ref to access latest state in callbacks without adding them as dependencies
+  const stateRef = useRef({
+      blocks,
+      difficulty,
+      tone,
+      theme,
+      focusVocabulary,
+      inclusionRate,
+      focusGrammar,
+      grammarInclusionRate
+  });
+
+  useEffect(() => {
+      stateRef.current = {
+          blocks,
+          difficulty,
+          tone,
+          theme,
+          focusVocabulary,
+          inclusionRate,
+          focusGrammar,
+          grammarInclusionRate
+      };
+  }, [blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
+
   // Save state to localStorage whenever it changes
   // Debounce blocks persistence to avoid synchronous JSON.stringify on every drag frame
   useEffect(() => {
@@ -140,6 +165,10 @@ const App: React.FC = () => {
 
   // Export/Import/Clear Logic
   const handleExportState = useCallback(() => {
+      const {
+          blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
+      } = stateRef.current;
+
       const data = {
           version: '2.1.0',
           timestamp: new Date().toISOString(),
@@ -163,7 +192,7 @@ const App: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-  }, [blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
+  }, []);
 
   const handleImportState = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -204,6 +233,10 @@ const App: React.FC = () => {
 
 
   const addBlock = useCallback((type: ExerciseType, dropX?: number, dropY?: number) => {
+    const {
+        difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
+    } = stateRef.current;
+
     setBlocks(prevBlocks => {
       const { width: newBlockWidth, height: newBlockHeight } = EXERCISE_SIZE_OVERRIDES[type] || DEFAULT_BLOCK_DIMENSIONS;
 
@@ -266,7 +299,7 @@ const App: React.FC = () => {
 
       return [...prevBlocks, newBlock];
     });
-  }, [difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
+  }, []);
 
   const updateBlock = useCallback((blockId: number, updates: Partial<ExerciseBlockState>) => {
     setBlocks(prevBlocks =>
@@ -358,13 +391,6 @@ const App: React.FC = () => {
           onUpdateBlock={updateBlock} 
           onRemoveBlock={removeBlock} 
           onFocusBlock={focusBlock}
-          difficulty={difficulty}
-          setDifficulty={setDifficulty}
-          tone={tone}
-          setTone={setTone}
-          theme={theme}
-          setTheme={setTheme}
-          totalTime={totalTime}
           presentingBlockId={presentingBlockId}
           onEnterPresentation={enterPresentation}
           onExitPresentation={exitPresentation}

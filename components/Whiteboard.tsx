@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ExerciseBlock from './ExerciseBlock';
-import { ExerciseType, Difficulty, Tone, ExerciseBlockState } from '../types';
+import { ExerciseType, ExerciseBlockState } from '../types';
 import { MagicWandIcon } from './icons';
 import { useActivityLogger } from '../ActivityContext'; // Import logger context
 
@@ -16,14 +16,6 @@ interface WhiteboardProps {
   onExitPresentation: () => void;
   onNextSlide: () => void;
   onPrevSlide: () => void;
-  // Global settings setters are no longer passed here as GlobalSettings is handled in App.tsx
-  difficulty: Difficulty;
-  setDifficulty: (d: Difficulty) => void;
-  tone: Tone;
-  setTone: (t: Tone) => void;
-  theme: string;
-  setTheme: (t: string) => void;
-  totalTime: number;
 }
 
 type SnapLine = {
@@ -365,4 +357,4 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   );
 };
 
-export default Whiteboard;
+export default React.memo(Whiteboard);
