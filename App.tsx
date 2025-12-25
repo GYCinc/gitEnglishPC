@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Whiteboard from './components/Whiteboard';
 import RadialMenu from './components/RadialMenu'; // New import
@@ -90,6 +90,32 @@ const App: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // New state for modal
   const [presentingBlockId, setPresentingBlockId] = useState<number | null>(null);
 
+  // Create a ref to hold the latest settings/state to keep callbacks stable
+  // This prevents Sidebar and Whiteboard from re-rendering when global settings change or blocks move
+  const stateRef = useRef({
+      blocks,
+      difficulty,
+      tone,
+      theme,
+      focusVocabulary,
+      inclusionRate,
+      focusGrammar,
+      grammarInclusionRate
+  });
+
+  useEffect(() => {
+      stateRef.current = {
+          blocks,
+          difficulty,
+          tone,
+          theme,
+          focusVocabulary,
+          inclusionRate,
+          focusGrammar,
+          grammarInclusionRate
+      };
+  }, [blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
+
   // Save state to localStorage whenever it changes
   // Debounce blocks persistence to avoid synchronous JSON.stringify on every drag frame
   useEffect(() => {
@@ -140,6 +166,7 @@ const App: React.FC = () => {
 
   // Export/Import/Clear Logic
   const handleExportState = useCallback(() => {
+      const { blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate } = stateRef.current;
       const data = {
           version: '2.1.0',
           timestamp: new Date().toISOString(),
@@ -163,7 +190,7 @@ const App: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-  }, [blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
+  }, []); // Empty dependency array - reads from ref
 
   const handleImportState = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -204,6 +231,9 @@ const App: React.FC = () => {
 
 
   const addBlock = useCallback((type: ExerciseType, dropX?: number, dropY?: number) => {
+    // Read current settings from ref to keep addBlock stable
+    const { difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate } = stateRef.current;
+
     setBlocks(prevBlocks => {
       const { width: newBlockWidth, height: newBlockHeight } = EXERCISE_SIZE_OVERRIDES[type] || DEFAULT_BLOCK_DIMENSIONS;
 
@@ -266,7 +296,7 @@ const App: React.FC = () => {
 
       return [...prevBlocks, newBlock];
     });
-  }, [difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
+  }, []); // Empty dependency array - reads from ref
 
   const updateBlock = useCallback((blockId: number, updates: Partial<ExerciseBlockState>) => {
     setBlocks(prevBlocks =>
@@ -293,10 +323,12 @@ const App: React.FC = () => {
   }, []);
 
   const cycleDifficulty = useCallback(() => {
-    const currentIndex = DIFFICULTY_LEVELS.indexOf(difficulty);
-    const nextIndex = (currentIndex + 1) % DIFFICULTY_LEVELS.length;
-    setDifficulty(DIFFICULTY_LEVELS[nextIndex] as Difficulty);
-  }, [difficulty]);
+    setDifficulty(prevDiff => {
+        const currentIndex = DIFFICULTY_LEVELS.indexOf(prevDiff);
+        const nextIndex = (currentIndex + 1) % DIFFICULTY_LEVELS.length;
+        return DIFFICULTY_LEVELS[nextIndex] as Difficulty;
+    });
+  }, []);
 
   // Callbacks for Sidebar and RadialMenu
   const handleToggleSettings = useCallback(() => setIsSettingsModalOpen(true), []);
