@@ -90,8 +90,7 @@ const App: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // New state for modal
   const [presentingBlockId, setPresentingBlockId] = useState<number | null>(null);
 
-  // Create a ref to hold the latest settings/state to keep callbacks stable
-  // This prevents Sidebar and Whiteboard from re-rendering when global settings change or blocks move
+  // Optimization: Use a ref to access latest state in callbacks without adding them as dependencies
   const stateRef = useRef({
       blocks,
       difficulty,
@@ -166,7 +165,10 @@ const App: React.FC = () => {
 
   // Export/Import/Clear Logic
   const handleExportState = useCallback(() => {
-      const { blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate } = stateRef.current;
+      const {
+          blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
+      } = stateRef.current;
+
       const data = {
           version: '2.1.0',
           timestamp: new Date().toISOString(),
@@ -190,7 +192,7 @@ const App: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-  }, []); // Empty dependency array - reads from ref
+  }, []);
 
   const handleImportState = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -231,8 +233,9 @@ const App: React.FC = () => {
 
 
   const addBlock = useCallback((type: ExerciseType, dropX?: number, dropY?: number) => {
-    // Read current settings from ref to keep addBlock stable
-    const { difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate } = stateRef.current;
+    const {
+        difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
+    } = stateRef.current;
 
     setBlocks(prevBlocks => {
       const { width: newBlockWidth, height: newBlockHeight } = EXERCISE_SIZE_OVERRIDES[type] || DEFAULT_BLOCK_DIMENSIONS;
@@ -296,7 +299,7 @@ const App: React.FC = () => {
 
       return [...prevBlocks, newBlock];
     });
-  }, []); // Empty dependency array - reads from ref
+  }, []);
 
   const updateBlock = useCallback((blockId: number, updates: Partial<ExerciseBlockState>) => {
     setBlocks(prevBlocks =>
@@ -390,13 +393,6 @@ const App: React.FC = () => {
           onUpdateBlock={updateBlock} 
           onRemoveBlock={removeBlock} 
           onFocusBlock={focusBlock}
-          difficulty={difficulty}
-          setDifficulty={setDifficulty}
-          tone={tone}
-          setTone={setTone}
-          theme={theme}
-          setTheme={setTheme}
-          totalTime={totalTime}
           presentingBlockId={presentingBlockId}
           onEnterPresentation={enterPresentation}
           onExitPresentation={exitPresentation}
