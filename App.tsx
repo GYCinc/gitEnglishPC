@@ -326,10 +326,12 @@ const App: React.FC = () => {
   }, []);
 
   const cycleDifficulty = useCallback(() => {
-    const currentIndex = DIFFICULTY_LEVELS.indexOf(difficulty);
-    const nextIndex = (currentIndex + 1) % DIFFICULTY_LEVELS.length;
-    setDifficulty(DIFFICULTY_LEVELS[nextIndex] as Difficulty);
-  }, [difficulty]);
+    setDifficulty(prevDiff => {
+        const currentIndex = DIFFICULTY_LEVELS.indexOf(prevDiff);
+        const nextIndex = (currentIndex + 1) % DIFFICULTY_LEVELS.length;
+        return DIFFICULTY_LEVELS[nextIndex] as Difficulty;
+    });
+  }, []);
 
   // Callbacks for Sidebar and RadialMenu
   const handleToggleSettings = useCallback(() => setIsSettingsModalOpen(true), []);
