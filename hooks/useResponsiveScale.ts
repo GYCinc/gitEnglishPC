@@ -58,15 +58,22 @@ export const useResponsiveScale = (
       }
     };
 
+    let rafId: number;
+    const onResize = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(calculateScale);
+    };
+
     // Recalculate on window resize
-    window.addEventListener('resize', calculateScale);
+    window.addEventListener('resize', onResize);
     
     // Initial calculation. Use setTimeout to ensure ref.current is populated after render.
     const timeout = setTimeout(calculateScale, 100);
 
     return () => {
-      window.removeEventListener('resize', calculateScale);
+      window.removeEventListener('resize', onResize);
       clearTimeout(timeout);
+      cancelAnimationFrame(rafId);
     };
   }, [targetWidth, contentRef, maxScale, enabled]);
 
