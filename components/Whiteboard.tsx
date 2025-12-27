@@ -36,9 +36,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   
   // Canvas View State
   const [scale, setScale] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const pan = useRef({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const lastMousePos = useRef({ x: 0, y: 0 });
   const [isSpacePressed, setIsSpacePressed] = useState(false); // Track spacebar for alternative pan
 
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -72,7 +72,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     // 2. Left mouse (0) is used ON THE BACKGROUND (empty space) OR if Spacebar is held down
     if (e.button === 1 || e.button === 2 || (e.button === 0 && (isBackground || isSpacePressed))) {
       setIsPanning(true);
-      setLastMousePos({ x: e.clientX, y: e.clientY });
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
       
       // Prevent default browser drag behaviors (e.g., image drag, text selection)
       e.preventDefault(); 
@@ -83,10 +83,14 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isPanning) {
-      const dx = e.clientX - lastMousePos.x;
-      const dy = e.clientY - lastMousePos.y;
-      setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-      setLastMousePos({ x: e.clientX, y: e.clientY });
+      const dx = e.clientX - lastMousePos.current.x;
+      const dy = e.clientY - lastMousePos.current.y;
+      pan.current = { x: pan.current.x + dx, y: pan.current.y + dy };
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+
+      if (canvasRef.current) {
+          canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`;
+      }
     }
   };
 
@@ -111,14 +115,14 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
         const mouseY = e.clientY - rect.top;
 
         // Calculate world coordinates before zoom
-        const worldX = (mouseX - pan.x) / scale;
-        const worldY = (mouseY - pan.y) / scale;
+        const worldX = (mouseX - pan.current.x) / scale;
+        const worldY = (mouseY - pan.current.y) / scale;
 
         // Calculate new pan to keep world point under mouse
         const newPanX = mouseX - worldX * newScale;
         const newPanY = mouseY - worldY * newScale;
 
-        setPan({ x: newPanX, y: newPanY });
+        pan.current = { x: newPanX, y: newPanY };
         logger?.logFocusItem('Movement', 'Canvas Zoom', 0.1, null, 1, [], `Scale: ${newScale.toFixed(2)}`);
     }
     setScale(newScale);
@@ -167,8 +171,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
         const rect = containerRef.current.getBoundingClientRect();
         // Convert screen coords to canvas coords:
         // canvasX = (screenX - containerLeft - panX) / scale
-        const x = (e.clientX - rect.left - pan.x) / scale;
-        const y = (e.clientY - rect.top - pan.y) / scale;
+        const x = (e.clientX - rect.left - pan.current.x) / scale;
+        const y = (e.clientY - rect.top - pan.current.y) / scale;
         onAddBlock(type, x, y);
         logger?.logFocusItem('Project Management', 'Block Added via Drag', 0.1, null, 1, [], `Type: ${type}, Pos: (${x.toFixed(0)}, ${y.toFixed(0)})`);
     }
@@ -266,7 +270,10 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       const newPanX = (viewportW / 2) - (blockCenterX * scale);
       const newPanY = (viewportH / 2) - (blockCenterY * scale);
 
-      setPan({ x: newPanX, y: newPanY });
+      pan.current = { x: newPanX, y: newPanY };
+      if (canvasRef.current) {
+          canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`;
+      }
       logger?.logFocusItem('Movement', 'Center on Block', 0.1, null, 1, [], `Block: ${block.exerciseType}, Pos: (${block.x.toFixed(0)}, ${block.y.toFixed(0)})`);
   };
 
@@ -304,7 +311,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             id="whiteboard-background"
             className="absolute top-0 left-0 w-full h-full transition-transform duration-75 ease-out origin-top-left"
             style={{ 
-                transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+                transform: `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`,
                 backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)',
                 // Scale the background pattern size inversely to keep dots visible (fixed visual size approx 20px)
                 backgroundSize: `${20 / scale}px ${20 / scale}px`,
