@@ -42,6 +42,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const [isSpacePressed, setIsSpacePressed] = useState(false); // Track spacebar for alternative pan
 
   const canvasRef = useRef<HTMLDivElement>(null);
+  const backgroundRef = useRef<HTMLDivElement>(null); // Ref for the background grid
   const containerRef = useRef<HTMLElement>(null); // Ref for the main element to get clientWidth/Height
 
   const isWorkspaceEmpty = blocks.length === 0;
@@ -65,7 +66,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
     // Check if target is the background container (the big grid div) or the main container
     const target = e.target as HTMLElement;
-    const isBackground = target.id === 'whiteboard-background' || target.id === 'whiteboard-main';
+    const isBackground = target.id === 'whiteboard-background' || target.id === 'whiteboard-main' || target.id === 'whiteboard-content';
 
     // Allow panning if:
     // 1. Middle mouse (1) or Right mouse (2) is used anywhere
@@ -90,6 +91,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
       if (canvasRef.current) {
           canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`;
+      }
+      // Performance Optimization: Update background translation independently without scale
+      // This avoids re-rasterizing the grid pattern on zoom (which changes scale but not pan directly here)
+      if (backgroundRef.current) {
+          backgroundRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px)`;
       }
     }
   };
@@ -274,6 +280,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       if (canvasRef.current) {
           canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`;
       }
+      if (backgroundRef.current) {
+          backgroundRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px)`;
+      }
       logger?.logFocusItem('Movement', 'Center on Block', 0.1, null, 1, [], `Block: ${block.exerciseType}, Pos: (${block.x.toFixed(0)}, ${block.y.toFixed(0)})`);
   };
 
@@ -306,16 +315,33 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             </div>
         )}
 
+        {/*
+           Bolt Optimization: Split background grid from content layer.
+           Background now only translates (pan) but does not scale.
+           This avoids recalculating backgroundSize string and triggering paint on every zoom frame.
+           Constant visual dot density is achieved naturally by keeping fixed bgSize and scale=1.
+        */}
         <div 
-            ref={canvasRef}
+            ref={backgroundRef}
             id="whiteboard-background"
-            className="absolute top-0 left-0 w-full h-full transition-transform duration-75 ease-out origin-top-left"
+            className="absolute top-0 left-0 w-full h-full transition-transform duration-75 ease-out origin-top-left pointer-events-none"
             style={{ 
-                transform: `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`,
+                transform: `translate(${pan.current.x}px, ${pan.current.y}px)`, // No scale
                 backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)',
-                // Scale the background pattern size inversely to keep dots visible (fixed visual size approx 20px)
-                backgroundSize: `${20 / scale}px ${20 / scale}px`,
+                backgroundSize: '20px 20px', // Fixed size
                 width: '100000px', // Massive virtual size
+                height: '100000px',
+            }}
+        />
+
+        <div
+            ref={canvasRef}
+            id="whiteboard-content"
+            className="absolute top-0 left-0 w-full h-full transition-transform duration-75 ease-out origin-top-left"
+            style={{
+                transform: `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`,
+                // Background properties removed from here
+                width: '100000px',
                 height: '100000px',
                 pointerEvents: isPanning ? 'none' : 'auto' // Optimize drag performance
             }}
