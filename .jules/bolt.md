@@ -13,3 +13,7 @@
 ## 2025-12-24 - Preventing Tree-Wide Re-renders via Ref-Stable Callbacks
 **Learning:** When a root component passes configuration callbacks (like `addBlock`) to memoized children (like `Sidebar`), any change in the dependencies of that callback (like typing in a text input for `Theme`) forces the callback to recreate, which in turn forces the memoized children to re-render. This propagates updates unnecessarily.
 **Action:** Use a `stateRef` in the root component to hold the current values of all dependencies. Read from `stateRef.current` inside the callback so the callback itself has zero dependencies (`[]`) and remains stable, preventing child re-renders.
+
+## 2025-12-24 - Throttling Resize Events with requestAnimationFrame
+**Learning:** Executing complex scale calculations (involving DOM reads/writes and state updates) synchronously on every `resize` event can cause layout thrashing and stuttering, especially as browsers may fire `resize` more frequently than the refresh rate.
+**Action:** Wrap resize handlers in a `requestAnimationFrame` loop. This decouples the event frequency from the update frequency, ensuring calculations run at most once per frame, aligned with the browser's paint cycle.
