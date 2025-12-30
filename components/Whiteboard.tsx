@@ -31,6 +31,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     blocks, onAddBlock, onUpdateBlock, onRemoveBlock, onFocusBlock, 
     presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide
 }) => {
+  // Optimization: Local state for dragged block to prevent global re-renders
+  const [draggedBlockState, setDraggedBlockState] = useState<{ id: number, x: number, y: number, width: number, height: number } | null>(null);
+
   const [activeInteraction, setActiveInteraction] = useState<{ blockId: number } | null>(null);
   const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
   
@@ -251,11 +254,17 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
     const { snappedX, snappedY, newSnapLines } = calculateSnapping(block, currentBlocks, newPos);
     setSnapLines(newSnapLines);
-    onUpdateBlock(blockId, { ...newPos, x: snappedX, y: snappedY });
-  }, [calculateSnapping, onUpdateBlock]);
+
+    // Bolt Optimization: Update local state instead of global App state to avoid O(N) re-renders during drag
+    setDraggedBlockState({ id: blockId, ...newPos, x: snappedX, y: snappedY });
+
+  }, [calculateSnapping]);
   
   const handleInteractionStop = useCallback((blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => {
+      // Commit the final state to global App state only on drag stop
       onUpdateBlock(blockId, finalPos);
+
+      setDraggedBlockState(null);
       setActiveInteraction(null);
       setSnapLines([]);
       // Clear the snap points cache when interaction ends
@@ -368,23 +377,29 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
                 return <div key={i} style={style} />;
             })}
 
-            {blocks.map(block => (
-                <ExerciseBlock
-                    key={block.id}
-                    blockState={block}
-                    onUpdate={onUpdateBlock}
-                    onRemove={onRemoveBlock}
-                    onFocus={handleFocus}
-                    onInteraction={handleInteraction}
-                    onInteractionStop={handleInteractionStop}
-                    isPresenting={presentingBlockId === block.id}
-                    onEnterPresentation={onEnterPresentation}
-                    onExitPresentation={onExitPresentation}
-                    onNextSlide={onNextSlide}
-                    onPrevSlide={onPrevSlide}
-                    scale={scale}
-                />
-            ))}
+            {blocks.map(block => {
+                // Bolt Optimization: If this block is being dragged, override its state with local draggedBlockState
+                const isDragging = draggedBlockState?.id === block.id;
+                const effectiveBlockState = isDragging ? { ...block, ...draggedBlockState } : block;
+
+                return (
+                    <ExerciseBlock
+                        key={block.id}
+                        blockState={effectiveBlockState}
+                        onUpdate={onUpdateBlock}
+                        onRemove={onRemoveBlock}
+                        onFocus={handleFocus}
+                        onInteraction={handleInteraction}
+                        onInteractionStop={handleInteractionStop}
+                        isPresenting={presentingBlockId === block.id}
+                        onEnterPresentation={onEnterPresentation}
+                        onExitPresentation={onExitPresentation}
+                        onNextSlide={onNextSlide}
+                        onPrevSlide={onPrevSlide}
+                        scale={scale}
+                    />
+                );
+            })}
         </div>
     </main>
   );
