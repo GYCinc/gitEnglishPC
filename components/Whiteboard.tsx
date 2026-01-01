@@ -31,7 +31,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     blocks, onAddBlock, onUpdateBlock, onRemoveBlock, onFocusBlock, 
     presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide
 }) => {
-  const [activeInteraction, setActiveInteraction] = useState<{ blockId: number } | null>(null);
+  // Optimization: Local state for active interaction to prevent 60fps re-renders of the App component
+  const [activeInteraction, setActiveInteraction] = useState<{ blockId: number, x: number, y: number, width: number, height: number } | null>(null);
   const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
   
   // Canvas View State
@@ -247,17 +248,21 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     const block = currentBlocks.find(b => b.id === blockId);
     if (!block) return;
 
-    setActiveInteraction(prev => prev || { blockId });
-
     const { snappedX, snappedY, newSnapLines } = calculateSnapping(block, currentBlocks, newPos);
     setSnapLines(newSnapLines);
-    onUpdateBlock(blockId, { ...newPos, x: snappedX, y: snappedY });
-  }, [calculateSnapping, onUpdateBlock]);
+
+    // Update LOCAL state only, not global App state
+    setActiveInteraction({ blockId, ...newPos, x: snappedX, y: snappedY });
+  }, [calculateSnapping]);
   
   const handleInteractionStop = useCallback((blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => {
+      // Commit final position to global state
       onUpdateBlock(blockId, finalPos);
+
+      // Clear local state
       setActiveInteraction(null);
       setSnapLines([]);
+
       // Clear the snap points cache when interaction ends
       snapPointsCache.current = null;
   }, [onUpdateBlock]);
@@ -368,23 +373,31 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
                 return <div key={i} style={style} />;
             })}
 
-            {blocks.map(block => (
-                <ExerciseBlock
-                    key={block.id}
-                    blockState={block}
-                    onUpdate={onUpdateBlock}
-                    onRemove={onRemoveBlock}
-                    onFocus={handleFocus}
-                    onInteraction={handleInteraction}
-                    onInteractionStop={handleInteractionStop}
-                    isPresenting={presentingBlockId === block.id}
-                    onEnterPresentation={onEnterPresentation}
-                    onExitPresentation={onExitPresentation}
-                    onNextSlide={onNextSlide}
-                    onPrevSlide={onPrevSlide}
-                    scale={scale}
-                />
-            ))}
+            {blocks.map(block => {
+                const isDragging = activeInteraction?.blockId === block.id;
+                // Merge global block state with local dragged state if applicable
+                const effectiveBlockState = isDragging
+                    ? { ...block, ...activeInteraction }
+                    : block;
+
+                return (
+                    <ExerciseBlock
+                        key={block.id}
+                        blockState={effectiveBlockState}
+                        onUpdate={onUpdateBlock}
+                        onRemove={onRemoveBlock}
+                        onFocus={handleFocus}
+                        onInteraction={handleInteraction}
+                        onInteractionStop={handleInteractionStop}
+                        isPresenting={presentingBlockId === block.id}
+                        onEnterPresentation={onEnterPresentation}
+                        onExitPresentation={onExitPresentation}
+                        onNextSlide={onNextSlide}
+                        onPrevSlide={onPrevSlide}
+                        scale={scale}
+                    />
+                );
+            })}
         </div>
     </main>
   );
