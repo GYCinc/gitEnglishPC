@@ -637,7 +637,12 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
             // Remove bounds="parent" to allow dragging anywhere, including "above" the initial viewport
             dragHandleClassName="handle"
             scale={isPresenting ? 1 : scale} // Rnd's internal scale for dragging/resizing, independent of visual content scale
-            style={{ zIndex: isPresenting ? 9999 : zIndex }}
+            style={{
+                zIndex: isPresenting ? 9999 : zIndex,
+                // Optimization: Skip layout/paint for off-screen blocks
+                contentVisibility: isPresenting ? 'visible' : 'auto',
+                containIntrinsicSize: `${width}px ${height}px`
+            }}
             className={`rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden transition-all hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)] ${presentationRndStyle}`}
             onMouseDown={() => onFocus(id)}
             onDoubleClick={() => {
