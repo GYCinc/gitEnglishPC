@@ -35,6 +35,10 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const [draggedBlockState, setDraggedBlockState] = useState<{ id: number, x: number, y: number, width: number, height: number } | null>(null);
 
   const [activeInteraction, setActiveInteraction] = useState<{ blockId: number } | null>(null);
+
+  // Bolt Optimization: Local state for the dragging block to prevent App-wide re-renders
+  const [draggedBlockState, setDraggedBlockState] = useState<Partial<ExerciseBlockState> | null>(null);
+
   const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
   
   // Canvas View State
@@ -267,6 +271,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       setDraggedBlockState(null);
       setActiveInteraction(null);
       setSnapLines([]);
+      setDraggedBlockState(null);
+
       // Clear the snap points cache when interaction ends
       snapPointsCache.current = null;
   }, [onUpdateBlock]);
