@@ -31,14 +31,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     blocks, onAddBlock, onUpdateBlock, onRemoveBlock, onFocusBlock, 
     presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide
 }) => {
-  // Optimization: Local state for dragged block to prevent global re-renders
-  const [draggedBlockState, setDraggedBlockState] = useState<{ id: number, x: number, y: number, width: number, height: number } | null>(null);
-
-  const [activeInteraction, setActiveInteraction] = useState<{ blockId: number } | null>(null);
-
-  // Bolt Optimization: Local state for the dragging block to prevent App-wide re-renders
-  const [draggedBlockState, setDraggedBlockState] = useState<Partial<ExerciseBlockState> | null>(null);
-
+  // Optimization: Local state for active interaction to prevent 60fps re-renders of the App component
+  const [activeInteraction, setActiveInteraction] = useState<{ blockId: number, x: number, y: number, width: number, height: number } | null>(null);
   const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
   
   // Canvas View State
@@ -254,24 +248,20 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     const block = currentBlocks.find(b => b.id === blockId);
     if (!block) return;
 
-    setActiveInteraction(prev => prev || { blockId });
-
     const { snappedX, snappedY, newSnapLines } = calculateSnapping(block, currentBlocks, newPos);
     setSnapLines(newSnapLines);
 
-    // Bolt Optimization: Update local state instead of global App state to avoid O(N) re-renders during drag
-    setDraggedBlockState({ id: blockId, ...newPos, x: snappedX, y: snappedY });
-
+    // Update LOCAL state only, not global App state
+    setActiveInteraction({ blockId, ...newPos, x: snappedX, y: snappedY });
   }, [calculateSnapping]);
   
   const handleInteractionStop = useCallback((blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => {
-      // Commit the final state to global App state only on drag stop
+      // Commit final position to global state
       onUpdateBlock(blockId, finalPos);
 
-      setDraggedBlockState(null);
+      // Clear local state
       setActiveInteraction(null);
       setSnapLines([]);
-      setDraggedBlockState(null);
 
       // Clear the snap points cache when interaction ends
       snapPointsCache.current = null;
@@ -384,9 +374,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             })}
 
             {blocks.map(block => {
-                // Bolt Optimization: If this block is being dragged, override its state with local draggedBlockState
-                const isDragging = draggedBlockState?.id === block.id;
-                const effectiveBlockState = isDragging ? { ...block, ...draggedBlockState } : block;
+                const isDragging = activeInteraction?.blockId === block.id;
+                // Merge global block state with local dragged state if applicable
+                const effectiveBlockState = isDragging
+                    ? { ...block, ...activeInteraction }
+                    : block;
 
                 return (
                     <ExerciseBlock
