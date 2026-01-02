@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { EXERCISE_CATEGORIES, PEDAGOGY_COLORS, EXERCISE_PEDAGOGY } from '../constants';
 import { ExerciseType } from '../types';
 import { EXERCISE_INFO } from './exerciseInfo';
@@ -7,7 +7,7 @@ import {
     VocabularyIcon, 
     XCircleIcon, 
     DifficultyIndicatorIcon, 
-    GrammarIcon, // Added GrammarIcon
+    GrammarIcon,
     PPPIcon,
     InputIcon,
     LexisIcon,
@@ -278,12 +278,26 @@ const EXERCISE_ICONS: Record<ExerciseType, React.FC<{className?: string}>> = {
     [ExerciseType.ListeningSpecificInfo]: SpeakerWaveIcon,
 };
 
+// Map category names to icons for stable usage in CategoryAccordion
+const CATEGORY_ICONS: Record<string, React.FC<{className?: string}>> = {
+    'PPP': PPPIcon,
+    'Input': InputIcon,
+    'Lexis': LexisIcon,
+    'Skills': SkillsIcon,
+    'TBLT': TBLTIcon,
+    'Social English': SocialIcon,
+    'C-R': CRIcon,
+    'Production': ProductionIcon
+};
+
+
 interface DraggableExerciseCardProps {
     type: ExerciseType;
     onAdd: (type: ExerciseType) => void;
 }
 
-const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = ({ type, onAdd }) => {
+// Memoized to prevent re-rendering all cards when one category is toggled
+const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = React.memo(({ type, onAdd }) => {
     const { logger, logFocusItem } = useActivityLogger();
 
     const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
@@ -360,20 +374,22 @@ const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = ({ type, onA
             </div>
         </div>
     );
-}
+});
 
+
+// Memoized accordion to accept stable props and avoid re-rendering inactive categories
 const CategoryAccordion: React.FC<{ 
     category: typeof EXERCISE_CATEGORIES[0], 
     isOpen: boolean, 
-    onToggle: () => void,
-    icon: React.ReactNode,
+    onToggle: (name: string) => void, // Changed to accept name argument
+    Icon: React.FC<{className?: string}>, // Changed to accept component type
     onAddExercise: (type: ExerciseType) => void
-}> = ({ category, isOpen, onToggle, icon, onAddExercise }) => {
+}> = React.memo(({ category, isOpen, onToggle, Icon, onAddExercise }) => {
     const colors = PEDAGOGY_COLORS[category.name];
     const { logger, logFocusItem } = useActivityLogger();
 
     const handleToggle = () => {
-        onToggle();
+        onToggle(category.name);
         logFocusItem('General UI', 'Accordion Toggled', 0.1, null, 1, [], `Category: ${category.name}, State: ${!isOpen ? 'Open' : 'Closed'}`);
     };
 
@@ -387,7 +403,7 @@ const CategoryAccordion: React.FC<{
             >
                 <div className="flex items-center gap-3">
                     <div className={`${colors.textOnDark}`}>
-                        {icon}
+                        <Icon />
                     </div>
                     {/* Always apply color for better visibility */}
                     <span className={`font-bold text-sm ${colors.textOnDark} transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-90'}`}>{category.name}</span>
@@ -404,7 +420,7 @@ const CategoryAccordion: React.FC<{
             </div>
         </div>
     );
-};
+});
 
 
 interface SidebarProps {
@@ -441,24 +457,10 @@ const Sidebar = React.memo(({
     }
   }, [isSidebarOpen, logger]);
 
-
-  const toggleCategory = (name: string) => {
+  // Stable callback for toggling categories
+  const toggleCategory = useCallback((name: string) => {
       setOpenCategory(prev => prev === name ? null : name);
-  };
-
-  const getCategoryIcon = (name: string) => {
-      switch(name) {
-          case 'PPP': return <PPPIcon />;
-          case 'Input': return <InputIcon />;
-          case 'Lexis': return <LexisIcon />;
-          case 'Skills': return <SkillsIcon />;
-          case 'TBLT': return <TBLTIcon />;
-          case 'Social English': return <SocialIcon />;
-          case 'C-R': return <CRIcon />;
-          case 'Production': return <ProductionIcon />;
-          default: return <div className="w-5 h-5" />;
-      }
-  };
+  }, []);
 
   const handleConfigToggle = () => {
     setIsConfigOpen(!isConfigOpen);
@@ -527,8 +529,8 @@ const Sidebar = React.memo(({
                       key={category.name}
                       category={category}
                       isOpen={openCategory === category.name}
-                      onToggle={() => toggleCategory(category.name)}
-                      icon={getCategoryIcon(category.name)}
+                      onToggle={toggleCategory}
+                      Icon={CATEGORY_ICONS[category.name] || PencilSquareIcon}
                       onAddExercise={onAddExercise}
                   />
               ))}
