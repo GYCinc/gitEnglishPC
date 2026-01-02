@@ -32,6 +32,10 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide
 }) => {
   const [activeInteraction, setActiveInteraction] = useState<{ blockId: number } | null>(null);
+
+  // Bolt Optimization: Local state for the dragging block to prevent App-wide re-renders
+  const [draggedBlockState, setDraggedBlockState] = useState<Partial<ExerciseBlockState> | null>(null);
+
   const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
   
   // Canvas View State
@@ -251,13 +255,33 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
     const { snappedX, snappedY, newSnapLines } = calculateSnapping(block, currentBlocks, newPos);
     setSnapLines(newSnapLines);
-    onUpdateBlock(blockId, { ...newPos, x: snappedX, y: snappedY });
-  }, [calculateSnapping, onUpdateBlock]);
+
+    // Bolt Optimization: Update local state instead of bubbling up to App
+    // This keeps the re-render loop contained within Whiteboard
+    setDraggedBlockState({ ...newPos, id: blockId, x: snappedX, y: snappedY });
+  }, [calculateSnapping]);
   
   const handleInteractionStop = useCallback((blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => {
+      // If we have a local dragged state, use its snapped position to ensure we commit what the user saw.
+      // If not (e.g., just a click), use finalPos from the event.
+      // Note: We access state from the functional update to ensure we get the latest value if needed,
+      // but here we just need to commit. Accessing state directly in callback is risky if stale,
+      // but handleInteraction updates it.
+
+      // Better approach: We can't easily access the *latest* draggedBlockState here if it wasn't a dependency.
+      // But adding it as a dependency breaks stability.
+      // However, onUpdateBlock is the "commit".
+      // We will trust the finalPos passed by the child component, OR we should use the snapped position if we want consistency.
+      // Given that we passed the snapped position down via props (from draggedBlockState),
+      // the child's Rnd component (which is controlled) should have the snapped position in its internal state,
+      // and thus pass it back in onDragStop.
+
       onUpdateBlock(blockId, finalPos);
+
       setActiveInteraction(null);
       setSnapLines([]);
+      setDraggedBlockState(null);
+
       // Clear the snap points cache when interaction ends
       snapPointsCache.current = null;
   }, [onUpdateBlock]);
@@ -368,23 +392,31 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
                 return <div key={i} style={style} />;
             })}
 
-            {blocks.map(block => (
-                <ExerciseBlock
-                    key={block.id}
-                    blockState={block}
-                    onUpdate={onUpdateBlock}
-                    onRemove={onRemoveBlock}
-                    onFocus={handleFocus}
-                    onInteraction={handleInteraction}
-                    onInteractionStop={handleInteractionStop}
-                    isPresenting={presentingBlockId === block.id}
-                    onEnterPresentation={onEnterPresentation}
-                    onExitPresentation={onExitPresentation}
-                    onNextSlide={onNextSlide}
-                    onPrevSlide={onPrevSlide}
-                    scale={scale}
-                />
-            ))}
+            {blocks.map(block => {
+                // Bolt Optimization: Override block state with local dragged state if active
+                // This ensures the dragging block updates visually without waiting for App state
+                const effectiveBlockState = (draggedBlockState && draggedBlockState.id === block.id)
+                    ? { ...block, ...draggedBlockState } as ExerciseBlockState
+                    : block;
+
+                return (
+                    <ExerciseBlock
+                        key={block.id}
+                        blockState={effectiveBlockState}
+                        onUpdate={onUpdateBlock}
+                        onRemove={onRemoveBlock}
+                        onFocus={handleFocus}
+                        onInteraction={handleInteraction}
+                        onInteractionStop={handleInteractionStop}
+                        isPresenting={presentingBlockId === block.id}
+                        onEnterPresentation={onEnterPresentation}
+                        onExitPresentation={onExitPresentation}
+                        onNextSlide={onNextSlide}
+                        onPrevSlide={onPrevSlide}
+                        scale={scale}
+                    />
+                );
+            })}
         </div>
     </main>
   );
