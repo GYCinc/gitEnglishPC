@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect, useId } from 'react';
 import { Rnd, RndDragCallback, RndResizeCallback } from 'react-rnd';
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from '../types';
 import { generateExercises } from '../services/geminiService';
@@ -34,6 +34,47 @@ export interface ExerciseBlockProps {
   onPrevSlide: () => void; // Global prev slide (for prev block in app.tsx)
   scale?: number; // Current zoom scale of the whiteboard
 }
+
+// Helper for accessible icon buttons with tooltips
+const AccessibleIconButton: React.FC<{
+    icon: React.ElementType;
+    label: string;
+    onClick: (e: React.MouseEvent) => void;
+    className?: string;
+    iconClassName?: string;
+    tooltipAlign?: 'left' | 'right' | 'center';
+}> = ({ icon: Icon, label, onClick, className = "", iconClassName = "w-4 h-4", tooltipAlign = 'center' }) => {
+    const id = useId();
+
+    // Tooltip alignment classes
+    const alignClass = {
+        left: 'left-0',
+        right: 'right-0',
+        center: 'left-1/2 -translate-x-1/2'
+    }[tooltipAlign];
+
+    return (
+        <div className="relative group">
+            <button
+                type="button"
+                onClick={onClick}
+                onMouseDown={(e) => e.stopPropagation()}
+                className={className}
+                aria-label={label}
+                aria-describedby={`${id}-tooltip`}
+            >
+                <Icon className={iconClassName} />
+            </button>
+            <div
+                id={`${id}-tooltip`}
+                role="tooltip"
+                className={`absolute top-full mt-2 ${alignClass} px-2 py-1 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-slate-700 select-none`}
+            >
+                {label}
+            </div>
+        </div>
+    );
+};
 
 // Header Component
 const Header = React.memo(React.forwardRef<HTMLDivElement, {
@@ -131,9 +172,14 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
         <div ref={ref} className={`handle bg-slate-800 text-white p-3 ${isPresenting ? 'rounded-none p-6' : 'rounded-t-2xl'} flex justify-between items-center cursor-move flex-shrink-0 border-b border-slate-700 relative z-10 font-casual`}>
             <div className="flex items-center gap-4 min-w-0 flex-1">
                 {isPresenting && (
-                     <button onMouseDown={(e) => e.stopPropagation()} onClick={handleExitPresentation} className="p-2 rounded-full hover:bg-slate-700 text-neutral-gray-400 hover:text-white transition-colors mr-2 relative z-50" title="Exit Live Mode">
-                        <XMarkIcon className="w-6 h-6" />
-                    </button>
+                    <AccessibleIconButton
+                        icon={XMarkIcon}
+                        label="Exit Live Mode"
+                        onClick={handleExitPresentation}
+                        className="p-2 rounded-full hover:bg-slate-700 text-neutral-gray-400 hover:text-white transition-colors mr-2 relative z-50"
+                        iconClassName="w-6 h-6"
+                        tooltipAlign="left"
+                    />
                 )}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                      <h3 className={`font-playful font-bold ${isPresenting ? 'text-3xl' : 'text-lg'} select-none ${textColor} tracking-wide truncate`}>{title}</h3>
@@ -192,21 +238,33 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
                          )}
 
                          {isGenerated ? (
-                            <button onMouseDown={(e) => e.stopPropagation()} onClick={handleRegenerate} className="p-1.5 rounded-full hover:bg-primary-blue-500/20 text-primary-blue-400 hover:text-primary-blue-300 transition-colors" title="Regenerate">
-                                <ResetIcon className="w-4 h-4" />
-                            </button>
+                            <AccessibleIconButton
+                                icon={ResetIcon}
+                                label="Regenerate"
+                                onClick={handleRegenerate}
+                                className="p-1.5 rounded-full hover:bg-primary-blue-500/20 text-primary-blue-400 hover:text-primary-blue-300 transition-colors"
+                                tooltipAlign="right"
+                            />
                          ) : (
-                            <button onMouseDown={(e) => e.stopPropagation()} onClick={handleGenerate} className="px-3 py-1 rounded-full text-xs bg-gradient-to-r from-warm-orange-500 to-innovation-pink-500 text-white font-bold hover:brightness-110 transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap" title="Generate">
+                            <button onMouseDown={(e) => e.stopPropagation()} onClick={handleGenerate} className="px-3 py-1 rounded-full text-xs bg-gradient-to-r from-warm-orange-500 to-innovation-pink-500 text-white font-bold hover:brightness-110 transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap" title="Generate" aria-label="Generate Exercises">
                                 <MagicWandIcon className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">Generate</span>
                             </button>
                          )}
-                         <button onMouseDown={(e) => e.stopPropagation()} onClick={handleToggleSettings} className={`p-1.5 rounded-full ${isSettingsOpen ? 'bg-slate-700 text-white' : 'text-neutral-gray-400 hover:text-white'} transition-colors`} title="Settings">
-                            <SettingsIcon className="w-4 h-4" />
-                        </button>
-                        <button onMouseDown={(e) => e.stopPropagation()} onClick={handleRemove} className="p-1.5 rounded-full hover:bg-energy-red-500/20 text-energy-red-400 hover:text-energy-red-300 transition-colors" title="Remove">
-                            <TrashIcon className="w-4 h-4" />
-                        </button>
+                         <AccessibleIconButton
+                            icon={SettingsIcon}
+                            label="Settings"
+                            onClick={handleToggleSettings}
+                            className={`p-1.5 rounded-full ${isSettingsOpen ? 'bg-slate-700 text-white' : 'text-neutral-gray-400 hover:text-white'} transition-colors`}
+                            tooltipAlign="right"
+                        />
+                        <AccessibleIconButton
+                            icon={TrashIcon}
+                            label="Remove"
+                            onClick={handleRemove}
+                            className="p-1.5 rounded-full hover:bg-energy-red-500/20 text-energy-red-400 hover:text-energy-red-300 transition-colors"
+                            tooltipAlign="right"
+                        />
                      </>
                  )}
             </div>
