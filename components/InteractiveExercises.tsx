@@ -14,6 +14,7 @@ import {
 } from '../types';
 import { checkAnswerWithAI } from '../services/geminiService';
 import { LoadingIcon, SpeakerWaveIcon, SparklesIcon } from './icons';
+import { useGamification } from '../hooks/useGamification';
 
 // --- HELPER & GENERIC COMPONENTS ---
 const shuffleArray = <T,>(array: T[]): T[] => [...array].sort(() => Math.random() - 0.5);
@@ -80,12 +81,20 @@ export const FeedbackSection: React.FC<{
 export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationExercise | IPhrasalVerbGapFillExercise; colors: any; }> = ({ exercise, colors }) => {
     const [droppedWord, setDroppedWord] = useState<string | null>(null);
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
+    const { addXP, triggerSuccess, triggerFailure } = useGamification();
 
     const handleDrop = (e: React.DragEvent<HTMLSpanElement>) => {
         e.preventDefault();
         const word = e.dataTransfer.getData('text/plain');
         setDroppedWord(word);
-        setStatus(word === exercise.answer ? 'correct' : 'incorrect');
+        if (word === exercise.answer) {
+            setStatus('correct');
+            addXP(10);
+            triggerSuccess();
+        } else {
+            setStatus('incorrect');
+            triggerFailure();
+        }
     };
     
     const statusClasses = {
@@ -118,12 +127,22 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
     const [userInput, setUserInput] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, triggerSuccess, triggerFailure } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Word Formation', exercise, userInput);
         setFeedback(result);
         setLoading(false);
+        // AI feedback is unstructured text, so we can't deterministically add XP/confetti
+        // without parsing. For now, we assume user is engaging and give small XP.
+        // If result implies correct (e.g. "Correct!"), we could parse it.
+        if (result && (result.toLowerCase().includes('correct') || result.toLowerCase().includes('good job'))) {
+             addXP(20);
+             triggerSuccess();
+        } else {
+             triggerFailure();
+        }
     };
     
     return (
@@ -157,11 +176,19 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
 export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPredictionExercise | IRuleDiscoveryExercise | ISpotTheDifferenceExercise | IPolitenessScenariosExercise | IInferringMeaningExercise; colors: any; }> = ({ exercise, colors }) => {
     const [selected, setSelected] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
+    const { addXP, triggerSuccess, triggerFailure } = useGamification();
 
     const handleClick = (option: string) => {
         if (isAnswered) return;
         setSelected(option);
         setIsAnswered(true);
+
+        if (option === exercise.correctAnswer) {
+            addXP(10);
+            triggerSuccess();
+        } else {
+            triggerFailure();
+        }
     };
 
     return (
@@ -244,11 +271,18 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
         setFeedback(null);
     };
 
+    const { addXP, triggerSuccess, triggerFailure } = useGamification();
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Sentence Scramble', exercise, solution.map(w => w.word).join(' '));
         setFeedback(result);
         setLoading(false);
+         if (result && (result.toLowerCase().includes('correct') || result.toLowerCase().includes('perfect'))) {
+             addXP(25);
+             triggerSuccess();
+        } else {
+             triggerFailure();
+        }
     };
 
     const statusClasses = {
@@ -286,12 +320,19 @@ export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExe
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, triggerSuccess, triggerFailure } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Cloze/Dialogue', exercise, answers);
         setFeedback(result);
         setLoading(false);
+        if (result && (result.toLowerCase().includes('correct') || result.toLowerCase().includes('excellent'))) {
+             addXP(30);
+             triggerSuccess();
+        } else {
+             triggerFailure();
+        }
     };
 
     const handleChange = (index: number, value: string) => {
@@ -333,6 +374,7 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
     const [shuffledAnswers, setShuffledAnswers] = useState(() => shuffleArray(exercise.answers || []));
     const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
     const [matches, setMatches] = useState<Record<number, MatchInfo>>({});
+    const { addXP, triggerSuccess, triggerFailure } = useGamification();
 
     useEffect(() => {
         setShuffledAnswers(shuffleArray(exercise.answers || []));
@@ -353,6 +395,15 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
         const isCorrect = exercise.answers[selectedPrompt] === shuffledAnswers[answerIndex];
         setMatches(prev => ({ ...prev, [selectedPrompt]: { answerIndex, isCorrect } }));
         setSelectedPrompt(null);
+
+        if (isCorrect) {
+            addXP(5);
+            // Only trigger full success confetti if all matched, otherwise small sound?
+            // For now, simple sound for all matches
+            triggerSuccess();
+        } else {
+            triggerFailure();
+        }
     };
 
     return (
@@ -403,12 +454,19 @@ export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionEx
     const [userInput, setUserInput] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, triggerSuccess, triggerFailure } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Error Correction', exercise, userInput);
         setFeedback(result);
         setLoading(false);
+        if (result && (result.toLowerCase().includes('correct') || result.toLowerCase().includes('good'))) {
+             addXP(20);
+             triggerSuccess();
+        } else {
+             triggerFailure();
+        }
     };
 
     return (
@@ -441,6 +499,7 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
     const dragItem = useRef<number | null>(null);
     const dragOverItem = useRef<number | null>(null);
+    const { addXP, triggerSuccess, triggerFailure } = useGamification();
 
     const handleDragStart = (e: React.DragEvent<HTMLLIElement>, index: number) => {
         dragItem.current = index;
@@ -465,7 +524,14 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
     const checkAnswer = () => {
         const originalParts = exercise.storyParts || [];
         const isCorrect = parts.join('') === originalParts.join('');
-        setStatus(isCorrect ? 'correct' : 'incorrect');
+        if (isCorrect) {
+            setStatus('correct');
+            addXP(30);
+            triggerSuccess();
+        } else {
+            setStatus('incorrect');
+            triggerFailure();
+        }
     };
 
      const statusClasses = {
@@ -513,12 +579,18 @@ export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExerci
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, triggerSuccess, triggerFailure } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Reading for Detail', exercise, answers);
         setFeedback(result);
         setLoading(false);
+        // Simple heuristic for feedback positivity
+        if (result && (result.toLowerCase().includes('correct') || result.toLowerCase().includes('well done'))) {
+             addXP(25);
+             triggerSuccess();
+        }
     };
 
     const inputStyle = `w-full p-2 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
@@ -560,12 +632,16 @@ export const InteractivePicturePrompt: React.FC<{ exercise: IPicturePromptExerci
   const [response, setResponse] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { addXP, triggerSuccess } = useGamification();
 
   const handleCheck = async () => {
       setLoading(true);
       const result = await checkAnswerWithAI('Picture Prompt Questions', exercise, response);
       setFeedback(result);
       setLoading(false);
+      // Reward for engagement/creativity
+      addXP(15);
+      triggerSuccess();
   };
 
   const textareaStyle = `w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
@@ -602,6 +678,7 @@ export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExer
   const [response, setResponse] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { addXP, triggerSuccess } = useGamification();
 
   let promptContent: React.ReactNode | string = '';
   let instruction = '';
@@ -647,6 +724,9 @@ export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExer
       const result = await checkAnswerWithAI(exType, exercise, response);
       setFeedback(result);
       setLoading(false);
+      // Reward for effort on open tasks
+      addXP(20);
+      triggerSuccess();
   };
 
   const textareaStyle = `w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all font-casual`;
@@ -683,12 +763,15 @@ export const InteractiveDictoGloss: React.FC<{ exercise: IDictoGlossExercise; co
     const [response, setResponse] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, triggerSuccess } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Dicto-Gloss', exercise, response);
         setFeedback(result);
         setLoading(false);
+        addXP(20);
+        triggerSuccess();
     };
 
     const buttonBg = colors.textOnLight.replace('text-', 'bg-');
@@ -742,12 +825,17 @@ export const InteractiveInformationTransfer: React.FC<{ exercise: IInformationTr
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, triggerSuccess } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Information Transfer', exercise, answers);
         setFeedback(result);
         setLoading(false);
+        if (result && (result.toLowerCase().includes('correct') || result.toLowerCase().includes('good'))) {
+            addXP(20);
+            triggerSuccess();
+        }
     };
 
     const inputStyle = `w-full p-2 rounded-lg border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none`;
@@ -785,12 +873,17 @@ export const InteractiveListening: React.FC<{ exercise: IListeningSpecificInfoEx
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, triggerSuccess } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Listening for Specific Info', exercise, answers);
         setFeedback(result);
         setLoading(false);
+        if (result && (result.toLowerCase().includes('correct') || result.toLowerCase().includes('good'))) {
+            addXP(20);
+            triggerSuccess();
+        }
     };
 
     const inputStyle = `w-full p-2 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none`;

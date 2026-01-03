@@ -7,6 +7,7 @@ import GlobalSettings from './components/GlobalSettings'; // Refactored GlobalSe
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from './types';
 import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration, DIFFICULTY_LEVELS } from './constants';
 import { MenuIcon } from './components/icons';
+import { GamificationProvider } from './hooks/useGamification';
 
 const APP_PREFIX = 'practiceGenie-';
 const BLOCKS_KEY = `${APP_PREFIX}blocks`;
@@ -340,67 +341,69 @@ const App: React.FC = () => {
   const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
   return (
-    <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800">
-      {/* Radial Menu replaces fixed top bar */}
-      <RadialMenu 
-          onToggleSettings={handleToggleSettings}
-          onToggleSidebar={handleToggleSidebar}
-          onExportState={handleExportState}
-          difficulty={difficulty}
-          onCycleDifficulty={cycleDifficulty}
-      />
-
-      {/* Settings Modal - conditionally rendered */}
-      {isSettingsModalOpen && (
-          <GlobalSettings 
-              difficulty={difficulty} setDifficulty={setDifficulty}
-              tone={tone} setTone={setTone}
-              theme={theme} setTheme={setTheme}
-              totalTime={totalTime}
-              onClose={handleCloseSettings}
-          />
-      )}
-
-      <Sidebar 
-        isSidebarOpen={isSidebarOpen}
-        focusVocabulary={focusVocabulary}
-        setFocusVocabulary={setFocusVocabulary}
-        inclusionRate={inclusionRate}
-        setInclusionRate={setInclusionRate}
-        focusGrammar={focusGrammar}
-        setFocusGrammar={setFocusGrammar}
-        grammarInclusionRate={grammarInclusionRate}
-        setGrammarInclusionRate={setGrammarInclusionRate}
-        onAddExercise={addBlock} // Passed directly as it handles optional arguments safely
-        onExportState={handleExportState}
-        onImportState={handleImportState}
-        onClearBoard={handleClearBoard}
-      />
-      
-      {/* Overlay for mobile - Smooth transition */}
-      <div 
-          onClick={handleCloseSidebar}
-          className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ease-in-out ${
-            isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-          }`}
-          aria-hidden="true"
-      ></div>
-
-      <div className="flex-grow flex flex-col relative">
-        <Whiteboard 
-          blocks={blocks}
-          onAddBlock={addBlock}
-          onUpdateBlock={updateBlock} 
-          onRemoveBlock={removeBlock} 
-          onFocusBlock={focusBlock}
-          presentingBlockId={presentingBlockId}
-          onEnterPresentation={enterPresentation}
-          onExitPresentation={exitPresentation}
-          onNextSlide={nextSlide}
-          onPrevSlide={prevSlide}
+    <GamificationProvider>
+      <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800">
+        {/* Radial Menu replaces fixed top bar */}
+        <RadialMenu
+            onToggleSettings={handleToggleSettings}
+            onToggleSidebar={handleToggleSidebar}
+            onExportState={handleExportState}
+            difficulty={difficulty}
+            onCycleDifficulty={cycleDifficulty}
         />
+
+        {/* Settings Modal - conditionally rendered */}
+        {isSettingsModalOpen && (
+            <GlobalSettings
+                difficulty={difficulty} setDifficulty={setDifficulty}
+                tone={tone} setTone={setTone}
+                theme={theme} setTheme={setTheme}
+                totalTime={totalTime}
+                onClose={handleCloseSettings}
+            />
+        )}
+
+        <Sidebar
+          isSidebarOpen={isSidebarOpen}
+          focusVocabulary={focusVocabulary}
+          setFocusVocabulary={setFocusVocabulary}
+          inclusionRate={inclusionRate}
+          setInclusionRate={setInclusionRate}
+          focusGrammar={focusGrammar}
+          setFocusGrammar={setFocusGrammar}
+          grammarInclusionRate={grammarInclusionRate}
+          setGrammarInclusionRate={setGrammarInclusionRate}
+          onAddExercise={addBlock} // Passed directly as it handles optional arguments safely
+          onExportState={handleExportState}
+          onImportState={handleImportState}
+          onClearBoard={handleClearBoard}
+        />
+
+        {/* Overlay for mobile - Smooth transition */}
+        <div
+            onClick={handleCloseSidebar}
+            className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ease-in-out ${
+              isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            }`}
+            aria-hidden="true"
+        ></div>
+
+        <div className="flex-grow flex flex-col relative">
+          <Whiteboard
+            blocks={blocks}
+            onAddBlock={addBlock}
+            onUpdateBlock={updateBlock}
+            onRemoveBlock={removeBlock}
+            onFocusBlock={focusBlock}
+            presentingBlockId={presentingBlockId}
+            onEnterPresentation={enterPresentation}
+            onExitPresentation={exitPresentation}
+            onNextSlide={nextSlide}
+            onPrevSlide={prevSlide}
+          />
+        </div>
       </div>
-    </div>
+    </GamificationProvider>
   );
 };
 

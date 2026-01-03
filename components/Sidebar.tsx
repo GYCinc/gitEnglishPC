@@ -33,6 +33,7 @@ import {
     TrashIcon
 } from './icons';
 import { useActivityLogger } from '../ActivityContext'; // Import logger context
+import { GamificationHUD } from './GamificationHUD';
 
 interface VocabularyFocusProps {
     focusVocabulary: string[];
@@ -492,6 +493,8 @@ const Sidebar = React.memo(({
         <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-warm-orange-400 to-action-amber-400 font-playful">gitEnglish™</h1>
         <h2 className="text-sm font-medium text-neutral-gray-400 mt-0.5 tracking-wide uppercase">Practice Genie</h2>
       </div>
+
+      <GamificationHUD />
 
       <div className="flex-grow overflow-y-auto custom-scrollbar-dark p-4">
           
