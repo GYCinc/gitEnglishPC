@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ExerciseBlock from './ExerciseBlock';
+import { SnapLinesOverlay } from './SnapLinesOverlay'; // Bolt Optimization
 import { ExerciseType, ExerciseBlockState } from '../types';
 import { MagicWandIcon } from './icons';
 import { useActivityLogger } from '../ActivityContext'; // Import logger context
@@ -353,25 +354,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             onDragOver={handleDragOver}
             onDrop={handleDrop}
         >
-             {snapLines.map((line, i) => {
-                const style: React.CSSProperties = {
-                    position: 'absolute',
-                    backgroundColor: 'rgba(255, 0, 0, 0.7)',
-                    zIndex: 9999,
-                };
-                if (line.axis === 'x') {
-                    style.left = line.position;
-                    style.top = line.start;
-                    style.width = `${1 / scale}px`; 
-                    style.height = line.end - line.start;
-                } else {
-                    style.top = line.position;
-                    style.left = line.start;
-                    style.height = `${1 / scale}px`;
-                    style.width = line.end - line.start;
-                }
-                return <div key={i} style={style} />;
-            })}
+            <SnapLinesOverlay lines={snapLines} scale={scale} />
 
             {blocks.map(block => {
                 const isDragging = activeInteraction?.blockId === block.id;
