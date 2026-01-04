@@ -276,7 +276,12 @@ const App: React.FC = () => {
           }
       }
 
-      const maxZ = Math.max(0, ...prevBlocks.map(b => b.zIndex || 0));
+      // Optimization: Single-pass loop to find maxZ instead of mapping
+      let maxZ = 0;
+      for (const b of prevBlocks) {
+          const z = b.zIndex || 0;
+          if (z > maxZ) maxZ = z;
+      }
       const newZ = maxZ + 1;
 
       const newBlock: ExerciseBlockState = {
@@ -316,7 +321,26 @@ const App: React.FC = () => {
 
   const focusBlock = useCallback((blockId: number) => {
     setBlocks(prevBlocks => {
-      const maxZ = Math.max(0, ...prevBlocks.map(b => b.zIndex || 0));
+      // Optimization: Single-pass to find maxZ and current Z
+      let maxZ = 0;
+      let currentZ = -1;
+      let maxZCount = 0;
+
+      for (const b of prevBlocks) {
+          const z = b.zIndex || 0;
+          if (z > maxZ) {
+              maxZ = z;
+              maxZCount = 1;
+          } else if (z === maxZ) {
+              maxZCount++;
+          }
+
+          if (b.id === blockId) currentZ = z;
+      }
+
+      // Optimization: If block is already at the top AND is the only one at that level, skip update
+      if (currentZ === maxZ && maxZCount === 1) return prevBlocks;
+
       const newZ = maxZ + 1;
 
       return prevBlocks.map(block =>
