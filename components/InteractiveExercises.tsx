@@ -14,6 +14,7 @@ import {
 } from '../types';
 import { checkAnswerWithAI } from '../services/geminiService';
 import { LoadingIcon, SpeakerWaveIcon, SparklesIcon } from './icons';
+import { useGamification } from '../GamificationContext';
 
 // --- HELPER & GENERIC COMPONENTS ---
 const shuffleArray = <T,>(array: T[]): T[] => [...array].sort(() => Math.random() - 0.5);
@@ -26,16 +27,26 @@ export const Chip: React.FC<{
   disabled?: boolean;
   className?: string;
   chipColors: { bg: string; text: string; border: string; };
-}> = ({ text, onClick, onDragStart, draggable, disabled, className = '', chipColors }) => (
-    <span
-        draggable={draggable && !disabled}
-        onDragStart={onDragStart}
-        onClick={onClick}
-        className={`px-3 py-1.5 rounded-xl text-sm font-bold border-2 transition-all shadow-sm ${chipColors.border} ${chipColors.bg} ${chipColors.text} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : draggable ? 'cursor-grab active:cursor-grabbing hover:-translate-y-0.5 hover:shadow-md' : 'cursor-pointer hover:brightness-95 hover:-translate-y-0.5'}`}
-    >
-        {text}
-    </span>
-);
+}> = ({ text, onClick, onDragStart, draggable, disabled, className = '', chipColors }) => {
+    const { playPopSound } = useGamification();
+
+    return (
+        <span
+            draggable={draggable && !disabled}
+            onDragStart={(e) => {
+                onDragStart && onDragStart(e);
+            }}
+            onDragEnd={() => playPopSound()}
+            onClick={() => {
+                onClick && onClick();
+                playPopSound();
+            }}
+            className={`px-3 py-1.5 rounded-xl text-sm font-bold border-2 transition-all shadow-sm ${chipColors.border} ${chipColors.bg} ${chipColors.text} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : draggable ? 'cursor-grab active:cursor-grabbing hover:-translate-y-0.5 hover:shadow-md' : 'cursor-pointer hover:brightness-95 hover:-translate-y-0.5'}`}
+        >
+            {text}
+        </span>
+    );
+};
 
 export const FeedbackSection: React.FC<{ 
     onCheck: () => void; 
@@ -80,12 +91,23 @@ export const FeedbackSection: React.FC<{
 export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationExercise | IPhrasalVerbGapFillExercise; colors: any; }> = ({ exercise, colors }) => {
     const [droppedWord, setDroppedWord] = useState<string | null>(null);
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
+    const { addXP, playSuccessSound, playErrorSound, playPopSound } = useGamification();
 
     const handleDrop = (e: React.DragEvent<HTMLSpanElement>) => {
         e.preventDefault();
+        playPopSound();
         const word = e.dataTransfer.getData('text/plain');
         setDroppedWord(word);
-        setStatus(word === exercise.answer ? 'correct' : 'incorrect');
+
+        const isCorrect = word === exercise.answer;
+        setStatus(isCorrect ? 'correct' : 'incorrect');
+
+        if (isCorrect) {
+            playSuccessSound();
+            addXP(20);
+        } else {
+            playErrorSound();
+        }
     };
     
     const statusClasses = {
@@ -118,12 +140,18 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
     const [userInput, setUserInput] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, playSuccessSound } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Word Formation', exercise, userInput);
         setFeedback(result);
         setLoading(false);
+        // Simple heuristic for success in word formation for XP
+        if (result.toLowerCase().includes('correct') || result.toLowerCase().includes('perfect')) {
+            addXP(30);
+            playSuccessSound();
+        }
     };
     
     return (
@@ -157,11 +185,20 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
 export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPredictionExercise | IRuleDiscoveryExercise | ISpotTheDifferenceExercise | IPolitenessScenariosExercise | IInferringMeaningExercise; colors: any; }> = ({ exercise, colors }) => {
     const [selected, setSelected] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
+    const { addXP, playSuccessSound, playErrorSound, playPopSound } = useGamification();
 
     const handleClick = (option: string) => {
         if (isAnswered) return;
+        playPopSound();
         setSelected(option);
         setIsAnswered(true);
+
+        if (option === exercise.correctAnswer) {
+            playSuccessSound();
+            addXP(15);
+        } else {
+            playErrorSound();
+        }
     };
 
     return (
@@ -223,6 +260,7 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
     const [bank, setBank] = useState<ScrambledWord[]>([]);
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, playSuccessSound, playPopSound } = useGamification();
 
     useEffect(() => {
         const words = exercise.scrambledWords || [];
@@ -233,12 +271,14 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
     }, [exercise]);
 
     const addToSolution = (wordToAdd: ScrambledWord) => {
+        playPopSound();
         setSolution(prev => [...prev, wordToAdd]);
         setBank(prev => prev.filter(w => w.id !== wordToAdd.id));
         setFeedback(null);
     };
 
     const removeFromSolution = (wordToRemove: ScrambledWord) => {
+        playPopSound();
         setSolution(prev => prev.filter(w => w.id !== wordToRemove.id));
         setBank(prev => [...prev, wordToRemove]);
         setFeedback(null);
@@ -249,6 +289,10 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
         const result = await checkAnswerWithAI('Sentence Scramble', exercise, solution.map(w => w.word).join(' '));
         setFeedback(result);
         setLoading(false);
+        if (result.toLowerCase().includes('correct') || result.toLowerCase().includes('great job')) {
+            addXP(30);
+            playSuccessSound();
+        }
     };
 
     const statusClasses = {
@@ -286,12 +330,17 @@ export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExe
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, playSuccessSound } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Cloze/Dialogue', exercise, answers);
         setFeedback(result);
         setLoading(false);
+         if (result.toLowerCase().includes('correct') || result.toLowerCase().includes('well done')) {
+            addXP(40);
+            playSuccessSound();
+        }
     };
 
     const handleChange = (index: number, value: string) => {
@@ -333,6 +382,7 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
     const [shuffledAnswers, setShuffledAnswers] = useState(() => shuffleArray(exercise.answers || []));
     const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
     const [matches, setMatches] = useState<Record<number, MatchInfo>>({});
+    const { addXP, playSuccessSound, playErrorSound, playPopSound } = useGamification();
 
     useEffect(() => {
         setShuffledAnswers(shuffleArray(exercise.answers || []));
@@ -342,6 +392,7 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
 
     const handleSelectPrompt = (promptIndex: number) => {
         if (matches[promptIndex]) return;
+        playPopSound();
         setSelectedPrompt(promptIndex);
     };
     
@@ -353,6 +404,13 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
         const isCorrect = exercise.answers[selectedPrompt] === shuffledAnswers[answerIndex];
         setMatches(prev => ({ ...prev, [selectedPrompt]: { answerIndex, isCorrect } }));
         setSelectedPrompt(null);
+
+        if (isCorrect) {
+            playSuccessSound();
+            addXP(10);
+        } else {
+            playErrorSound();
+        }
     };
 
     return (
@@ -403,12 +461,17 @@ export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionEx
     const [userInput, setUserInput] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, playSuccessSound } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Error Correction', exercise, userInput);
         setFeedback(result);
         setLoading(false);
+        if (result.toLowerCase().includes('correct') || result.toLowerCase().includes('good correction')) {
+            addXP(25);
+            playSuccessSound();
+        }
     };
 
     return (
@@ -441,6 +504,7 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
     const dragItem = useRef<number | null>(null);
     const dragOverItem = useRef<number | null>(null);
+    const { addXP, playSuccessSound, playErrorSound, playPopSound } = useGamification();
 
     const handleDragStart = (e: React.DragEvent<HTMLLIElement>, index: number) => {
         dragItem.current = index;
@@ -452,6 +516,7 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
 
     const handleDragEnd = () => {
         if (dragItem.current !== null && dragOverItem.current !== null) {
+            playPopSound();
             const newParts = [...parts];
             const draggedItemContent = newParts.splice(dragItem.current, 1)[0];
             newParts.splice(dragOverItem.current, 0, draggedItemContent);
@@ -466,6 +531,13 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
         const originalParts = exercise.storyParts || [];
         const isCorrect = parts.join('') === originalParts.join('');
         setStatus(isCorrect ? 'correct' : 'incorrect');
+
+        if (isCorrect) {
+            playSuccessSound();
+            addXP(30);
+        } else {
+            playErrorSound();
+        }
     };
 
      const statusClasses = {
@@ -513,12 +585,17 @@ export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExerci
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, playSuccessSound } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Reading for Detail', exercise, answers);
         setFeedback(result);
         setLoading(false);
+         if (result.toLowerCase().includes('correct') || result.toLowerCase().includes('good')) {
+            addXP(30);
+            playSuccessSound();
+        }
     };
 
     const inputStyle = `w-full p-2 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
@@ -560,12 +637,17 @@ export const InteractivePicturePrompt: React.FC<{ exercise: IPicturePromptExerci
   const [response, setResponse] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { addXP, playSuccessSound } = useGamification();
 
   const handleCheck = async () => {
       setLoading(true);
       const result = await checkAnswerWithAI('Picture Prompt Questions', exercise, response);
       setFeedback(result);
       setLoading(false);
+       if (result.length > 10) { // Simple heuristic for engagement
+            addXP(20);
+            playSuccessSound();
+        }
   };
 
   const textareaStyle = `w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
@@ -602,6 +684,7 @@ export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExer
   const [response, setResponse] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { addXP, playSuccessSound } = useGamification();
 
   let promptContent: React.ReactNode | string = '';
   let instruction = '';
@@ -647,6 +730,11 @@ export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExer
       const result = await checkAnswerWithAI(exType, exercise, response);
       setFeedback(result);
       setLoading(false);
+      // Award XP for effort in open response
+      if (response.length > 20) {
+          addXP(50);
+          playSuccessSound();
+      }
   };
 
   const textareaStyle = `w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all font-casual`;
@@ -683,12 +771,17 @@ export const InteractiveDictoGloss: React.FC<{ exercise: IDictoGlossExercise; co
     const [response, setResponse] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, playSuccessSound } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Dicto-Gloss', exercise, response);
         setFeedback(result);
         setLoading(false);
+        if (response.length > 10) {
+             addXP(40);
+             playSuccessSound();
+        }
     };
 
     const buttonBg = colors.textOnLight.replace('text-', 'bg-');
@@ -742,12 +835,17 @@ export const InteractiveInformationTransfer: React.FC<{ exercise: IInformationTr
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, playSuccessSound } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Information Transfer', exercise, answers);
         setFeedback(result);
         setLoading(false);
+        if (Object.keys(answers).length > 0) {
+            addXP(25);
+            playSuccessSound();
+        }
     };
 
     const inputStyle = `w-full p-2 rounded-lg border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none`;
@@ -785,12 +883,17 @@ export const InteractiveListening: React.FC<{ exercise: IListeningSpecificInfoEx
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, playSuccessSound } = useGamification();
 
     const handleCheck = async () => {
         setLoading(true);
         const result = await checkAnswerWithAI('Listening for Specific Info', exercise, answers);
         setFeedback(result);
         setLoading(false);
+        if (Object.keys(answers).length > 0) {
+             addXP(25);
+             playSuccessSound();
+        }
     };
 
     const inputStyle = `w-full p-2 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none`;
@@ -834,9 +937,11 @@ export const InteractiveRegisterSort: React.FC<{ exercise: IRegisterSortExercise
     const [classified, setClassified] = useState<Record<string, string[]>>(() => 
         exercise.categories.reduce((acc, cat) => ({...acc, [cat]: []}), {})
     );
+    const { playPopSound } = useGamification();
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>, category: string) => {
         e.preventDefault();
+        playPopSound();
         const phrase = e.dataTransfer.getData('text/plain');
         
         let newClassified = { ...classified };

@@ -2,15 +2,18 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Whiteboard from './components/Whiteboard';
-import RadialMenu from './components/RadialMenu'; // New import
-import GlobalSettings from './components/GlobalSettings'; // Refactored GlobalSettings
+import RadialMenu from './components/RadialMenu';
+import GlobalSettings from './components/GlobalSettings';
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from './types';
 import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration, DIFFICULTY_LEVELS } from './constants';
-import { MenuIcon } from './components/icons';
+import { GamificationProvider, useGamification } from './GamificationContext';
+import { UndoIcon, RedoIcon, MenuIcon } from './components/icons';
+import { ConfettiExplosion } from './components/Confetti';
+import { useActivityLogger } from './ActivityContext';
 
 const APP_PREFIX = 'practiceGenie-';
 const BLOCKS_KEY = `${APP_PREFIX}blocks`;
-const PAGES_KEY = `${APP_PREFIX}pages`; // Kept for migration
+const PAGES_KEY = `${APP_PREFIX}pages`;
 const DIFFICULTY_KEY = `${APP_PREFIX}difficulty`;
 const TONE_KEY = `${APP_PREFIX}tone`;
 const THEME_KEY = `${APP_PREFIX}theme`;
@@ -19,25 +22,94 @@ const INCLUSION_RATE_KEY = `${APP_PREFIX}inclusionRate`;
 const GRAMMAR_KEY = `${APP_PREFIX}focusGrammar`;
 const GRAMMAR_RATE_KEY = `${APP_PREFIX}grammarInclusionRate`;
 
+// Internal helper for history management
+// Accepts a value or a lazy initializer function
+function useHistory<T>(initialState: T | (() => T)) {
+    const [history, setHistory] = useState<{
+        past: T[];
+        present: T;
+        future: T[];
+    }>(() => {
+        const init = typeof initialState === 'function' ? (initialState as () => T)() : initialState;
+        return {
+            past: [],
+            present: init,
+            future: []
+        };
+    });
 
-const App: React.FC = () => {
-  const [blocks, setBlocks] = useState<ExerciseBlockState[]>(() => {
+    const canUndo = history.past.length > 0;
+    const canRedo = history.future.length > 0;
+
+    const undo = useCallback(() => {
+        setHistory(curr => {
+            if (curr.past.length === 0) return curr;
+            const previous = curr.past[curr.past.length - 1];
+            const newPast = curr.past.slice(0, curr.past.length - 1);
+            return {
+                past: newPast,
+                present: previous,
+                future: [curr.present, ...curr.future]
+            };
+        });
+    }, []);
+
+    const redo = useCallback(() => {
+        setHistory(curr => {
+            if (curr.future.length === 0) return curr;
+            const next = curr.future[0];
+            const newFuture = curr.future.slice(1);
+            return {
+                past: [...curr.past, curr.present],
+                present: next,
+                future: newFuture
+            };
+        });
+    }, []);
+
+    const set = useCallback((newPresent: T | ((curr: T) => T)) => {
+        setHistory(curr => {
+            const nextState = typeof newPresent === 'function' ? (newPresent as (c: T) => T)(curr.present) : newPresent;
+            if (nextState === curr.present) return curr;
+            return {
+                past: [...curr.past, curr.present],
+                present: nextState,
+                future: []
+            };
+        });
+    }, []);
+
+    const reset = useCallback((state: T) => {
+        setHistory({
+            past: [],
+            present: state,
+            future: []
+        });
+    }, []);
+
+    return { state: history.present, set, undo, redo, canUndo, canRedo, reset };
+}
+
+// Inner App Component to consume Contexts
+const AppContent: React.FC = () => {
+  const { xp, level, streak, addXP, incrementStreak, playPopSound } = useGamification();
+  const { logger } = useActivityLogger();
+
+  // Load initial blocks
+  const loadInitialBlocks = (): ExerciseBlockState[] => {
     try {
-      // Migration Logic: Check for pages first
       const savedPages = localStorage.getItem(PAGES_KEY);
       if (savedPages) {
           const parsedPages = JSON.parse(savedPages);
           if (Array.isArray(parsedPages) && parsedPages.length > 0 && 'blocks' in parsedPages[0]) {
               console.log("Migrating from pages to infinite canvas...");
-              // Flatten all blocks from all pages
               const migratedBlocks = parsedPages.flatMap((page: any) => 
                 page.blocks.map((b: any) => ({...b, isGenerated: false}))
               );
-              localStorage.removeItem(PAGES_KEY); // Clear old data
+              localStorage.removeItem(PAGES_KEY);
               return migratedBlocks;
           }
       }
-
       const savedBlocks = localStorage.getItem(BLOCKS_KEY);
       const parsedBlocks = savedBlocks ? JSON.parse(savedBlocks) : [];
       if (Array.isArray(parsedBlocks)) {
@@ -47,10 +119,12 @@ const App: React.FC = () => {
     } catch {
       return [];
     }
-  });
+  };
+
+  // Pass function reference for lazy initialization
+  const { state: blocks, set: setBlocks, undo, redo, canUndo, canRedo, reset: resetBlocks } = useHistory<ExerciseBlockState[]>(loadInitialBlocks);
 
   const [difficulty, setDifficulty] = useState<Difficulty>(() => {
-      // Migrate or default to B1
       const saved = localStorage.getItem(DIFFICULTY_KEY);
       if (saved && Object.values(Difficulty).includes(saved as Difficulty)) {
           return saved as Difficulty;
@@ -64,9 +138,7 @@ const App: React.FC = () => {
       try {
           const saved = localStorage.getItem(VOCAB_KEY);
           return saved ? JSON.parse(saved) : [];
-      } catch {
-          return [];
-      }
+      } catch { return []; }
   });
   const [inclusionRate, setInclusionRate] = useState<number>(() => {
       const saved = localStorage.getItem(INCLUSION_RATE_KEY);
@@ -77,9 +149,7 @@ const App: React.FC = () => {
     try {
         const saved = localStorage.getItem(GRAMMAR_KEY);
         return saved ? JSON.parse(saved) : [];
-    } catch {
-        return [];
-    }
+    } catch { return []; }
   });
   const [grammarInclusionRate, setGrammarInclusionRate] = useState<number>(() => {
       const saved = localStorage.getItem(GRAMMAR_RATE_KEY);
@@ -87,36 +157,35 @@ const App: React.FC = () => {
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // New state for modal
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [presentingBlockId, setPresentingBlockId] = useState<number | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
-  // Optimization: Use a ref to access latest state in callbacks without adding them as dependencies
+  // Trigger confetti on level up
+  const lastLevelRef = useRef(level);
+  useEffect(() => {
+    if (level > lastLevelRef.current) {
+        setShowConfetti(true);
+    }
+    lastLevelRef.current = level;
+  }, [level]);
+
+  // Log streak update on mount
+  useEffect(() => {
+    incrementStreak();
+  }, [incrementStreak]);
+
   const stateRef = useRef({
-      blocks,
-      difficulty,
-      tone,
-      theme,
-      focusVocabulary,
-      inclusionRate,
-      focusGrammar,
-      grammarInclusionRate
+      blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
   });
 
   useEffect(() => {
       stateRef.current = {
-          blocks,
-          difficulty,
-          tone,
-          theme,
-          focusVocabulary,
-          inclusionRate,
-          focusGrammar,
-          grammarInclusionRate
+          blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
       };
   }, [blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
 
-  // Save state to localStorage whenever it changes
-  // Debounce blocks persistence to avoid synchronous JSON.stringify on every drag frame
+  // Debounced persistence
   useEffect(() => {
     const handler = setTimeout(() => {
       localStorage.setItem(BLOCKS_KEY, JSON.stringify(blocks));
@@ -136,11 +205,10 @@ const App: React.FC = () => {
       return blocks.reduce((sum, block) => sum + calculateExerciseDuration(block.exerciseType, block.height, block.quantity), 0);
   }, [blocks]);
 
-  // Navigation logic for Presentation Mode
   const enterPresentation = useCallback((blockId: number) => {
       setPresentingBlockId(blockId);
-      setIsSidebarOpen(false); // Auto-close sidebar for better view
-      setIsSettingsModalOpen(false); // Auto-close settings modal
+      setIsSidebarOpen(false);
+      setIsSettingsModalOpen(false);
   }, []);
 
   const exitPresentation = useCallback(() => {
@@ -163,25 +231,12 @@ const App: React.FC = () => {
       }
   }, [blocks, presentingBlockId]);
 
-  // Export/Import/Clear Logic
   const handleExportState = useCallback(() => {
-      const {
-          blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
-      } = stateRef.current;
-
+      const current = stateRef.current;
       const data = {
-          version: '2.1.0',
+          version: '2.2.0',
           timestamp: new Date().toISOString(),
-          state: {
-              blocks,
-              difficulty,
-              tone,
-              theme,
-              focusVocabulary,
-              inclusionRate,
-              focusGrammar,
-              grammarInclusionRate
-          }
+          state: current
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -204,7 +259,7 @@ const App: React.FC = () => {
               const json = JSON.parse(event.target?.result as string);
               if (json.state) {
                   const { state } = json;
-                  if (state.blocks) setBlocks(state.blocks);
+                  if (state.blocks) resetBlocks(state.blocks);
                   if (state.difficulty) setDifficulty(state.difficulty);
                   if (state.tone) setTone(state.tone);
                   if (state.theme) setTheme(state.theme);
@@ -212,7 +267,6 @@ const App: React.FC = () => {
                   if (state.inclusionRate) setInclusionRate(state.inclusionRate);
                   if (state.focusGrammar) setFocusGrammar(state.focusGrammar);
                   if (state.grammarInclusionRate) setGrammarInclusionRate(state.grammarInclusionRate);
-                  
               }
           } catch (error) {
               console.error("Failed to parse project file", error);
@@ -220,39 +274,37 @@ const App: React.FC = () => {
           }
       };
       reader.readAsText(file);
-      // Reset input
       e.target.value = '';
-  }, []);
+  }, [resetBlocks]);
 
   const handleClearBoard = useCallback(() => {
-      if (window.confirm("Are you sure you want to clear the entire whiteboard? This cannot be undone unless you have exported your project.")) {
+      if (window.confirm("Are you sure you want to clear the entire whiteboard?")) {
           setBlocks([]);
-          // Optionally reset other states or keep them
       }
-  }, []);
+  }, [setBlocks]);
 
 
   const addBlock = useCallback((type: ExerciseType, dropX?: number, dropY?: number) => {
-    const {
-        difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
-    } = stateRef.current;
+    const current = stateRef.current;
 
-    setBlocks(prevBlocks => {
+    // Play sound
+    playPopSound();
+
+    // Award XP for creating content
+    addXP(10);
+
+    setBlocks((prevBlocks) => {
       const { width: newBlockWidth, height: newBlockHeight } = EXERCISE_SIZE_OVERRIDES[type] || DEFAULT_BLOCK_DIMENSIONS;
-
       let finalPos;
 
       if (dropX !== undefined && dropY !== undefined) {
-          // Place centered on drop coordinates
           finalPos = { x: Math.max(0, dropX - newBlockWidth / 2), y: Math.max(0, dropY - newBlockHeight / 2) };
       } else {
-          // Find a free spot if added via button/key (fallback)
           const PADDING = 50;
           const GRID_STEP = 50;
           let positionFound = false;
           finalPos = { x: PADDING, y: PADDING };
           
-          // Simple search for non-overlapping space in the top-left area
           for (let y = PADDING; y < 3000 && !positionFound; y += GRID_STEP) {
             for (let x = PADDING; x < 3000 && !positionFound; x += GRID_STEP) {
                const newRect = { x: x, y: y, width: newBlockWidth, height: newBlockHeight };
@@ -282,13 +334,13 @@ const App: React.FC = () => {
       const newBlock: ExerciseBlockState = {
         id: Date.now(),
         exerciseType: type,
-        difficulty,
-        tone,
-        theme,
-        focusVocabulary,
-        inclusionRate,
-        focusGrammar,
-        grammarInclusionRate,
+        difficulty: current.difficulty,
+        tone: current.tone,
+        theme: current.theme,
+        focusVocabulary: current.focusVocabulary,
+        inclusionRate: current.inclusionRate,
+        focusGrammar: current.focusGrammar,
+        grammarInclusionRate: current.grammarInclusionRate,
         x: finalPos.x,
         y: finalPos.y,
         width: newBlockWidth,
@@ -299,31 +351,30 @@ const App: React.FC = () => {
 
       return [...prevBlocks, newBlock];
     });
-  }, []);
+  }, [setBlocks, playPopSound, addXP]);
 
   const updateBlock = useCallback((blockId: number, updates: Partial<ExerciseBlockState>) => {
-    setBlocks(prevBlocks =>
+    setBlocks((prevBlocks) =>
       prevBlocks.map(block =>
         block.id === blockId ? { ...block, ...updates } : block
       )
     );
-  }, []);
+  }, [setBlocks]);
 
   const removeBlock = useCallback((blockId: number) => {
-    setBlocks(prevBlocks => prevBlocks.filter(block => block.id !== blockId));
+    setBlocks((prevBlocks) => prevBlocks.filter(block => block.id !== blockId));
     if (presentingBlockId === blockId) exitPresentation();
-  }, [presentingBlockId, exitPresentation]);
+  }, [presentingBlockId, exitPresentation, setBlocks]);
 
   const focusBlock = useCallback((blockId: number) => {
-    setBlocks(prevBlocks => {
+    setBlocks((prevBlocks) => {
       const maxZ = Math.max(0, ...prevBlocks.map(b => b.zIndex || 0));
       const newZ = maxZ + 1;
-
       return prevBlocks.map(block =>
         block.id === blockId ? { ...block, zIndex: newZ } : block
       );
     });
-  }, []);
+  }, [setBlocks]);
 
   const cycleDifficulty = useCallback(() => {
     setDifficulty(prevDiff => {
@@ -333,15 +384,75 @@ const App: React.FC = () => {
     });
   }, []);
 
-  // Callbacks for Sidebar and RadialMenu
   const handleToggleSettings = useCallback(() => setIsSettingsModalOpen(true), []);
   const handleToggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), []);
   const handleCloseSettings = useCallback(() => setIsSettingsModalOpen(false), []);
   const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
+  // Key Bindings for Undo/Redo
+  useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+          if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+              e.preventDefault();
+              undo();
+          }
+          if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+              e.preventDefault();
+              redo();
+          }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
+
   return (
-    <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800">
-      {/* Radial Menu replaces fixed top bar */}
+    <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800 relative">
+      <ConfettiExplosion active={showConfetti} onComplete={() => setShowConfetti(false)} />
+
+      {/* Gamification Status Bar (Top Right) */}
+      <div className="fixed top-4 right-4 z-[50] flex items-center gap-3 bg-slate-900/80 backdrop-blur-md p-2 rounded-full border border-slate-700 shadow-xl">
+          <div className="flex flex-col items-center px-2 border-r border-slate-700">
+             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Level</span>
+             <span className="text-xl font-black text-white leading-none">{level}</span>
+          </div>
+          <div className="flex flex-col gap-1 w-24">
+              <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>XP</span>
+                  <span>{xp % 100}/100</span>
+              </div>
+              <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                    style={{ width: `${xp % 100}%` }}
+                  />
+              </div>
+          </div>
+          <div className="flex flex-col items-center px-2 border-l border-slate-700" title="Daily Streak">
+             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Streak</span>
+             <span className="text-lg font-black text-orange-500 leading-none">🔥 {streak}</span>
+          </div>
+      </div>
+
+      {/* Undo/Redo Controls (Bottom Left, avoiding collision with Minimap) */}
+      <div className="fixed bottom-4 left-4 z-[50] flex gap-2">
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            className="p-3 bg-slate-900 text-white rounded-full shadow-lg border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 active:scale-95 transition-all"
+            title="Undo (Ctrl+Z)"
+          >
+              <UndoIcon className="w-5 h-5" />
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            className="p-3 bg-slate-900 text-white rounded-full shadow-lg border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 active:scale-95 transition-all"
+            title="Redo (Ctrl+Y)"
+          >
+              <RedoIcon className="w-5 h-5" />
+          </button>
+      </div>
+
       <RadialMenu 
           onToggleSettings={handleToggleSettings}
           onToggleSidebar={handleToggleSidebar}
@@ -350,7 +461,6 @@ const App: React.FC = () => {
           onCycleDifficulty={cycleDifficulty}
       />
 
-      {/* Settings Modal - conditionally rendered */}
       {isSettingsModalOpen && (
           <GlobalSettings 
               difficulty={difficulty} setDifficulty={setDifficulty}
@@ -371,13 +481,12 @@ const App: React.FC = () => {
         setFocusGrammar={setFocusGrammar}
         grammarInclusionRate={grammarInclusionRate}
         setGrammarInclusionRate={setGrammarInclusionRate}
-        onAddExercise={addBlock} // Passed directly as it handles optional arguments safely
+        onAddExercise={addBlock}
         onExportState={handleExportState}
         onImportState={handleImportState}
         onClearBoard={handleClearBoard}
       />
       
-      {/* Overlay for mobile - Smooth transition */}
       <div 
           onClick={handleCloseSidebar}
           className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ease-in-out ${
@@ -401,6 +510,14 @@ const App: React.FC = () => {
         />
       </div>
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <GamificationProvider>
+       <AppContent />
+    </GamificationProvider>
   );
 };
 
