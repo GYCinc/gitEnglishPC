@@ -37,6 +37,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   
   // Canvas View State
   const [scale, setScale] = useState(1);
+  const scaleRef = useRef(1); // Optimization: Ref for stable access in ExerciseBlock
   const pan = useRef({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
@@ -134,6 +135,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     }
     setScale(newScale);
   };
+
+  // Robustly sync scaleRef with state changes (e.g. from zoom buttons or pinch gestures)
+  useEffect(() => {
+    scaleRef.current = scale;
+  }, [scale]);
 
   const handleContextMenu = (e: React.MouseEvent) => {
       e.preventDefault(); // Prevent right-click menu to allow right-click panning
@@ -394,7 +400,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
                         onExitPresentation={onExitPresentation}
                         onNextSlide={onNextSlide}
                         onPrevSlide={onPrevSlide}
-                        scale={scale}
+                        scaleRef={scaleRef}
                     />
                 );
             })}

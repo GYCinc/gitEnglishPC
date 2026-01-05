@@ -32,7 +32,7 @@ export interface ExerciseBlockProps {
   onExitPresentation: () => void;
   onNextSlide: () => void; // Global next slide (for next block in app.tsx)
   onPrevSlide: () => void; // Global prev slide (for prev block in app.tsx)
-  scale?: number; // Current zoom scale of the whiteboard
+  scaleRef: React.MutableRefObject<number>; // Ref to current zoom scale (optimization)
 }
 
 // Header Component
@@ -400,12 +400,17 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     blockState, onUpdate, onRemove, onFocus,
     onInteraction, onInteractionStop,
     isPresenting, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide,
-    scale = 1
+    scaleRef
 }) => {
     const { id, x, y, width, height, zIndex, exerciseType, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate, isGenerated, quantity } = blockState;
     const [content, setContent] = useState<any[] | { error: string }>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+    // Performance Optimization: Local state for Rnd scale
+    // We avoid passing the changing 'scale' prop directly to prevent re-rendering all blocks on zoom.
+    // Instead, we update this local state only when interaction starts.
+    const [internalScale, setInternalScale] = useState(scaleRef.current);
     
     const { logger, startActivity, endActivity } = useActivityLogger();
 
@@ -636,7 +641,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
             minHeight={150}
             // Remove bounds="parent" to allow dragging anywhere, including "above" the initial viewport
             dragHandleClassName="handle"
-            scale={isPresenting ? 1 : scale} // Rnd's internal scale for dragging/resizing, independent of visual content scale
+            scale={isPresenting ? 1 : internalScale} // Use internal scale which updates on interaction
             style={{
                 zIndex: isPresenting ? 9999 : zIndex,
                 // Optimization: Skip layout/paint for off-screen blocks
@@ -644,7 +649,13 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
                 containIntrinsicSize: `${width}px ${height}px`
             }}
             className={`rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden transition-all hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)] ${presentationRndStyle}`}
-            onMouseDown={() => onFocus(id)}
+            onMouseDown={() => {
+                // Update internal scale before drag starts to ensure correct delta calculation
+                if (scaleRef.current !== internalScale) {
+                    setInternalScale(scaleRef.current);
+                }
+                onFocus(id);
+            }}
             onDoubleClick={() => {
                 if (isGenerated && !isPresenting && onEnterPresentation) onEnterPresentation(id);
             }}
