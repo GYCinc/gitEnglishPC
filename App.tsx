@@ -7,6 +7,9 @@ import GlobalSettings from './components/GlobalSettings'; // Refactored GlobalSe
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from './types';
 import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration, DIFFICULTY_LEVELS } from './constants';
 import { MenuIcon } from './components/icons';
+import { GamificationProvider, useGamification } from './components/GamificationContext';
+import GamificationHUD from './components/GamificationHUD';
+import Confetti from './components/Confetti';
 
 const APP_PREFIX = 'practiceGenie-';
 const BLOCKS_KEY = `${APP_PREFIX}blocks`;
@@ -20,7 +23,17 @@ const GRAMMAR_KEY = `${APP_PREFIX}focusGrammar`;
 const GRAMMAR_RATE_KEY = `${APP_PREFIX}grammarInclusionRate`;
 
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { showLevelUp, setShowLevelUp } = useGamification();
+
+  // Auto-hide confetti after a few seconds
+  useEffect(() => {
+    if (showLevelUp) {
+      const timer = setTimeout(() => setShowLevelUp(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showLevelUp, setShowLevelUp]);
+
   const [blocks, setBlocks] = useState<ExerciseBlockState[]>(() => {
     try {
       // Migration Logic: Check for pages first
@@ -341,6 +354,10 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800">
+      <Confetti active={showLevelUp} />
+
+      <GamificationHUD />
+
       {/* Radial Menu replaces fixed top bar */}
       <RadialMenu 
           onToggleSettings={handleToggleSettings}
@@ -403,5 +420,11 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+const App: React.FC = () => (
+  <GamificationProvider>
+    <AppContent />
+  </GamificationProvider>
+);
 
 export default App;

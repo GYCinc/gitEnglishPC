@@ -14,6 +14,8 @@ import {
 } from '../types';
 import { checkAnswerWithAI } from '../services/geminiService';
 import { LoadingIcon, SpeakerWaveIcon, SparklesIcon } from './icons';
+import { useGamification } from './GamificationContext';
+import { soundEffects } from '../services/SoundEffectsService';
 
 // --- HELPER & GENERIC COMPONENTS ---
 const shuffleArray = <T,>(array: T[]): T[] => [...array].sort(() => Math.random() - 0.5);
@@ -80,12 +82,20 @@ export const FeedbackSection: React.FC<{
 export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationExercise | IPhrasalVerbGapFillExercise; colors: any; }> = ({ exercise, colors }) => {
     const [droppedWord, setDroppedWord] = useState<string | null>(null);
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
+    const { addXp } = useGamification();
 
     const handleDrop = (e: React.DragEvent<HTMLSpanElement>) => {
         e.preventDefault();
         const word = e.dataTransfer.getData('text/plain');
         setDroppedWord(word);
-        setStatus(word === exercise.answer ? 'correct' : 'incorrect');
+        if (word === exercise.answer) {
+            setStatus('correct');
+            addXp(50);
+            soundEffects.playSuccess();
+        } else {
+            setStatus('incorrect');
+            soundEffects.playError();
+        }
     };
     
     const statusClasses = {
@@ -157,11 +167,18 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
 export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPredictionExercise | IRuleDiscoveryExercise | ISpotTheDifferenceExercise | IPolitenessScenariosExercise | IInferringMeaningExercise; colors: any; }> = ({ exercise, colors }) => {
     const [selected, setSelected] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
+    const { addXp } = useGamification();
 
     const handleClick = (option: string) => {
         if (isAnswered) return;
         setSelected(option);
         setIsAnswered(true);
+        if (option === exercise.correctAnswer) {
+            addXp(100);
+            soundEffects.playSuccess();
+        } else {
+            soundEffects.playError();
+        }
     };
 
     return (
@@ -333,6 +350,7 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
     const [shuffledAnswers, setShuffledAnswers] = useState(() => shuffleArray(exercise.answers || []));
     const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
     const [matches, setMatches] = useState<Record<number, MatchInfo>>({});
+    const { addXp } = useGamification();
 
     useEffect(() => {
         setShuffledAnswers(shuffleArray(exercise.answers || []));
@@ -343,6 +361,7 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
     const handleSelectPrompt = (promptIndex: number) => {
         if (matches[promptIndex]) return;
         setSelectedPrompt(promptIndex);
+        soundEffects.playClick();
     };
     
     const handleSelectAnswer = (answerIndex: number) => {
@@ -353,6 +372,13 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
         const isCorrect = exercise.answers[selectedPrompt] === shuffledAnswers[answerIndex];
         setMatches(prev => ({ ...prev, [selectedPrompt]: { answerIndex, isCorrect } }));
         setSelectedPrompt(null);
+
+        if (isCorrect) {
+            addXp(20); // Small XP for each match
+            soundEffects.playSuccess();
+        } else {
+            soundEffects.playError();
+        }
     };
 
     return (
