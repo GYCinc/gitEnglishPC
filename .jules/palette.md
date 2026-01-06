@@ -1,5 +1,3 @@
-# Palette's Journal
-
-## 2024-05-22 - Initial Setup
-**Learning:** This journal tracks critical UX/a11y learnings.
-**Action:** Will add entries when specific patterns or insights are discovered.
+## 2024-05-22 - Radial Menu Accessibility
+**Learning:** Icon-only floating action buttons (FAB) are often overlooked in accessibility audits. Adding `aria-label` is crucial, but making the main toggle button communicate state (`aria-expanded`) provides a much better experience for screen reader users.
+**Action:** Always check `aria-expanded` and dynamic labels for menu toggles.

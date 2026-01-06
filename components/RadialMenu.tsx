@@ -56,7 +56,8 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
                 className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 z-[102]
                             ${isOpen ? 'bg-blue-800 text-white rotate-90 scale-110' : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 hover:shadow-blue-500/30'}
                             border-4 border-white/20 backdrop-blur-sm ring-1 ring-black/5`}
-                aria-label="Open Menu"
+                aria-label={isOpen ? "Close Menu" : "Open Menu"}
+                aria-expanded={isOpen}
             >
                 {isOpen ? <XMarkIcon className="w-7 h-7" /> : <MenuIcon className="w-7 h-7" />}
             </button>
@@ -85,6 +86,7 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
                         className="absolute w-10 h-10 bg-white text-blue-800 rounded-full shadow-lg border border-slate-200 
                                    flex items-center justify-center transition-all duration-300 hover:bg-blue-50 hover:text-blue-600 hover:scale-110"
                         title={item.label}
+                        aria-label={item.label}
                     >
                         {item.icon}
                     </button>
