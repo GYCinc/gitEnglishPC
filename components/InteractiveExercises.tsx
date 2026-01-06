@@ -14,6 +14,9 @@ import {
 } from '../types';
 import { checkAnswerWithAI } from '../services/geminiService';
 import { LoadingIcon, SpeakerWaveIcon, SparklesIcon } from './icons';
+import { useGamification } from '../GamificationContext';
+import { soundEffects } from '../services/SoundEffectsService';
+import Confetti from './Confetti';
 
 // --- HELPER & GENERIC COMPONENTS ---
 const shuffleArray = <T,>(array: T[]): T[] => [...array].sort(() => Math.random() - 0.5);
@@ -80,12 +83,25 @@ export const FeedbackSection: React.FC<{
 export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationExercise | IPhrasalVerbGapFillExercise; colors: any; }> = ({ exercise, colors }) => {
     const [droppedWord, setDroppedWord] = useState<string | null>(null);
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const handleDrop = (e: React.DragEvent<HTMLSpanElement>) => {
         e.preventDefault();
         const word = e.dataTransfer.getData('text/plain');
         setDroppedWord(word);
-        setStatus(word === exercise.answer ? 'correct' : 'incorrect');
+
+        if (word === exercise.answer) {
+            setStatus('correct');
+            soundEffects.playCorrect();
+            addXP(10);
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+            setStatus('incorrect');
+            soundEffects.playIncorrect();
+        }
     };
     
     const statusClasses = {
@@ -96,6 +112,7 @@ export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationE
 
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             {'collocation' in exercise && <p className="text-sm italic opacity-70 mb-2 font-playful">Collocation: {exercise.collocation}</p>}
             {'phrasalVerb' in exercise && <p className="text-sm italic opacity-70 mb-2 font-playful">Phrasal Verb: {exercise.phrasalVerb}</p>}
             <p className={`leading-loose`}>
@@ -118,16 +135,38 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
     const [userInput, setUserInput] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
         setLoading(true);
-        const result = await checkAnswerWithAI('Word Formation', exercise, userInput);
-        setFeedback(result);
+        const resultJSON = await checkAnswerWithAI('Word Formation', exercise, userInput);
+        let result = { isCorrect: false, feedback: "Error processing feedback." };
+
+        try {
+            result = JSON.parse(resultJSON);
+        } catch (e) {
+            console.error("Failed to parse AI feedback JSON", e);
+            result.feedback = resultJSON; // Fallback if plain text
+        }
+
+        setFeedback(result.feedback);
         setLoading(false);
+
+        if (result.isCorrect) {
+            soundEffects.playCorrect();
+            addXP(20);
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+            soundEffects.playIncorrect();
+        }
     };
     
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             <p className="mb-2 font-bold text-sm uppercase tracking-wide opacity-70">Task</p>
             <p className={`mb-3 leading-relaxed`}>
                 {exercise.question.replace('[BLANK]', '______')} <span className="font-bold italic text-lg ml-2 font-playful">({exercise.rootWord})</span>
@@ -157,15 +196,29 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
 export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPredictionExercise | IRuleDiscoveryExercise | ISpotTheDifferenceExercise | IPolitenessScenariosExercise | IInferringMeaningExercise; colors: any; }> = ({ exercise, colors }) => {
     const [selected, setSelected] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const handleClick = (option: string) => {
         if (isAnswered) return;
         setSelected(option);
         setIsAnswered(true);
+
+        const isCorrect = option === exercise.correctAnswer;
+        if (isCorrect) {
+            soundEffects.playCorrect();
+            addXP(10);
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+            soundEffects.playIncorrect();
+        }
     };
 
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             {'sentences' in exercise && (
                 <div className={`mb-4 p-3 rounded-xl bg-white/50 border-2 ${colors.chip.border} italic space-y-1`}>
                     {(exercise.sentences || []).map((s, i) => <p key={i}>"{s}"</p>)}
@@ -223,6 +276,8 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
     const [bank, setBank] = useState<ScrambledWord[]>([]);
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     useEffect(() => {
         const words = exercise.scrambledWords || [];
@@ -246,9 +301,27 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
 
     const handleCheck = async () => {
         setLoading(true);
-        const result = await checkAnswerWithAI('Sentence Scramble', exercise, solution.map(w => w.word).join(' '));
-        setFeedback(result);
+        const resultJSON = await checkAnswerWithAI('Sentence Scramble', exercise, solution.map(w => w.word).join(' '));
+        let result = { isCorrect: false, feedback: "Error processing feedback." };
+
+        try {
+            result = JSON.parse(resultJSON);
+        } catch (e) {
+             console.error("Failed to parse AI feedback JSON", e);
+             result.feedback = resultJSON;
+        }
+
+        setFeedback(result.feedback);
         setLoading(false);
+        if (result.isCorrect) {
+            soundEffects.playCorrect();
+            addXP(15);
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+             soundEffects.playIncorrect();
+        }
     };
 
     const statusClasses = {
@@ -257,6 +330,7 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
 
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             <p className="mb-2 font-bold opacity-70 text-sm uppercase">Build the sentence</p>
             <div className={`min-h-[4rem] p-3 rounded-2xl border-4 flex flex-wrap gap-2 items-center transition-colors mb-4 ${statusClasses.neutral}`}>
                 {solution.length === 0 && <span className="text-slate-400 italic text-sm w-full text-center">Click words below...</span>}
@@ -286,12 +360,33 @@ export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExe
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
         setLoading(true);
-        const result = await checkAnswerWithAI('Cloze/Dialogue', exercise, answers);
-        setFeedback(result);
+        const resultJSON = await checkAnswerWithAI('Cloze/Dialogue', exercise, answers);
+        let result = { isCorrect: false, feedback: "Error processing feedback." };
+
+        try {
+            result = JSON.parse(resultJSON);
+        } catch (e) {
+            console.error("Failed to parse AI feedback JSON", e);
+            result.feedback = resultJSON;
+        }
+
+        setFeedback(result.feedback);
         setLoading(false);
+
+        if (result.isCorrect) {
+            soundEffects.playCorrect();
+            addXP(25); // Higher XP for harder task
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+             soundEffects.playIncorrect();
+        }
     };
 
     const handleChange = (index: number, value: string) => {
@@ -301,6 +396,7 @@ export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExe
     
     return (
         <div className={`text-base leading-loose font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             {textParts.map((part, index) => (
                 <React.Fragment key={index}>
                     {part.split(/(\\n)/g).map((line, lineIndex) => 
@@ -333,6 +429,8 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
     const [shuffledAnswers, setShuffledAnswers] = useState(() => shuffleArray(exercise.answers || []));
     const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
     const [matches, setMatches] = useState<Record<number, MatchInfo>>({});
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     useEffect(() => {
         setShuffledAnswers(shuffleArray(exercise.answers || []));
@@ -353,10 +451,25 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
         const isCorrect = exercise.answers[selectedPrompt] === shuffledAnswers[answerIndex];
         setMatches(prev => ({ ...prev, [selectedPrompt]: { answerIndex, isCorrect } }));
         setSelectedPrompt(null);
+
+        if (isCorrect) {
+            soundEffects.playCorrect();
+            addXP(5);
+            // Check if all matched
+            if (Object.keys(matches).length + 1 === exercise.answers.length) {
+                checkStreak();
+                setShowConfetti(true);
+                setTimeout(() => setShowConfetti(false), 3000);
+                addXP(20); // Bonus for completion
+            }
+        } else {
+             soundEffects.playIncorrect();
+        }
     };
 
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             <p className="mb-3 font-bold text-sm opacity-70 uppercase">Connect the pairs</p>
             <div className="flex gap-4 md:gap-8">
                 <div className="flex-1 space-y-2">
@@ -403,16 +516,38 @@ export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionEx
     const [userInput, setUserInput] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
         setLoading(true);
-        const result = await checkAnswerWithAI('Error Correction', exercise, userInput);
-        setFeedback(result);
+        const resultJSON = await checkAnswerWithAI('Error Correction', exercise, userInput);
+        let result = { isCorrect: false, feedback: "Error processing feedback." };
+
+        try {
+            result = JSON.parse(resultJSON);
+        } catch (e) {
+            console.error("Failed to parse AI feedback JSON", e);
+            result.feedback = resultJSON;
+        }
+
+        setFeedback(result.feedback);
         setLoading(false);
+
+        if (result.isCorrect) {
+            soundEffects.playCorrect();
+            addXP(15);
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+             soundEffects.playIncorrect();
+        }
     };
 
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             <p className="mb-2 font-playful text-lg text-red-600">Incorrect:</p>
             <div className="mb-4 p-3 bg-red-50 rounded-xl border-l-4 border-red-300 italic text-red-900">"{exercise.incorrectSentence}"</div>
             <p className="mb-2 font-playful text-lg text-green-600">Correct:</p>
@@ -441,6 +576,8 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
     const dragItem = useRef<number | null>(null);
     const dragOverItem = useRef<number | null>(null);
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const handleDragStart = (e: React.DragEvent<HTMLLIElement>, index: number) => {
         dragItem.current = index;
@@ -466,6 +603,16 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
         const originalParts = exercise.storyParts || [];
         const isCorrect = parts.join('') === originalParts.join('');
         setStatus(isCorrect ? 'correct' : 'incorrect');
+
+        if (isCorrect) {
+            soundEffects.playCorrect();
+            addXP(30); // High reward for sequencing
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+             soundEffects.playIncorrect();
+        }
     };
 
      const statusClasses = {
@@ -478,6 +625,7 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
 
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             <h4 className="font-playful text-xl mb-2">{exercise.title}</h4>
             <ul className={`space-y-2 border-4 border-dashed p-2 rounded-2xl transition-colors ${statusClasses[status]}`}>
                 {parts.map((part, i) => (
@@ -513,18 +661,40 @@ export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExerci
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
         setLoading(true);
-        const result = await checkAnswerWithAI('Reading for Detail', exercise, answers);
-        setFeedback(result);
+        const resultJSON = await checkAnswerWithAI('Reading for Detail', exercise, answers);
+        let result = { isCorrect: false, feedback: "Error processing feedback." };
+
+        try {
+            result = JSON.parse(resultJSON);
+        } catch (e) {
+            console.error("Failed to parse AI feedback JSON", e);
+            result.feedback = resultJSON;
+        }
+
+        setFeedback(result.feedback);
         setLoading(false);
+
+        if (result.isCorrect) {
+            soundEffects.playCorrect();
+            addXP(20);
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+             soundEffects.playIncorrect();
+        }
     };
 
     const inputStyle = `w-full p-2 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
     
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             <h4 className="font-playful text-2xl mb-2">{exercise.title}</h4>
             <div className={`p-4 rounded-2xl bg-white border-2 ${colors.chip.border} mb-6 shadow-inner leading-relaxed whitespace-pre-wrap max-h-96 overflow-y-auto custom-scrollbar-light`}>
                 {exercise.text}
@@ -560,18 +730,40 @@ export const InteractivePicturePrompt: React.FC<{ exercise: IPicturePromptExerci
   const [response, setResponse] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { addXP, checkStreak } = useGamification();
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const handleCheck = async () => {
       setLoading(true);
-      const result = await checkAnswerWithAI('Picture Prompt Questions', exercise, response);
-      setFeedback(result);
+      const resultJSON = await checkAnswerWithAI('Picture Prompt Questions', exercise, response);
+      let result = { isCorrect: false, feedback: "Error processing feedback." };
+
+      try {
+          result = JSON.parse(resultJSON);
+      } catch (e) {
+          console.error("Failed to parse AI feedback JSON", e);
+          result.feedback = resultJSON;
+      }
+
+      setFeedback(result.feedback);
       setLoading(false);
+
+      if (result.isCorrect) {
+            soundEffects.playCorrect();
+            addXP(15);
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+             soundEffects.playIncorrect();
+        }
   };
 
   const textareaStyle = `w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all`;
   
   return (
     <div className={`text-base font-casual ${colors.textOnLight}`}>
+      <Confetti active={showConfetti} />
       <h4 className="font-playful text-xl mb-2">{exercise.title}</h4>
       <div className="bg-black/5 p-2 rounded-2xl border-2 border-dashed border-slate-300 mb-4">
           <img src={exercise.imageUrl} alt={exercise.prompt} className="w-full h-auto rounded-xl object-contain shadow-sm" />
@@ -602,6 +794,8 @@ export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExer
   const [response, setResponse] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { addXP, checkStreak } = useGamification();
+  const [showConfetti, setShowConfetti] = useState(false);
 
   let promptContent: React.ReactNode | string = '';
   let instruction = '';
@@ -644,15 +838,35 @@ export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExer
   
   const handleCheck = async () => {
       setLoading(true);
-      const result = await checkAnswerWithAI(exType, exercise, response);
-      setFeedback(result);
+      const resultJSON = await checkAnswerWithAI(exType, exercise, response);
+      let result = { isCorrect: false, feedback: "Error processing feedback." };
+
+      try {
+          result = JSON.parse(resultJSON);
+      } catch (e) {
+          console.error("Failed to parse AI feedback JSON", e);
+          result.feedback = resultJSON;
+      }
+
+      setFeedback(result.feedback);
       setLoading(false);
+
+      if (result.isCorrect) {
+            soundEffects.playCorrect();
+            addXP(25);
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+             soundEffects.playIncorrect();
+        }
   };
 
   const textareaStyle = `w-full p-3 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none transition-all font-casual`;
 
   return (
     <div className={`text-base font-casual ${colors.textOnLight}`}>
+      <Confetti active={showConfetti} />
       <h4 className="font-playful text-xl mb-3">{exercise.title}</h4>
       <div className="mb-4 p-4 bg-purple-50/50 rounded-2xl border-2 border-purple-100">
           {typeof promptContent === 'string' ? <p className="italic text-lg">{promptContent}</p> : promptContent}
@@ -683,12 +897,33 @@ export const InteractiveDictoGloss: React.FC<{ exercise: IDictoGlossExercise; co
     const [response, setResponse] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
         setLoading(true);
-        const result = await checkAnswerWithAI('Dicto-Gloss', exercise, response);
-        setFeedback(result);
+        const resultJSON = await checkAnswerWithAI('Dicto-Gloss', exercise, response);
+        let result = { isCorrect: false, feedback: "Error processing feedback." };
+
+        try {
+            result = JSON.parse(resultJSON);
+        } catch (e) {
+            console.error("Failed to parse AI feedback JSON", e);
+            result.feedback = resultJSON;
+        }
+
+        setFeedback(result.feedback);
         setLoading(false);
+
+        if (result.isCorrect) {
+            soundEffects.playCorrect();
+            addXP(20);
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+             soundEffects.playIncorrect();
+        }
     };
 
     const buttonBg = colors.textOnLight.replace('text-', 'bg-');
@@ -696,6 +931,7 @@ export const InteractiveDictoGloss: React.FC<{ exercise: IDictoGlossExercise; co
     
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             <h4 className="font-playful text-xl mb-2">{exercise.title}</h4>
             <div className={`p-3 rounded-2xl transition-all duration-300 ${colors.chip.bg} border-2 ${colors.chip.border}`}>
                 <div className="flex justify-between items-center mb-2">
@@ -742,17 +978,39 @@ export const InteractiveInformationTransfer: React.FC<{ exercise: IInformationTr
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
         setLoading(true);
-        const result = await checkAnswerWithAI('Information Transfer', exercise, answers);
-        setFeedback(result);
+        const resultJSON = await checkAnswerWithAI('Information Transfer', exercise, answers);
+        let result = { isCorrect: false, feedback: "Error processing feedback." };
+
+        try {
+            result = JSON.parse(resultJSON);
+        } catch (e) {
+            console.error("Failed to parse AI feedback JSON", e);
+            result.feedback = resultJSON;
+        }
+
+        setFeedback(result.feedback);
         setLoading(false);
+
+        if (result.isCorrect) {
+            soundEffects.playCorrect();
+            addXP(15);
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+             soundEffects.playIncorrect();
+        }
     };
 
     const inputStyle = `w-full p-2 rounded-lg border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none`;
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             <h4 className="font-playful text-xl mb-2">{exercise.title}</h4>
             <p className={`text-sm p-3 rounded-xl bg-white border border-slate-200 mb-4 whitespace-pre-wrap shadow-sm`}>{exercise.text}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -785,17 +1043,39 @@ export const InteractiveListening: React.FC<{ exercise: IListeningSpecificInfoEx
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { addXP, checkStreak } = useGamification();
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
         setLoading(true);
-        const result = await checkAnswerWithAI('Listening for Specific Info', exercise, answers);
-        setFeedback(result);
+        const resultJSON = await checkAnswerWithAI('Listening for Specific Info', exercise, answers);
+        let result = { isCorrect: false, feedback: "Error processing feedback." };
+
+        try {
+            result = JSON.parse(resultJSON);
+        } catch (e) {
+            console.error("Failed to parse AI feedback JSON", e);
+            result.feedback = resultJSON;
+        }
+
+        setFeedback(result.feedback);
         setLoading(false);
+
+        if (result.isCorrect) {
+            soundEffects.playCorrect();
+            addXP(15);
+            checkStreak();
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+             soundEffects.playIncorrect();
+        }
     };
 
     const inputStyle = `w-full p-2 rounded-xl border-2 ${colors.chip.border} bg-white text-slate-900 focus:ring-2 focus:${colors.border.replace('border-','ring-')} outline-none`;
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
+            <Confetti active={showConfetti} />
             <h4 className="font-playful text-xl mb-2">{exercise.title}</h4>
             <div className="mb-6 p-4 rounded-2xl bg-slate-800 text-slate-200 shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-2 opacity-10"><SpeakerWaveIcon className="w-24 h-24" /></div>
