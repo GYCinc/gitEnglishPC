@@ -7,6 +7,8 @@ import GlobalSettings from './components/GlobalSettings'; // Refactored GlobalSe
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from './types';
 import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration, DIFFICULTY_LEVELS } from './constants';
 import { MenuIcon } from './components/icons';
+import { GamificationProvider } from './GamificationContext';
+import GamificationHUD from './components/GamificationHUD';
 
 const APP_PREFIX = 'practiceGenie-';
 const BLOCKS_KEY = `${APP_PREFIX}blocks`;
@@ -340,7 +342,9 @@ const App: React.FC = () => {
   const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
   return (
+    <GamificationProvider>
     <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800">
+      <GamificationHUD />
       {/* Radial Menu replaces fixed top bar */}
       <RadialMenu 
           onToggleSettings={handleToggleSettings}
@@ -401,6 +405,7 @@ const App: React.FC = () => {
         />
       </div>
     </div>
+    </GamificationProvider>
   );
 };
 

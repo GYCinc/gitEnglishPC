@@ -657,14 +657,18 @@ export const generateExercises = async (
 
 /**
  * Checks a user's answer for an exercise using the Gemini Flash Lite model for speed.
+ * Returns a JSON string with feedback and correctness.
  */
 export const checkAnswerWithAI = async (
   exerciseType: string,
   exerciseContext: any,
   userResponse: any
-) => {
+): Promise<string> => { // Keep string return type but formatted as JSON now
   if (process.env.API_KEY === undefined) {
-      return "This is dummy feedback because the API Key is missing. Great job!";
+      return JSON.stringify({
+          isCorrect: true,
+          feedback: "This is dummy feedback because the API Key is missing. Great job!"
+      });
   }
 
   const prompt = `
@@ -675,22 +679,27 @@ export const checkAnswerWithAI = async (
     Context (Exercise Data): ${JSON.stringify(exerciseContext)}
     Student Response: ${JSON.stringify(userResponse)}
 
-    Provide specific, concise feedback.
-    1. Correctness: Is the answer factually or contextually correct based on the provided text/scenario?
-    2. Grammar & Language: Point out any major errors and suggest improvements.
-    3. Rating: Give a quick emoji rating (e.g., 🌟🌟🌟).
-
-    Keep the response under 100 words. Be encouraging but precise.
+    Return a JSON object with this structure:
+    {
+        "isCorrect": boolean, // true if the answer is factually and contextually correct
+        "feedback": string // concise feedback (under 100 words) with emoji rating
+    }
   `;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-lite-preview-02-05', // Using the requested Flash Lite model for speed
+      model: 'gemini-2.0-flash-lite-preview-02-05',
       contents: prompt,
+      config: {
+          responseMimeType: "application/json"
+      }
     });
     return response.text;
   } catch (error) {
     console.error("Error checking answer:", error);
-    return "Could not retrieve feedback at this time.";
+    return JSON.stringify({
+        isCorrect: false,
+        feedback: "Could not retrieve feedback at this time."
+    });
   }
 };
