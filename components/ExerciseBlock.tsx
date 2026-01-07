@@ -131,7 +131,7 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
         <div ref={ref} className={`handle bg-slate-800 text-white p-3 ${isPresenting ? 'rounded-none p-6' : 'rounded-t-2xl'} flex justify-between items-center cursor-move flex-shrink-0 border-b border-slate-700 relative z-10 font-casual`}>
             <div className="flex items-center gap-4 min-w-0 flex-1">
                 {isPresenting && (
-                     <button onMouseDown={(e) => e.stopPropagation()} onClick={handleExitPresentation} className="p-2 rounded-full hover:bg-slate-700 text-neutral-gray-400 hover:text-white transition-colors mr-2 relative z-50" title="Exit Live Mode">
+                     <button onMouseDown={(e) => e.stopPropagation()} onClick={handleExitPresentation} className="p-2 rounded-full hover:bg-slate-700 text-neutral-gray-400 hover:text-white transition-colors mr-2 relative z-50" title="Exit Live Mode" aria-label="Exit Live Mode">
                         <XMarkIcon className="w-6 h-6" />
                     </button>
                 )}
@@ -150,8 +150,8 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
                  {isPresenting && totalItems && totalItems > 1 && (
                      <div className="flex items-center gap-4 mr-4 border-r border-slate-700 pr-4">
                          <span className="text-sm font-mono font-bold text-neutral-gray-400">{currentItem} / {totalItems}</span>
-                          <button onMouseDown={(e) => e.stopPropagation()} onClick={handlePrevItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === 1}><ChevronLeftIcon className="w-6 h-6" /></button>
-                          <button onMouseDown={(e) => e.stopPropagation()} onClick={handleNextItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === totalItems}><ChevronRightIcon className="w-6 h-6" /></button>
+                          <button onMouseDown={(e) => e.stopPropagation()} onClick={handlePrevItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === 1} aria-label="Previous item"><ChevronLeftIcon className="w-6 h-6" /></button>
+                          <button onMouseDown={(e) => e.stopPropagation()} onClick={handleNextItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === totalItems} aria-label="Next item"><ChevronRightIcon className="w-6 h-6" /></button>
                      </div>
                  )}
 
@@ -171,6 +171,7 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
                              onMouseDown={(e) => e.stopPropagation()}
                             className={`w-6 bg-transparent text-center text-xs font-bold outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none ${quantity ? 'text-primary-blue-400' : 'text-neutral-gray-300'}`}
                             title="Manually set amount (overrides auto-size)"
+                            aria-label="Exercise quantity"
                         />
                      </div>
                  )}
@@ -185,6 +186,7 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
                                 onClick={handleEnterPresentation}
                                 className="px-3 py-1.5 rounded-full bg-red-600 text-white font-bold hover:bg-red-500 transition-all shadow-lg hover:shadow-red-500/30 active:scale-95 flex items-center gap-2 mr-2 animate-pulse-slow"
                                 title="Start Live Mode"
+                                aria-label="Start Live Mode"
                              >
                                 <PlayIcon className="w-3.5 h-3.5 fill-current" />
                                 <span className="text-xs uppercase tracking-wider">Live</span>
@@ -192,19 +194,19 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
                          )}
 
                          {isGenerated ? (
-                            <button onMouseDown={(e) => e.stopPropagation()} onClick={handleRegenerate} className="p-1.5 rounded-full hover:bg-primary-blue-500/20 text-primary-blue-400 hover:text-primary-blue-300 transition-colors" title="Regenerate">
+                            <button onMouseDown={(e) => e.stopPropagation()} onClick={handleRegenerate} className="p-1.5 rounded-full hover:bg-primary-blue-500/20 text-primary-blue-400 hover:text-primary-blue-300 transition-colors" title="Regenerate" aria-label="Regenerate exercise">
                                 <ResetIcon className="w-4 h-4" />
                             </button>
                          ) : (
-                            <button onMouseDown={(e) => e.stopPropagation()} onClick={handleGenerate} className="px-3 py-1 rounded-full text-xs bg-gradient-to-r from-warm-orange-500 to-innovation-pink-500 text-white font-bold hover:brightness-110 transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap" title="Generate">
+                            <button onMouseDown={(e) => e.stopPropagation()} onClick={handleGenerate} className="px-3 py-1 rounded-full text-xs bg-gradient-to-r from-warm-orange-500 to-innovation-pink-500 text-white font-bold hover:brightness-110 transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap" title="Generate" aria-label="Generate exercise">
                                 <MagicWandIcon className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">Generate</span>
                             </button>
                          )}
-                         <button onMouseDown={(e) => e.stopPropagation()} onClick={handleToggleSettings} className={`p-1.5 rounded-full ${isSettingsOpen ? 'bg-slate-700 text-white' : 'text-neutral-gray-400 hover:text-white'} transition-colors`} title="Settings">
+                         <button onMouseDown={(e) => e.stopPropagation()} onClick={handleToggleSettings} className={`p-1.5 rounded-full ${isSettingsOpen ? 'bg-slate-700 text-white' : 'text-neutral-gray-400 hover:text-white'} transition-colors`} title="Settings" aria-label="Exercise settings">
                             <SettingsIcon className="w-4 h-4" />
                         </button>
-                        <button onMouseDown={(e) => e.stopPropagation()} onClick={handleRemove} className="p-1.5 rounded-full hover:bg-energy-red-500/20 text-energy-red-400 hover:text-energy-red-300 transition-colors" title="Remove">
+                        <button onMouseDown={(e) => e.stopPropagation()} onClick={handleRemove} className="p-1.5 rounded-full hover:bg-energy-red-500/20 text-energy-red-400 hover:text-energy-red-300 transition-colors" title="Remove" aria-label="Remove exercise block">
                             <TrashIcon className="w-4 h-4" />
                         </button>
                      </>
@@ -647,8 +649,9 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     const renderContent = useCallback(() => {
         if (isLoading) {
             return (
-                <div className="flex justify-center items-center h-full min-h-[200px]">
+                <div className="flex justify-center items-center h-full min-h-[200px]" role="status" aria-live="polite" aria-label="Generating exercise content">
                     <LoadingIcon className="w-12 h-12 text-neutral-gray-300 animate-spin" />
+                    <span className="sr-only">Generating exercise content...</span>
                 </div>
             );
         }
