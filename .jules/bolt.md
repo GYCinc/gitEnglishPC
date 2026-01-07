@@ -17,3 +17,7 @@
 ## 2025-12-24 - Throttling Resize Events with requestAnimationFrame
 **Learning:** Executing complex scale calculations (involving DOM reads/writes and state updates) synchronously on every `resize` event can cause layout thrashing and stuttering, especially as browsers may fire `resize` more frequently than the refresh rate.
 **Action:** Wrap resize handlers in a `requestAnimationFrame` loop. This decouples the event frequency from the update frequency, ensuring calculations run at most once per frame, aligned with the browser's paint cycle.
+
+## 2025-12-24 - Memoizing Overlay Elements in Controlled High-Frequency Views
+**Learning:** When a parent component (like `Whiteboard`) must re-render at 60fps to update a controlled prop (like a dragged block's position), any additional inline mapped elements (like Snap Lines) are also reconciled every frame, adding unnecessary CPU overhead even if their data hasn't changed.
+**Action:** Extract these transient or auxiliary visual elements into a separate, `React.memo`-wrapped component (e.g., `SnapLinesOverlay`). This allows React to bail out of reconciling that specific subtree when its props (the snap lines array) remain referentially stable or empty, which is the common case during non-snapping drag movement.
