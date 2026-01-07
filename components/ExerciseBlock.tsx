@@ -396,6 +396,101 @@ const PlaceholderView: React.FC<{ amount: number; exerciseType: ExerciseType; }>
     </div>
 ));
 
+// Extracted Content Component for Performance
+interface ExerciseBlockContentProps {
+    colors: any;
+    presentationCardVisualClasses: string;
+    exerciseType: ExerciseType;
+    pedagogy: string;
+    handleRemoveWrapper: () => void;
+    handleRegenerate: () => void;
+    handleToggleSettingsWrapper: () => void;
+    isSettingsOpen: boolean;
+    isGenerated: boolean;
+    handleGenerate: () => void;
+    generateAmount: number;
+    estimatedDuration: number;
+    quantity: number | undefined;
+    handleQuantityChangeWrapper: (val: number | undefined) => void;
+    isSingleInstance: boolean;
+    isPresenting: boolean;
+    handleEnterPresentationWrapper: () => void;
+    onExitPresentation: () => void;
+    handlePrevItem: () => void;
+    handleNextItem: () => void;
+    currentSlide: number;
+    content: any;
+    id: number;
+    difficulty: Difficulty;
+    tone: Tone;
+    theme: string;
+    onUpdate: (blockId: number, updates: Partial<ExerciseBlockState>) => void;
+    presentationScale: number;
+    renderContent: () => React.ReactNode;
+    headerRef: React.RefObject<HTMLDivElement>;
+    settingsRef: React.RefObject<HTMLDivElement>;
+    contentWrapperRef: React.RefObject<HTMLDivElement>;
+}
+
+const ExerciseBlockContent: React.FC<ExerciseBlockContentProps> = React.memo(({
+    colors, presentationCardVisualClasses, exerciseType, pedagogy, handleRemoveWrapper, handleRegenerate,
+    handleToggleSettingsWrapper, isSettingsOpen, isGenerated, handleGenerate, generateAmount, estimatedDuration,
+    quantity, handleQuantityChangeWrapper, isSingleInstance, isPresenting, handleEnterPresentationWrapper,
+    onExitPresentation, handlePrevItem, handleNextItem, currentSlide, content, id, difficulty, tone, theme,
+    onUpdate, presentationScale, renderContent, headerRef, settingsRef, contentWrapperRef
+}) => {
+    return (
+        <div className={`card-visual flex flex-col h-full w-full bg-paper-bg border-4 ${colors.border} ${presentationCardVisualClasses}`}>
+            <Header
+                ref={headerRef}
+                title={exerciseType}
+                pedagogy={pedagogy}
+                textColor={colors.textOnDark}
+                onRemove={handleRemoveWrapper}
+                onRegenerate={handleRegenerate}
+                onToggleSettings={handleToggleSettingsWrapper}
+                isSettingsOpen={isSettingsOpen}
+                isGenerated={isGenerated}
+                onGenerate={handleGenerate}
+                generateAmount={generateAmount}
+                estimatedDuration={estimatedDuration}
+                quantity={quantity}
+                onQuantityChange={handleQuantityChangeWrapper}
+                isSingleInstance={isSingleInstance}
+                isPresenting={isPresenting}
+                onEnterPresentation={handleEnterPresentationWrapper}
+                onExitPresentation={onExitPresentation}
+                onPrevItem={handlePrevItem}
+                onNextItem={handleNextItem}
+                currentItem={currentSlide + 1}
+                totalItems={Array.isArray(content) ? content.length : 1}
+            />
+
+            {isSettingsOpen && !isPresenting && (
+                <Settings
+                    ref={settingsRef}
+                    id={id}
+                    difficulty={difficulty}
+                    tone={tone}
+                    theme={theme}
+                    exerciseType={exerciseType}
+                    onUpdate={onUpdate}
+                />
+            )}
+
+            <div className={`p-5 min-h-0 overflow-hidden flex-grow overflow-y-auto custom-scrollbar-light ${isPresenting ? 'flex justify-center items-center' : ''}`}>
+                <div
+                    ref={contentWrapperRef}
+                    className={`w-fit max-w-[900px] ${isGenerated ? '' : 'w-full'} origin-center transition-transform duration-200`}
+                        style={isPresenting ? { transform: `scale(${presentationScale})` } : {}}
+                >
+                    {renderContent()}
+                </div>
+            </div>
+        </div>
+    );
+});
+
 const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     blockState, onUpdate, onRemove, onFocus,
     onInteraction, onInteractionStop,
@@ -543,7 +638,8 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isPresenting, handleNextItem, handlePrevItem, onExitPresentation]);
     
-    const renderContent = () => {
+    // Stable render function to prevent re-renders of ExerciseBlockContent
+    const renderContent = useCallback(() => {
         if (isLoading) {
             return (
                 <div className="flex justify-center items-center h-full min-h-[200px]">
@@ -577,7 +673,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
                 )}
             </>
         );
-    };
+    }, [isLoading, isGenerated, generateAmount, exerciseType, content, colors, isPresenting, currentSlide, id]);
 
     // Stable handlers to create interaction data and pass to parent
     // Optimization: Use blockStateRef to keep these callbacks stable (avoid recreation on every drag frame)
@@ -649,55 +745,45 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
                 if (isGenerated && !isPresenting && onEnterPresentation) onEnterPresentation(id);
             }}
         >
-            {/* This inner div is the actual visible "paper card" */}
-            <div className={`card-visual flex flex-col h-full w-full bg-paper-bg border-4 ${colors.border} ${presentationCardVisualClasses}`}>
-                <Header
-                    ref={headerRef}
-                    title={exerciseType}
-                    pedagogy={pedagogy}
-                    textColor={colors.textOnDark}
-                    onRemove={handleRemoveWrapper}
-                    onRegenerate={handleRegenerate}
-                    onToggleSettings={handleToggleSettingsWrapper}
-                    isSettingsOpen={isSettingsOpen}
-                    isGenerated={isGenerated}
-                    onGenerate={handleGenerate}
-                    generateAmount={generateAmount}
-                    estimatedDuration={estimatedDuration}
-                    quantity={quantity}
-                    onQuantityChange={handleQuantityChangeWrapper}
-                    isSingleInstance={isSingleInstance}
-                    isPresenting={isPresenting}
-                    onEnterPresentation={handleEnterPresentationWrapper}
-                    onExitPresentation={onExitPresentation}
-                    onPrevItem={handlePrevItem}
-                    onNextItem={handleNextItem}
-                    currentItem={currentSlide + 1}
-                    totalItems={Array.isArray(content) ? content.length : 1}
-                />
-
-                {isSettingsOpen && !isPresenting && (
-                    <Settings
-                        ref={settingsRef}
-                        id={id}
-                        difficulty={difficulty}
-                        tone={tone}
-                        theme={theme}
-                        exerciseType={exerciseType}
-                        onUpdate={onUpdate}
-                    />
-                )}
-                
-                <div className={`p-5 min-h-0 overflow-hidden flex-grow overflow-y-auto custom-scrollbar-light ${isPresenting ? 'flex justify-center items-center' : ''}`}>
-                    <div 
-                        ref={contentWrapperRef} 
-                        className={`w-fit max-w-[900px] ${isGenerated ? '' : 'w-full'} origin-center transition-transform duration-200`}
-                         style={isPresenting ? { transform: `scale(${presentationScale})` } : {}}
-                    >
-                        {renderContent()}
-                    </div>
-                </div>
-            </div>
+             {/*
+                Optimization: Memoize the inner content to prevent expensive re-renders when parent 'scale' prop changes.
+                The 'scale' prop from Whiteboard only affects Rnd's coordinate system, not the internal visual content (unless presenting).
+                This allows zooming the canvas without re-diffing the heavy DOM tree of every block.
+             */}
+             <ExerciseBlockContent
+                colors={colors}
+                presentationCardVisualClasses={presentationCardVisualClasses}
+                exerciseType={exerciseType}
+                pedagogy={pedagogy}
+                handleRemoveWrapper={handleRemoveWrapper}
+                handleRegenerate={handleRegenerate}
+                handleToggleSettingsWrapper={handleToggleSettingsWrapper}
+                isSettingsOpen={isSettingsOpen}
+                isGenerated={isGenerated}
+                handleGenerate={handleGenerate}
+                generateAmount={generateAmount}
+                estimatedDuration={estimatedDuration}
+                quantity={quantity}
+                handleQuantityChangeWrapper={handleQuantityChangeWrapper}
+                isSingleInstance={isSingleInstance}
+                isPresenting={isPresenting}
+                handleEnterPresentationWrapper={handleEnterPresentationWrapper}
+                onExitPresentation={onExitPresentation}
+                handlePrevItem={handlePrevItem}
+                handleNextItem={handleNextItem}
+                currentSlide={currentSlide}
+                content={content}
+                id={id}
+                difficulty={difficulty}
+                tone={tone}
+                theme={theme}
+                onUpdate={onUpdate}
+                presentationScale={presentationScale}
+                renderContent={renderContent}
+                headerRef={headerRef}
+                settingsRef={settingsRef}
+                contentWrapperRef={contentWrapperRef}
+            />
         </Rnd>
     );
 });
