@@ -75,16 +75,18 @@ const VocabularyFocus: React.FC<VocabularyFocusProps> = ({ focusVocabulary, setF
     };
 
     return (
-        <div className="mb-4 bg-slate-900/50 rounded-xl ring-1 ring-slate-700 overflow-hidden font-casual">
-            <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-4 text-left bg-slate-800/50 hover:bg-slate-800 transition-colors">
-                <div className="flex items-center">
-                    <VocabularyIcon className="w-5 h-5 mr-2 text-yellow-400" />
-                    <span className="font-semibold text-slate-200 text-sm">Vocabulary Focus</span>
+        <div className="mb-4 bg-slate-800/40 backdrop-blur-md rounded-2xl ring-1 ring-white/10 overflow-hidden font-casual shadow-lg transition-all duration-300 hover:bg-slate-800/50">
+            <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-4 text-left hover:bg-white/5 transition-colors">
+                <div className="flex items-center gap-3">
+                    <div className="p-1.5 bg-yellow-500/20 rounded-lg ring-1 ring-yellow-500/30">
+                        <VocabularyIcon className="w-4 h-4 text-yellow-400" />
+                    </div>
+                    <span className="font-bold text-slate-100 text-sm tracking-wide">Vocabulary Focus</span>
                 </div>
-                <ChevronDownIcon className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDownIcon className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             {isOpen && (
-                <div className="p-3 border-t border-slate-700 space-y-4 bg-slate-900/30">
+                <div className="p-4 border-t border-white/5 space-y-5 bg-black/20 animate-in slide-in-from-top-2 duration-200">
                     <div>
                         <div className="flex gap-2">
                             <input
@@ -93,19 +95,19 @@ const VocabularyFocus: React.FC<VocabularyFocusProps> = ({ focusVocabulary, setF
                                 onChange={e => setInputValue(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleAddVocab()}
                                 placeholder="Add target word..."
-                                className="w-full bg-slate-800 text-slate-200 border border-slate-600 rounded-md shadow-sm px-3 py-1.5 text-xs focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 focus:outline-none placeholder-slate-500"
+                                className="w-full bg-slate-900/50 text-slate-200 border border-white/10 rounded-lg shadow-inner px-3 py-2 text-xs focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 focus:outline-none placeholder-slate-500 transition-all"
                                 aria-label="Add target vocabulary word"
                             />
-                            <button onClick={handleAddVocab} className="bg-yellow-500 text-slate-900 font-bold p-1.5 rounded-md hover:bg-yellow-400 transition-colors" aria-label="Add word">
+                            <button onClick={handleAddVocab} className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-slate-900 font-bold p-2 rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-md shadow-yellow-900/20" aria-label="Add word">
                                 <PlusIcon className="w-4 h-4" />
                             </button>
                         </div>
                         {focusVocabulary.length > 0 && (
                             <div className="mt-3 flex flex-wrap gap-2">
                                 {focusVocabulary.map(v => (
-                                    <span key={v} className="flex items-center bg-yellow-500/10 text-yellow-300 text-xs font-medium px-2.5 py-1 rounded-full border border-yellow-500/20">
+                                    <span key={v} className="flex items-center bg-yellow-500/10 text-yellow-300 text-xs font-medium px-2.5 py-1 rounded-full border border-yellow-500/20 shadow-sm backdrop-blur-sm group hover:border-yellow-500/40 transition-colors">
                                         {v}
-                                        <button onClick={() => handleRemoveVocab(v)} className="ml-1.5 text-yellow-400 hover:text-white" aria-label={`Remove ${v}`}>
+                                        <button onClick={() => handleRemoveVocab(v)} className="ml-1.5 text-yellow-500/70 hover:text-yellow-200 transition-colors" aria-label={`Remove ${v}`}>
                                             <XCircleIcon className="w-3.5 h-3.5"/>
                                         </button>
                                     </span>
@@ -114,9 +116,9 @@ const VocabularyFocus: React.FC<VocabularyFocusProps> = ({ focusVocabulary, setF
                         )}
                     </div>
                     <div>
-                        <div className="flex justify-between text-xs font-medium text-slate-400 mb-1.5">
+                        <div className="flex justify-between text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                             <span>Inclusion Rate</span>
-                            <span>{inclusionRate}%</span>
+                            <span className="text-yellow-400">{inclusionRate}%</span>
                         </div>
                         <input
                             type="range"
@@ -125,7 +127,7 @@ const VocabularyFocus: React.FC<VocabularyFocusProps> = ({ focusVocabulary, setF
                             step="10"
                             value={inclusionRate}
                             onChange={handleInclusionRateChange}
-                            className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer range-thumb-yellow"
+                            className="w-full h-1.5 bg-slate-700/50 rounded-lg appearance-none cursor-pointer range-thumb-yellow accent-yellow-500"
                             aria-label="Vocabulary inclusion rate slider"
                         />
                     </div>
@@ -176,16 +178,18 @@ const GrammarFocus: React.FC<GrammarFocusProps> = ({ focusGrammar, setFocusGramm
     };
 
     return (
-        <div className="mb-6 bg-slate-900/50 rounded-xl ring-1 ring-slate-700 overflow-hidden font-casual">
-            <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-4 text-left bg-slate-800/50 hover:bg-slate-800 transition-colors">
-                <div className="flex items-center">
-                    <GrammarIcon className="w-5 h-5 mr-2 text-emerald-400" />
-                    <span className="font-semibold text-slate-200 text-sm">Grammar Focus</span>
+        <div className="mb-6 bg-slate-800/40 backdrop-blur-md rounded-2xl ring-1 ring-white/10 overflow-hidden font-casual shadow-lg transition-all duration-300 hover:bg-slate-800/50">
+            <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-4 text-left hover:bg-white/5 transition-colors">
+                <div className="flex items-center gap-3">
+                     <div className="p-1.5 bg-emerald-500/20 rounded-lg ring-1 ring-emerald-500/30">
+                        <GrammarIcon className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <span className="font-bold text-slate-100 text-sm tracking-wide">Grammar Focus</span>
                 </div>
-                <ChevronDownIcon className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDownIcon className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             {isOpen && (
-                <div className="p-3 border-t border-slate-700 space-y-4 bg-slate-900/30">
+                <div className="p-4 border-t border-white/5 space-y-5 bg-black/20 animate-in slide-in-from-top-2 duration-200">
                     <div>
                         <div className="flex gap-2">
                             <input
@@ -194,19 +198,19 @@ const GrammarFocus: React.FC<GrammarFocusProps> = ({ focusGrammar, setFocusGramm
                                 onChange={e => setInputValue(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleAddGrammar()}
                                 placeholder="Add grammar point..."
-                                className="w-full bg-slate-800 text-slate-200 border border-slate-600 rounded-md shadow-sm px-3 py-1.5 text-xs focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
+                                className="w-full bg-slate-900/50 text-slate-200 border border-white/10 rounded-lg shadow-inner px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 focus:outline-none"
                                 aria-label="Add target grammar point"
                             />
-                             <button onClick={handleAddGrammar} className="bg-emerald-500 text-slate-900 font-bold p-1.5 rounded-md hover:bg-emerald-400 transition-colors" aria-label="Add grammar point">
+                             <button onClick={handleAddGrammar} className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-slate-900 font-bold p-2 rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-md shadow-emerald-900/20" aria-label="Add grammar point">
                                 <PlusIcon className="w-4 h-4" />
                             </button>
                         </div>
                         {focusGrammar.length > 0 && (
                             <div className="mt-3 flex flex-wrap gap-2">
                                 {focusGrammar.map(g => (
-                                    <span key={g} className="flex items-center bg-emerald-500/10 text-emerald-300 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-500/20">
+                                    <span key={g} className="flex items-center bg-emerald-500/10 text-emerald-300 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-500/20 shadow-sm backdrop-blur-sm group hover:border-emerald-500/40 transition-colors">
                                         {g}
-                                        <button onClick={() => handleRemoveGrammar(g)} className="ml-1.5 text-emerald-400 hover:text-white" aria-label={`Remove ${g}`}>
+                                        <button onClick={() => handleRemoveGrammar(g)} className="ml-1.5 text-emerald-500/70 hover:text-emerald-200 transition-colors" aria-label={`Remove ${g}`}>
                                             <XCircleIcon className="w-3.5 h-3.5"/>
                                         </button>
                                     </span>
@@ -215,9 +219,9 @@ const GrammarFocus: React.FC<GrammarFocusProps> = ({ focusGrammar, setFocusGramm
                         )}
                     </div>
                     <div>
-                         <div className="flex justify-between text-xs font-medium text-slate-400 mb-1.5">
+                         <div className="flex justify-between text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                             <span>Inclusion Rate</span>
-                            <span>{grammarInclusionRate}%</span>
+                            <span className="text-emerald-400">{grammarInclusionRate}%</span>
                         </div>
                         <input
                             type="range"
@@ -226,7 +230,7 @@ const GrammarFocus: React.FC<GrammarFocusProps> = ({ focusGrammar, setFocusGramm
                             step="10"
                             value={grammarInclusionRate}
                             onChange={handleInclusionRateChange}
-                            className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer range-thumb-emerald"
+                            className="w-full h-1.5 bg-slate-700/50 rounded-lg appearance-none cursor-pointer range-thumb-emerald accent-emerald-500"
                             aria-label="Grammar inclusion rate slider"
                         />
                     </div>
@@ -333,44 +337,53 @@ const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = React.memo((
                 onDragStart={handleDragStart}
                 onDoubleClick={handleDoubleClick}
                 onKeyDown={handleKeyDown}
-                className={`w-full text-left p-2.5 rounded-md cursor-grab active:cursor-grabbing active:scale-95 transition-all duration-200 border ${colors.border} ${colors.bgOnDark} hover:bg-opacity-100 hover:translate-x-1 hover:shadow-lg group-hover:ring-1 ring-opacity-50 ring-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:${colors.border.replace('border-', 'ring-')}`}
+                className={`w-full text-left p-3 rounded-xl cursor-grab active:cursor-grabbing active:scale-95 transition-all duration-300
+                          border ${colors.border} bg-slate-800/40 backdrop-blur-sm
+                          hover:bg-slate-700/60 hover:shadow-lg hover:-translate-y-0.5
+                          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:${colors.border.replace('border-', 'ring-')}
+                          group-hover:border-opacity-50 group-hover:bg-opacity-80`}
                 aria-label={`Add ${type} exercise`}
                 aria-describedby={tooltipId}
             >
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3 min-w-0">
-                        <SpecificIcon className={`w-4 h-4 ${colors.textOnDark} opacity-70`} />
+                        <div className={`p-1.5 rounded-lg bg-white/5 ${colors.textOnDark} bg-opacity-10`}>
+                             <SpecificIcon className={`w-4 h-4 opacity-90`} />
+                        </div>
                         <div className="min-w-0">
-                            <h3 className={`text-xs font-medium truncate ${colors.textOnDark}`}>{displayName}</h3>
+                            <h3 className="text-xs font-bold text-slate-200 truncate group-hover:text-white transition-colors">{displayName}</h3>
                         </div>
                     </div>
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
                          <DifficultyIndicatorIcon rating={info.difficultyRating} />
                     </div>
                 </div>
             </button>
-            {/* Tooltip */}
+            {/* Tooltip - Enhanced Glass */}
             <div
                 id={tooltipId}
                 role="tooltip"
                 className={`absolute left-full top-0 ml-4 w-72
-                           p-4 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl 
+                           p-5 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]
                            opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 invisible group-hover:visible group-focus-within:visible
-                           transition-all duration-200 z-50 translate-y-2 group-hover:translate-y-0 group-focus-within:translate-y-0 pointer-events-none`}
+                           transition-all duration-300 z-50 translate-y-2 group-hover:translate-y-0 group-focus-within:translate-y-0 pointer-events-none`}
             >
-                <div className={`absolute top-4 -left-2 w-4 h-4 bg-slate-900 border-b border-l border-slate-700 transform rotate-45`}></div>
-                <h4 className={`font-bold ${colors.textOnDark} text-base mb-1.5`}>{info.name}</h4>
-                <div className="flex items-center gap-2 mb-3">
-                     <span className={`text-xs px-2 py-0.5 rounded-full border ${colors.border} ${colors.bgOnDark} ${colors.textOnDark} bg-opacity-50`}>{pedagogy}</span>
+                <div className={`absolute top-5 -left-2 w-4 h-4 bg-slate-900/95 border-b border-l border-white/10 transform rotate-45`}></div>
+                <h4 className={`font-bold ${colors.textOnDark} text-lg mb-2`}>{info.name}</h4>
+                <div className="flex items-center gap-2 mb-4">
+                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${colors.border} bg-white/5 ${colors.textOnDark}`}>{pedagogy}</span>
                      <span className="text-xs text-slate-500">•</span>
-                     <span className="text-xs text-slate-400">{info.difficultyRating}</span>
+                     <span className="text-xs text-slate-300 font-medium">Difficulty: {info.difficultyRating}</span>
                 </div>
-                <p className="text-slate-300 text-sm mb-4 leading-relaxed">{info.description}</p>
-                <div className="bg-slate-950/50 rounded-lg p-3 border border-slate-800 mb-2">
-                    <p className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Example</p>
-                    <p className="text-xs text-slate-300 font-mono italic">"{info.example}"</p>
+                <p className="text-slate-300 text-sm mb-5 leading-relaxed font-light">{info.description}</p>
+                <div className="bg-black/30 rounded-xl p-4 border border-white/5 mb-3 backdrop-blur-sm">
+                    <p className="text-[10px] text-slate-500 mb-2 font-bold uppercase tracking-widest">Example</p>
+                    <p className="text-sm text-slate-200 font-mono italic leading-relaxed">"{info.example}"</p>
                 </div>
-                <p className="text-[10px] text-slate-500 text-center uppercase tracking-widest pt-1">Double-click to add • Drag to place</p>
+                <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest">Double-click to add</span>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest">Drag to place</span>
+                </div>
             </div>
         </div>
     );
@@ -394,25 +407,27 @@ const CategoryAccordion: React.FC<{
     };
 
     return (
-        <div className="mb-2 font-casual">
+        <div className="mb-3 font-casual">
             <button 
                 onClick={handleToggle}
-                className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 border ${isOpen ? `${colors.bgOnDark} ${colors.border} shadow-lg` : 'bg-slate-800/40 border-transparent hover:bg-slate-800 hover:border-slate-700'}`}
+                className={`w-full flex items-center justify-between p-3.5 rounded-xl transition-all duration-300 border ${isOpen ? `bg-slate-800/60 backdrop-blur-md ${colors.border} shadow-lg ring-1 ring-white/5` : 'bg-transparent border-transparent hover:bg-slate-800/30'}`}
                 aria-expanded={isOpen}
                 aria-controls={`panel-${category.name.replace(/\s/g, '-')}`}
             >
                 <div className="flex items-center gap-3">
-                    <div className={`${colors.textOnDark}`}>
-                        <Icon />
+                    <div className={`p-1.5 rounded-lg transition-colors duration-300 ${isOpen ? 'bg-white/10' : 'bg-transparent'}`}>
+                         <div className={`${colors.textOnDark}`}>
+                            <Icon className="w-5 h-5"/>
+                        </div>
                     </div>
                     {/* Always apply color for better visibility */}
-                    <span className={`font-bold text-sm ${colors.textOnDark} transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-90'}`}>{category.name}</span>
+                    <span className={`font-bold text-sm ${colors.textOnDark} tracking-wide transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-80'}`}>{category.name}</span>
                 </div>
-                <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isOpen ? `rotate-180 ${colors.textOnDark}` : 'text-slate-500'}`} />
+                <ChevronDownIcon className={`w-4 h-4 transition-transform duration-300 ${isOpen ? `rotate-180 ${colors.textOnDark}` : 'text-slate-600'}`} />
             </button>
             
-            <div id={`panel-${category.name.replace(/\s/g, '-')}`} role="region" aria-hidden={!isOpen} className={`grid transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'grid-rows-[1fr] opacity-100 mt-2' : 'grid-rows-[0fr] opacity-0'}`}>
-                <div className={`min-h-0 space-y-2 pl-2 border-l-2 ${colors.border.replace('border-', 'border-opacity-30 ')} ml-4`}>
+            <div id={`panel-${category.name.replace(/\s/g, '-')}`} role="region" aria-hidden={!isOpen} className={`grid transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${isOpen ? 'grid-rows-[1fr] opacity-100 mt-2' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className={`min-h-0 space-y-2 pl-2 border-l-2 ${colors.border.replace('border-', 'border-opacity-20 ')} ml-5 my-1`}>
                     {category.types.map(type => (
                         <DraggableExerciseCard key={type} type={type} onAdd={onAddExercise} />
                     ))}
@@ -484,28 +499,28 @@ const Sidebar = React.memo(({
 
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-40 w-80 bg-slate-900 text-white flex flex-col h-screen transition-transform duration-300 ease-in-out will-change-transform border-r border-slate-800 shadow-2xl
+    <aside className={`fixed inset-y-0 left-0 z-40 w-80 bg-slate-900/80 backdrop-blur-xl text-white flex flex-col h-screen transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform border-r border-white/10 shadow-2xl
                      lg:static lg:translate-x-0
                      ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} font-casual`}>
       
-      <div className="p-6 pb-4 flex-shrink-0 border-b border-slate-800 bg-slate-900 z-10">
-        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-warm-orange-400 to-action-amber-400 font-playful">gitEnglish™</h1>
-        <h2 className="text-sm font-medium text-neutral-gray-400 mt-0.5 tracking-wide uppercase">Practice Genie</h2>
+      <div className="p-6 pb-4 flex-shrink-0 border-b border-white/10 bg-slate-900/50 z-10 backdrop-blur-md">
+        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-warm-orange-400 to-action-amber-400 font-playful drop-shadow-sm">gitEnglish™</h1>
+        <h2 className="text-xs font-bold text-slate-400 mt-1 tracking-[0.2em] uppercase opacity-80">Practice Genie</h2>
       </div>
 
-      <div className="flex-grow overflow-y-auto custom-scrollbar-dark p-4">
+      <div className="flex-grow overflow-y-auto custom-scrollbar-dark p-4 space-y-6">
           
-          <div className="mb-6">
+          <div className="animate-in slide-in-from-left-2 duration-300 delay-100">
               <button 
                 onClick={handleConfigToggle}
-                className="flex items-center justify-between w-full p-2 mb-2 text-xs font-bold text-neutral-gray-500 uppercase tracking-wider hover:text-neutral-gray-300 transition-colors"
+                className="flex items-center justify-between w-full p-2 mb-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors group"
                 aria-label="Toggle Configuration Panel"
               >
-                  <span>Configuration</span>
-                  <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isConfigOpen ? 'rotate-180' : ''}`} />
+                  <span className="group-hover:translate-x-1 transition-transform">Configuration</span>
+                  <ChevronDownIcon className={`w-3 h-3 transition-transform duration-300 ${isConfigOpen ? 'rotate-180' : ''}`} />
               </button>
               
-              <div className={`space-y-2 overflow-hidden transition-all duration-300 ${isConfigOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className={`space-y-3 overflow-hidden transition-all duration-300 ease-in-out ${isConfigOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <VocabularyFocus 
                     focusVocabulary={focusVocabulary}
                     setFocusVocabulary={setFocusVocabulary}
@@ -522,8 +537,8 @@ const Sidebar = React.memo(({
               </div>
           </div>
 
-          <div className="pb-8">
-              <h3 className="text-xs font-bold text-neutral-gray-500 uppercase tracking-wider mb-3 ml-3">Exercise Library</h3>
+          <div className="pb-4 animate-in slide-in-from-left-2 duration-300 delay-200">
+              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 ml-2">Exercise Library</h3>
               {EXERCISE_CATEGORIES.map((category) => (
                   <CategoryAccordion 
                       key={category.name}
@@ -535,45 +550,42 @@ const Sidebar = React.memo(({
                   />
               ))}
           </div>
-
-           <div className="mt-4 border-t border-slate-800 pt-6">
-                <h3 className="text-xs font-bold text-neutral-gray-500 uppercase tracking-wider mb-3 ml-3">Project Actions</h3>
-                <div className="flex flex-col gap-2">
-                    <button onClick={handleExportClick} className="flex items-center gap-2 w-full p-2 text-sm font-medium text-neutral-gray-300 hover:bg-slate-800 rounded-lg transition-colors" aria-label="Export current project">
-                        <DownloadIcon className="w-4 h-4 text-primary-blue-400" /> Export Project
-                    </button>
-                    <label className="flex items-center gap-2 w-full p-2 text-sm font-medium text-neutral-gray-300 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer" aria-label="Import project from file">
-                        <UploadIcon className="w-4 h-4 text-accent-green-400" /> Import Project
-                        <input type="file" accept=".json" onChange={handleImportChange} className="hidden" />
-                    </label>
-                    <button onClick={handleClearBoardClick} className="flex items-center gap-2 w-full p-2 text-sm font-medium text-neutral-gray-300 hover:bg-energy-red-900/20 hover:text-energy-red-400 rounded-lg transition-colors" aria-label="Clear all exercises from board">
-                        <TrashIcon className="w-4 h-4" /> Clear Board
-                    </button>
-                     <button onClick={() => logger?.downloadLog()} className="flex items-center gap-2 w-full p-2 text-sm font-medium text-neutral-gray-300 hover:bg-slate-800 rounded-lg transition-colors" aria-label="Download session activity log">
-                        <DownloadIcon className="w-4 h-4 text-calm-teal-400" /> Download Activity Log
-                    </button>
-                </div>
-            </div>
       </div>
       
-      <div className="p-4 border-t border-slate-800 bg-slate-950 text-center text-xs text-neutral-gray-600">
-          v2.1.0 • Infinite Canvas
+      <div className="p-4 border-t border-white/10 bg-slate-900/50 backdrop-blur-md space-y-3 z-10">
+           <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Project Actions</h3>
+           <div className="grid grid-cols-2 gap-2">
+                <button onClick={handleExportClick} className="col-span-1 flex items-center justify-center gap-2 p-2.5 text-xs font-bold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl transition-all active:scale-95" aria-label="Export current project">
+                    <DownloadIcon className="w-4 h-4 text-primary-blue-400" /> Export
+                </button>
+                <label className="col-span-1 flex items-center justify-center gap-2 p-2.5 text-xs font-bold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl transition-all cursor-pointer active:scale-95" aria-label="Import project from file">
+                    <UploadIcon className="w-4 h-4 text-accent-green-400" /> Import
+                    <input type="file" accept=".json" onChange={handleImportChange} className="hidden" />
+                </label>
+                <button onClick={handleClearBoardClick} className="col-span-2 flex items-center justify-center gap-2 p-2.5 text-xs font-bold text-slate-300 hover:text-energy-red-400 bg-white/5 hover:bg-energy-red-900/20 border border-white/5 hover:border-energy-red-500/30 rounded-xl transition-all active:scale-95" aria-label="Clear all exercises from board">
+                    <TrashIcon className="w-4 h-4" /> Clear Board
+                </button>
+           </div>
+
+           <div className="pt-2 text-center">
+              <span className="text-[10px] font-medium text-slate-600 block">v2.1.0 • Infinite Canvas</span>
+           </div>
       </div>
 
       <style>{`
         /* Custom scrollbar for dark sidebar */
         .custom-scrollbar-dark::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
         .custom-scrollbar-dark::-webkit-scrollbar-track {
             background: transparent;
         }
         .custom-scrollbar-dark::-webkit-scrollbar-thumb {
-            background: #334155; /* slate-700 */
-            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
         }
         .custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
-            background: #475569; /* slate-600 */
+            background: rgba(255, 255, 255, 0.2);
         }
         
         /* Custom range slider thumb styles */
@@ -585,9 +597,14 @@ const Sidebar = React.memo(({
             background: #eab308; /* yellow-500 */
             cursor: pointer;
             border-radius: 50%;
-            border: 2px solid #1e293b; /* slate-900 */
+            border: 2px solid #0f172a; /* slate-900 */
             box-shadow: 0 0 0 1px #eab308;
+            transition: transform 0.1s;
         }
+        .range-thumb-yellow::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
         .range-thumb-emerald::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
@@ -596,8 +613,12 @@ const Sidebar = React.memo(({
             background: #10b981; /* emerald-500 */
             cursor: pointer;
             border-radius: 50%;
-            border: 2px solid #1e293b; /* slate-900 */
+            border: 2px solid #0f172a; /* slate-900 */
             box-shadow: 0 0 0 1px #10b981;
+            transition: transform 0.1s;
+        }
+         .range-thumb-emerald::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
         }
       `}</style>
     </aside>
