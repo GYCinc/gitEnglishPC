@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Whiteboard from './components/Whiteboard';
@@ -9,6 +8,7 @@ import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDur
 import { MenuIcon } from './components/icons';
 import { GamificationProvider } from './GamificationContext';
 import GamificationHUD from './components/GamificationHUD';
+import { findFreePosition } from './placementUtils';
 
 const APP_PREFIX = 'practiceGenie-';
 const BLOCKS_KEY = `${APP_PREFIX}blocks`;
@@ -249,33 +249,8 @@ const App: React.FC = () => {
           finalPos = { x: Math.max(0, dropX - newBlockWidth / 2), y: Math.max(0, dropY - newBlockHeight / 2) };
       } else {
           // Find a free spot if added via button/key (fallback)
-          const PADDING = 50;
-          const GRID_STEP = 50;
-          let positionFound = false;
-          finalPos = { x: PADDING, y: PADDING };
-          
-          // Simple search for non-overlapping space in the top-left area
-          for (let y = PADDING; y < 3000 && !positionFound; y += GRID_STEP) {
-            for (let x = PADDING; x < 3000 && !positionFound; x += GRID_STEP) {
-               const newRect = { x: x, y: y, width: newBlockWidth, height: newBlockHeight };
-               let hasOverlap = false;
-               for (const existingBlock of prevBlocks) {
-                    if (
-                        newRect.x < existingBlock.x + existingBlock.width + PADDING &&
-                        newRect.x + newRect.width + PADDING > existingBlock.x &&
-                        newRect.y < existingBlock.y + existingBlock.height + PADDING &&
-                        newRect.y + newRect.height + PADDING > existingBlock.y
-                    ) {
-                        hasOverlap = true;
-                        break;
-                    }
-               }
-               if (!hasOverlap) {
-                   finalPos = { x, y };
-                   positionFound = true;
-               }
-            }
-          }
+          // Optimization: Use spatial binning via findFreePosition (O(N) -> O(1))
+          finalPos = findFreePosition(prevBlocks, newBlockWidth, newBlockHeight);
       }
 
       // Optimization: Single-pass loop to find maxZ instead of mapping

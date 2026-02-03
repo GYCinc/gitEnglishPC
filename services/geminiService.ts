@@ -9,6 +9,10 @@ if (!process.env.API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey });
 
+// Cache for Picture Prompts to improve load times
+const picturePromptCache = new Map<string, any>();
+const MAX_CACHE_SIZE = 50;
+
 /**
  * Constructs the prompt and schema for exercise generation based on input parameters.
  * Enforces CEFR guidelines and strict American English.
@@ -567,6 +571,70 @@ export const generateExercises = async (
   focusGrammar: string[],
   grammarInclusionRate: number
 ) => {
+  // Handle Picture Prompt Caching & Generation
+  if (exerciseType === ExerciseType.PicturePrompt) {
+    // Cache Key: Difficulty + Tone + Theme + Amount + Index
+    // We treat the request for 'amount' items as a single unit for caching here
+    const cacheKey = JSON.stringify({ exerciseType, difficulty, tone, theme, amount });
+
+    if (picturePromptCache.has(cacheKey)) {
+        // console.log("PicturePrompt Cache Hit!");
+        return picturePromptCache.get(cacheKey);
+    }
+
+    let generatedData;
+
+    if (process.env.API_KEY === undefined) {
+        console.warn("Using DUMMY data for verification as API Key is missing.");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        generatedData = Array.from({ length: amount }).map((_, i) => ({
+            title: `Dummy Picture Prompt #${i + 1}`,
+            imageUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+            prompt: `Dummy prompt for ${theme} variation ${i + 1}`
+        }));
+    } else {
+        try {
+            // Real Generation with Parallelization
+            const promises = Array.from({ length: amount }).map(async (_, i) => {
+                const imagePrompt = `A compelling and slightly ambiguous scene about "${theme}". The style should be ${tone}. The image is for an ESL student at a ${difficulty} level to analyze. ${i > 0 ? `Variation ${i + 1}.` : ''}`;
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash-image',
+                    contents: { parts: [{ text: imagePrompt }] },
+                    config: { responseModalities: [Modality.IMAGE] },
+                });
+                const part = response.candidates?.[0]?.content?.parts?.[0];
+                if (part?.inlineData) {
+                    return {
+                        title: `Picture Prompt #${i + 1}`,
+                        imageUrl: `data:image/png;base64,${part.inlineData.data}`,
+                        prompt: imagePrompt
+                    };
+                }
+                return null;
+            });
+
+            const results = await Promise.all(promises);
+            generatedData = results.filter(item => item !== null);
+
+            if (generatedData.length === 0) {
+                 return { error: "Failed to generate any images for the picture prompt." };
+            }
+        } catch (error) {
+            console.error("Error generating images:", error);
+            return { error: "Failed to generate images." };
+        }
+    }
+
+    // Store in Cache
+    if (picturePromptCache.size >= MAX_CACHE_SIZE) {
+        const firstKey = picturePromptCache.keys().next().value;
+        if (firstKey) picturePromptCache.delete(firstKey);
+    }
+    picturePromptCache.set(cacheKey, generatedData);
+
+    return generatedData;
+  }
+
   if (process.env.API_KEY === undefined) {
       console.warn("Using DUMMY data for verification as API Key is missing.");
       // Dummy data map for verification
@@ -595,39 +663,6 @@ export const generateExercises = async (
   }
 
   try {
-    // Handle image generation separately for PicturePrompt exercise
-    if (exerciseType === ExerciseType.PicturePrompt) {
-      const generatedExercises = [];
-      for (let i = 0; i < amount; i++) {
-        const imagePrompt = `A compelling and slightly ambiguous scene about "${theme}". The style should be ${tone}. The image is for an ESL student at a ${difficulty} level to analyze. ${i > 0 ? `Variation ${i + 1}.` : ''}`;
-
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image', // nano banana model for image generation
-          contents: {
-            parts: [{ text: imagePrompt }],
-          },
-          config: {
-            responseModalities: [Modality.IMAGE],
-          },
-        });
-
-        const part = response.candidates?.[0]?.content?.parts?.[0];
-        if (part?.inlineData) {
-          const base64ImageBytes: string = part.inlineData.data;
-          const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
-          generatedExercises.push({
-            title: `Picture Prompt #${i + 1}`,
-            imageUrl: imageUrl,
-            prompt: imagePrompt
-          });
-        }
-      }
-      if (generatedExercises.length === 0) {
-        return { error: "Failed to generate any images for the picture prompt." };
-      }
-      return generatedExercises;
-    }
-
     // Get prompt and schema for text-based exercises
     const { prompt, schema } = getPromptAndSchema(exerciseType, difficulty, tone, theme, amount, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate);
     
