@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Whiteboard from './components/Whiteboard';
@@ -9,6 +8,7 @@ import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDur
 import { MenuIcon } from './components/icons';
 import { GamificationProvider } from './GamificationContext';
 import GamificationHUD from './components/GamificationHUD';
+import { useDebouncedSave } from './hooks/useDebouncedSave';
 
 const APP_PREFIX = 'practiceGenie-';
 const BLOCKS_KEY = `${APP_PREFIX}blocks`;
@@ -118,21 +118,15 @@ const App: React.FC = () => {
   }, [blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
 
   // Save state to localStorage whenever it changes
-  // Debounce blocks persistence to avoid synchronous JSON.stringify on every drag frame
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      localStorage.setItem(BLOCKS_KEY, JSON.stringify(blocks));
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [blocks]);
-
-  useEffect(() => { localStorage.setItem(DIFFICULTY_KEY, difficulty) }, [difficulty]);
-  useEffect(() => { localStorage.setItem(TONE_KEY, tone) }, [tone]);
-  useEffect(() => { localStorage.setItem(THEME_KEY, theme) }, [theme]);
-  useEffect(() => { localStorage.setItem(VOCAB_KEY, JSON.stringify(focusVocabulary))}, [focusVocabulary]);
-  useEffect(() => { localStorage.setItem(INCLUSION_RATE_KEY, String(inclusionRate))}, [inclusionRate]);
-  useEffect(() => { localStorage.setItem(GRAMMAR_KEY, JSON.stringify(focusGrammar))}, [focusGrammar]);
-  useEffect(() => { localStorage.setItem(GRAMMAR_RATE_KEY, String(grammarInclusionRate))}, [grammarInclusionRate]);
+  // Debounce persistence to avoid synchronous main thread blocking
+  useDebouncedSave(BLOCKS_KEY, blocks, 500);
+  useDebouncedSave(DIFFICULTY_KEY, difficulty);
+  useDebouncedSave(TONE_KEY, tone);
+  useDebouncedSave(THEME_KEY, theme);
+  useDebouncedSave(VOCAB_KEY, focusVocabulary);
+  useDebouncedSave(INCLUSION_RATE_KEY, inclusionRate);
+  useDebouncedSave(GRAMMAR_KEY, focusGrammar);
+  useDebouncedSave(GRAMMAR_RATE_KEY, grammarInclusionRate);
 
   const totalTime = useMemo(() => {
       return blocks.reduce((sum, block) => sum + calculateExerciseDuration(block.exerciseType, block.height, block.quantity), 0);
