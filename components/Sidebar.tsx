@@ -4,10 +4,7 @@ import { ExerciseType } from '../enums';
 import { EXERCISE_INFO } from './exerciseInfo';
 import { 
     ChevronDownIcon, 
-    VocabularyIcon, 
-    XCircleIcon, 
     DifficultyIndicatorIcon, 
-    GrammarIcon,
     PPPIcon,
     InputIcon,
     LexisIcon,
@@ -16,7 +13,6 @@ import {
     SocialIcon,
     CRIcon,
     ProductionIcon,
-    PlusIcon,
     PencilSquareIcon,
     ListBulletIcon,
     ArrowsRightLeftIcon,
@@ -32,213 +28,7 @@ import {
     UploadIcon,
     TrashIcon
 } from './icons';
-import { useActivityLogger } from '../ActivityContext'; // Import logger context
-
-interface VocabularyFocusProps {
-    focusVocabulary: string[];
-    setFocusVocabulary: (vocab: string[]) => void;
-    inclusionRate: number;
-    setInclusionRate: (rate: number) => void;
-}
-
-const VocabularyFocus: React.FC<VocabularyFocusProps> = ({ focusVocabulary, setFocusVocabulary, inclusionRate, setInclusionRate }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [inputValue, setInputValue] = useState('');
-    const { logger, startActivity, endActivity, logFocusItem } = useActivityLogger();
-
-    useEffect(() => {
-        if (isOpen) {
-            startActivity('vocab_focus_open', 'config_change', 'Vocabulary Focus Opened');
-        } else {
-            endActivity();
-        }
-    }, [isOpen, startActivity, endActivity]);
-
-    const handleAddVocab = () => {
-        const newVocab = inputValue.trim();
-        if (newVocab && !focusVocabulary.includes(newVocab.toLowerCase())) {
-            setFocusVocabulary([...focusVocabulary, newVocab.toLowerCase()]);
-            setInputValue('');
-            logFocusItem('Settings', 'Add Vocabulary', 0.1, null, 1, [], newVocab);
-        }
-    };
-
-    const handleRemoveVocab = (vocabToRemove: string) => {
-        setFocusVocabulary(focusVocabulary.filter(v => v !== vocabToRemove));
-        logFocusItem('Settings', 'Remove Vocabulary', 0.1, null, 1, [], vocabToRemove);
-    };
-
-    const handleInclusionRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newRate = Number(e.target.value);
-        setInclusionRate(newRate);
-        logFocusItem('Settings', 'Vocabulary Inclusion Rate', 0.1, null, 1, [], `Rate: ${newRate}%`);
-    };
-
-    return (
-        <div className="mb-4 bg-slate-800/40 backdrop-blur-md rounded-2xl ring-1 ring-white/10 overflow-hidden font-casual shadow-lg transition-all duration-300 hover:bg-slate-800/50">
-            <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-4 text-left hover:bg-white/5 transition-colors">
-                <div className="flex items-center gap-3">
-                    <div className="p-1.5 bg-yellow-500/20 rounded-lg ring-1 ring-yellow-500/30">
-                        <VocabularyIcon className="w-4 h-4 text-yellow-400" />
-                    </div>
-                    <span className="font-bold text-slate-100 text-sm tracking-wide">Vocabulary Focus</span>
-                </div>
-                <ChevronDownIcon className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {isOpen && (
-                <div className="p-4 border-t border-white/5 space-y-5 bg-black/20 animate-in slide-in-from-top-2 duration-200">
-                    <div>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={inputValue}
-                                onChange={e => setInputValue(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleAddVocab()}
-                                placeholder="Add target word..."
-                                className="w-full bg-slate-900/50 text-slate-200 border border-white/10 rounded-lg shadow-inner px-3 py-2 text-xs focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 focus:outline-none placeholder-slate-500 transition-all"
-                                aria-label="Add target vocabulary word"
-                            />
-                            <button onClick={handleAddVocab} className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-slate-900 font-bold p-2 rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-md shadow-yellow-900/20" aria-label="Add word">
-                                <PlusIcon className="w-4 h-4" />
-                            </button>
-                        </div>
-                        {focusVocabulary.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {focusVocabulary.map(v => (
-                                    <span key={v} className="flex items-center bg-yellow-500/10 text-yellow-300 text-xs font-medium px-2.5 py-1 rounded-full border border-yellow-500/20 shadow-sm backdrop-blur-sm group hover:border-yellow-500/40 transition-colors">
-                                        {v}
-                                        <button onClick={() => handleRemoveVocab(v)} className="ml-1.5 text-yellow-500/70 hover:text-yellow-200 transition-colors" aria-label={`Remove ${v}`}>
-                                            <XCircleIcon className="w-3.5 h-3.5"/>
-                                        </button>
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                    <div>
-                        <div className="flex justify-between text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                            <span>Inclusion Rate</span>
-                            <span className="text-yellow-400">{inclusionRate}%</span>
-                        </div>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="10"
-                            value={inclusionRate}
-                            onChange={handleInclusionRateChange}
-                            className="w-full h-1.5 bg-slate-700/50 rounded-lg appearance-none cursor-pointer range-thumb-yellow accent-yellow-500"
-                            aria-label="Vocabulary inclusion rate slider"
-                        />
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
-interface GrammarFocusProps {
-    focusGrammar: string[];
-    setFocusGrammar: (grammar: string[]) => void;
-    grammarInclusionRate: number;
-    setGrammarInclusionRate: (rate: number) => void;
-}
-
-const GrammarFocus: React.FC<GrammarFocusProps> = ({ focusGrammar, setFocusGrammar, grammarInclusionRate, setGrammarInclusionRate }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [inputValue, setInputValue] = useState('');
-    const { logger, startActivity, endActivity, logFocusItem } = useActivityLogger();
-
-    useEffect(() => {
-        if (isOpen) {
-            startActivity('grammar_focus_open', 'config_change', 'Grammar Focus Opened');
-        } else {
-            endActivity();
-        }
-    }, [isOpen, startActivity, endActivity]);
-
-    const handleAddGrammar = () => {
-        const newGrammar = inputValue.trim();
-        if (newGrammar && !focusGrammar.includes(newGrammar.toLowerCase())) {
-            setFocusGrammar([...focusGrammar, newGrammar.toLowerCase()]);
-            setInputValue('');
-            logFocusItem('Settings', 'Add Grammar Point', 0.1, null, 1, [], newGrammar);
-        }
-    };
-
-    const handleRemoveGrammar = (grammarToRemove: string) => {
-        setFocusGrammar(focusGrammar.filter(g => g !== grammarToRemove));
-        logFocusItem('Settings', 'Remove Grammar Point', 0.1, null, 1, [], grammarToRemove);
-    };
-
-    const handleInclusionRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newRate = Number(e.target.value);
-        setGrammarInclusionRate(newRate);
-        logFocusItem('Settings', 'Grammar Inclusion Rate', 0.1, null, 1, [], `Rate: ${newRate}%`);
-    };
-
-    return (
-        <div className="mb-6 bg-slate-800/40 backdrop-blur-md rounded-2xl ring-1 ring-white/10 overflow-hidden font-casual shadow-lg transition-all duration-300 hover:bg-slate-800/50">
-            <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-4 text-left hover:bg-white/5 transition-colors">
-                <div className="flex items-center gap-3">
-                     <div className="p-1.5 bg-emerald-500/20 rounded-lg ring-1 ring-emerald-500/30">
-                        <GrammarIcon className="w-4 h-4 text-emerald-400" />
-                    </div>
-                    <span className="font-bold text-slate-100 text-sm tracking-wide">Grammar Focus</span>
-                </div>
-                <ChevronDownIcon className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {isOpen && (
-                <div className="p-4 border-t border-white/5 space-y-5 bg-black/20 animate-in slide-in-from-top-2 duration-200">
-                    <div>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={inputValue}
-                                onChange={e => setInputValue(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleAddGrammar()}
-                                placeholder="Add grammar point..."
-                                className="w-full bg-slate-900/50 text-slate-200 border border-white/10 rounded-lg shadow-inner px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 focus:outline-none"
-                                aria-label="Add target grammar point"
-                            />
-                             <button onClick={handleAddGrammar} className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-slate-900 font-bold p-2 rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-md shadow-emerald-900/20" aria-label="Add grammar point">
-                                <PlusIcon className="w-4 h-4" />
-                            </button>
-                        </div>
-                        {focusGrammar.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {focusGrammar.map(g => (
-                                    <span key={g} className="flex items-center bg-emerald-500/10 text-emerald-300 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-500/20 shadow-sm backdrop-blur-sm group hover:border-emerald-500/40 transition-colors">
-                                        {g}
-                                        <button onClick={() => handleRemoveGrammar(g)} className="ml-1.5 text-emerald-500/70 hover:text-emerald-200 transition-colors" aria-label={`Remove ${g}`}>
-                                            <XCircleIcon className="w-3.5 h-3.5"/>
-                                        </button>
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                    <div>
-                         <div className="flex justify-between text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                            <span>Inclusion Rate</span>
-                            <span className="text-emerald-400">{grammarInclusionRate}%</span>
-                        </div>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="10"
-                            value={grammarInclusionRate}
-                            onChange={handleInclusionRateChange}
-                            className="w-full h-1.5 bg-slate-700/50 rounded-lg appearance-none cursor-pointer range-thumb-emerald accent-emerald-500"
-                            aria-label="Grammar inclusion rate slider"
-                        />
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
+import { useActivityLogger } from '../ActivityContext';
 
 // Map exercise types to specific icons
 const EXERCISE_ICONS: Record<ExerciseType, React.FC<{className?: string}>> = {
@@ -302,7 +92,7 @@ interface DraggableExerciseCardProps {
 
 // Memoized to prevent re-rendering all cards when one category is toggled
 const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = React.memo(({ type, onAdd }) => {
-    const { logger, logFocusItem } = useActivityLogger();
+    const { logFocusItem } = useActivityLogger();
 
     const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
         e.dataTransfer.setData('exerciseType', type);
@@ -394,12 +184,12 @@ const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = React.memo((
 const CategoryAccordion: React.FC<{ 
     category: typeof EXERCISE_CATEGORIES[0], 
     isOpen: boolean, 
-    onToggle: (name: string) => void, // Changed to accept name argument
-    Icon: React.FC<{className?: string}>, // Changed to accept component type
+    onToggle: (name: string) => void,
+    Icon: React.FC<{className?: string}>,
     onAddExercise: (type: ExerciseType) => void
 }> = React.memo(({ category, isOpen, onToggle, Icon, onAddExercise }) => {
     const colors = PEDAGOGY_COLORS[category.name];
-    const { logger, logFocusItem } = useActivityLogger();
+    const { logFocusItem } = useActivityLogger();
 
     const handleToggle = () => {
         onToggle(category.name);
@@ -439,14 +229,6 @@ const CategoryAccordion: React.FC<{
 
 
 interface SidebarProps {
-    focusVocabulary: string[];
-    setFocusVocabulary: (vocab: string[]) => void;
-    inclusionRate: number;
-    setInclusionRate: (rate: number) => void;
-    focusGrammar: string[];
-    setFocusGrammar: (grammar: string[]) => void;
-    grammarInclusionRate: number;
-    setGrammarInclusionRate: (rate: number) => void;
     isSidebarOpen: boolean;
     onAddExercise: (type: ExerciseType) => void;
     onExportState: () => void;
@@ -455,12 +237,9 @@ interface SidebarProps {
 }
 
 const Sidebar = React.memo(({
-    focusVocabulary, setFocusVocabulary, inclusionRate, setInclusionRate,
-    focusGrammar, setFocusGrammar, grammarInclusionRate, setGrammarInclusionRate,
     isSidebarOpen, onAddExercise, onExportState, onImportState, onClearBoard
 }: SidebarProps) => {
   const [openCategory, setOpenCategory] = useState<string | null>('PPP');
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const { logger, logFocusItem } = useActivityLogger();
 
   // Log sidebar open/close
@@ -476,11 +255,6 @@ const Sidebar = React.memo(({
   const toggleCategory = useCallback((name: string) => {
       setOpenCategory(prev => prev === name ? null : name);
   }, []);
-
-  const handleConfigToggle = () => {
-    setIsConfigOpen(!isConfigOpen);
-    logFocusItem('General UI', 'Configuration Panel', 0.1, null, 1, [], `State: ${!isConfigOpen ? 'Open' : 'Closed'}`);
-  };
 
   const handleExportClick = () => {
     onExportState();
@@ -499,46 +273,23 @@ const Sidebar = React.memo(({
 
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-40 w-80 bg-slate-900/80 backdrop-blur-xl text-white flex flex-col h-screen transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform border-r border-white/10 shadow-2xl
+    <aside className={`fixed inset-y-0 left-0 z-40 w-80 bg-slate-900/40 backdrop-blur-xl text-white flex flex-col h-screen transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform border-r border-white/5 shadow-2xl
                      lg:static lg:translate-x-0
                      ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} font-casual`}>
       
-      <div className="p-6 pb-4 flex-shrink-0 border-b border-white/10 bg-slate-900/50 z-10 backdrop-blur-md">
-        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-warm-orange-400 to-action-amber-400 font-playful drop-shadow-sm">gitEnglish™</h1>
-        <h2 className="text-xs font-bold text-slate-400 mt-1 tracking-[0.2em] uppercase opacity-80">Practice Genie</h2>
+      {/* Prominent Logo Area */}
+      <div className="p-8 pb-6 flex-shrink-0 border-b border-white/5 bg-slate-900/10 z-10">
+        <h1 className="text-4xl font-bold text-white font-casual drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] tracking-wide">Practice Genie</h1>
+        <h2 className="text-[10px] font-bold text-slate-500 mt-1.5 tracking-[0.3em] uppercase opacity-70 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+            by gitEnglish™
+        </h2>
       </div>
 
-      <div className="flex-grow overflow-y-auto custom-scrollbar-dark p-4 space-y-6">
+      <div className="flex-grow overflow-y-auto custom-scrollbar-dark p-4 space-y-2">
           
-          <div className="animate-in slide-in-from-left-2 duration-300 delay-100">
-              <button 
-                onClick={handleConfigToggle}
-                className="flex items-center justify-between w-full p-2 mb-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors group"
-                aria-label="Toggle Configuration Panel"
-              >
-                  <span className="group-hover:translate-x-1 transition-transform">Configuration</span>
-                  <ChevronDownIcon className={`w-3 h-3 transition-transform duration-300 ${isConfigOpen ? 'rotate-180' : ''}`} />
-              </button>
-              
-              <div className={`space-y-3 overflow-hidden transition-all duration-300 ease-in-out ${isConfigOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <VocabularyFocus 
-                    focusVocabulary={focusVocabulary}
-                    setFocusVocabulary={setFocusVocabulary}
-                    inclusionRate={inclusionRate}
-                    setInclusionRate={setInclusionRate}
-                />
-                
-                <GrammarFocus
-                    focusGrammar={focusGrammar}
-                    setFocusGrammar={setFocusGrammar}
-                    grammarInclusionRate={grammarInclusionRate}
-                    setGrammarInclusionRate={setGrammarInclusionRate}
-                />
-              </div>
-          </div>
-
-          <div className="pb-4 animate-in slide-in-from-left-2 duration-300 delay-200">
-              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 ml-2">Exercise Library</h3>
+          <div className="pb-4 animate-in slide-in-from-left-2 duration-300 delay-100">
+              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 ml-2 mt-2">Exercise Library</h3>
               {EXERCISE_CATEGORIES.map((category) => (
                   <CategoryAccordion 
                       key={category.name}
@@ -552,23 +303,19 @@ const Sidebar = React.memo(({
           </div>
       </div>
       
-      <div className="p-4 border-t border-white/10 bg-slate-900/50 backdrop-blur-md space-y-3 z-10">
-           <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Project Actions</h3>
+      <div className="p-4 border-t border-white/5 bg-slate-900/20 backdrop-blur-sm space-y-3 z-10">
+           <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Actions</h3>
            <div className="grid grid-cols-2 gap-2">
                 <button onClick={handleExportClick} className="col-span-1 flex items-center justify-center gap-2 p-2.5 text-xs font-bold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl transition-all active:scale-95" aria-label="Export current project">
-                    <DownloadIcon className="w-4 h-4 text-primary-blue-400" /> Export
+                    <DownloadIcon className="w-4 h-4 text-blue-400" /> Export
                 </button>
                 <label className="col-span-1 flex items-center justify-center gap-2 p-2.5 text-xs font-bold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl transition-all cursor-pointer active:scale-95" aria-label="Import project from file">
-                    <UploadIcon className="w-4 h-4 text-accent-green-400" /> Import
+                    <UploadIcon className="w-4 h-4 text-emerald-400" /> Import
                     <input type="file" accept=".json" onChange={handleImportChange} className="hidden" />
                 </label>
-                <button onClick={handleClearBoardClick} className="col-span-2 flex items-center justify-center gap-2 p-2.5 text-xs font-bold text-slate-300 hover:text-energy-red-400 bg-white/5 hover:bg-energy-red-900/20 border border-white/5 hover:border-energy-red-500/30 rounded-xl transition-all active:scale-95" aria-label="Clear all exercises from board">
+                <button onClick={handleClearBoardClick} className="col-span-2 flex items-center justify-center gap-2 p-2.5 text-xs font-bold text-slate-300 hover:text-red-400 bg-white/5 hover:bg-red-900/20 border border-white/5 hover:border-red-500/30 rounded-xl transition-all active:scale-95" aria-label="Clear all exercises from board">
                     <TrashIcon className="w-4 h-4" /> Clear Board
                 </button>
-           </div>
-
-           <div className="pt-2 text-center">
-              <span className="text-[10px] font-medium text-slate-600 block">v2.1.0 • Infinite Canvas</span>
            </div>
       </div>
 
@@ -586,39 +333,6 @@ const Sidebar = React.memo(({
         }
         .custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.2);
-        }
-        
-        /* Custom range slider thumb styles */
-        .range-thumb-yellow::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 14px;
-            height: 14px;
-            background: #eab308; /* yellow-500 */
-            cursor: pointer;
-            border-radius: 50%;
-            border: 2px solid #0f172a; /* slate-900 */
-            box-shadow: 0 0 0 1px #eab308;
-            transition: transform 0.1s;
-        }
-        .range-thumb-yellow::-webkit-slider-thumb:hover {
-            transform: scale(1.1);
-        }
-
-        .range-thumb-emerald::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 14px;
-            height: 14px;
-            background: #10b981; /* emerald-500 */
-            cursor: pointer;
-            border-radius: 50%;
-            border: 2px solid #0f172a; /* slate-900 */
-            box-shadow: 0 0 0 1px #10b981;
-            transition: transform 0.1s;
-        }
-         .range-thumb-emerald::-webkit-slider-thumb:hover {
-            transform: scale(1.1);
         }
       `}</style>
     </aside>

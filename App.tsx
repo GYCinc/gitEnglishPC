@@ -1,18 +1,18 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Whiteboard from './components/Whiteboard';
-import RadialMenu from './components/RadialMenu'; // New import
-import GlobalSettings from './components/GlobalSettings'; // Refactored GlobalSettings
+import RadialMenu from './components/RadialMenu';
+import GlobalSettings from './components/GlobalSettings';
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from './enums';
 import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration, DIFFICULTY_LEVELS } from './constants';
-import { MenuIcon } from './components/icons';
 import { GamificationProvider } from './GamificationContext';
 import GamificationHUD from './components/GamificationHUD';
 import { useDebouncedSave } from './hooks/useDebouncedSave';
+import { findFreePosition } from './placementUtils';
 
 const APP_PREFIX = 'practiceGenie-';
 const BLOCKS_KEY = `${APP_PREFIX}blocks`;
-const PAGES_KEY = `${APP_PREFIX}pages`; // Kept for migration
+const PAGES_KEY = `${APP_PREFIX}pages`;
 const DIFFICULTY_KEY = `${APP_PREFIX}difficulty`;
 const TONE_KEY = `${APP_PREFIX}tone`;
 const THEME_KEY = `${APP_PREFIX}theme`;
@@ -21,21 +21,18 @@ const INCLUSION_RATE_KEY = `${APP_PREFIX}inclusionRate`;
 const GRAMMAR_KEY = `${APP_PREFIX}focusGrammar`;
 const GRAMMAR_RATE_KEY = `${APP_PREFIX}grammarInclusionRate`;
 
-
 const App: React.FC = () => {
   const [blocks, setBlocks] = useState<ExerciseBlockState[]>(() => {
     try {
-      // Migration Logic: Check for pages first
       const savedPages = localStorage.getItem(PAGES_KEY);
       if (savedPages) {
           const parsedPages = JSON.parse(savedPages);
           if (Array.isArray(parsedPages) && parsedPages.length > 0 && 'blocks' in parsedPages[0]) {
               console.log("Migrating from pages to infinite canvas...");
-              // Flatten all blocks from all pages
               const migratedBlocks = parsedPages.flatMap((page: any) => 
                 page.blocks.map((b: any) => ({...b, isGenerated: false}))
               );
-              localStorage.removeItem(PAGES_KEY); // Clear old data
+              localStorage.removeItem(PAGES_KEY);
               return migratedBlocks;
           }
       }
@@ -43,7 +40,7 @@ const App: React.FC = () => {
       const savedBlocks = localStorage.getItem(BLOCKS_KEY);
       const parsedBlocks = savedBlocks ? JSON.parse(savedBlocks) : [];
       if (Array.isArray(parsedBlocks)) {
-          return parsedBlocks.map(b => ({ ...b, isGenerated: false }));
+          return parsedBlocks.map((b: any) => ({ ...b, isGenerated: false }));
       }
       return [];
     } catch {
@@ -52,7 +49,6 @@ const App: React.FC = () => {
   });
 
   const [difficulty, setDifficulty] = useState<Difficulty>(() => {
-      // Migrate or default to B1
       const saved = localStorage.getItem(DIFFICULTY_KEY);
       if (saved && Object.values(Difficulty).includes(saved as Difficulty)) {
           return saved as Difficulty;
@@ -89,10 +85,12 @@ const App: React.FC = () => {
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // New state for modal
+
+  // Settings Modal State Management
+  const [settingsModalTab, setSettingsModalTab] = useState<'General' | 'Vocabulary' | 'Grammar' | null>(null);
+
   const [presentingBlockId, setPresentingBlockId] = useState<number | null>(null);
 
-  // Optimization: Use a ref to access latest state in callbacks without adding them as dependencies
   const stateRef = useRef({
       blocks,
       difficulty,
@@ -117,8 +115,6 @@ const App: React.FC = () => {
       };
   }, [blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
 
-  // Save state to localStorage whenever it changes
-  // Debounce persistence to avoid synchronous main thread blocking
   useDebouncedSave(BLOCKS_KEY, blocks, 500);
   useDebouncedSave(DIFFICULTY_KEY, difficulty);
   useDebouncedSave(TONE_KEY, tone);
@@ -132,11 +128,10 @@ const App: React.FC = () => {
       return blocks.reduce((sum, block) => sum + calculateExerciseDuration(block.exerciseType, block.height, block.quantity), 0);
   }, [blocks]);
 
-  // Navigation logic for Presentation Mode
   const enterPresentation = useCallback((blockId: number) => {
       setPresentingBlockId(blockId);
-      setIsSidebarOpen(false); // Auto-close sidebar for better view
-      setIsSettingsModalOpen(false); // Auto-close settings modal
+      setIsSidebarOpen(false);
+      setSettingsModalTab(null);
   }, []);
 
   const exitPresentation = useCallback(() => {
@@ -159,7 +154,6 @@ const App: React.FC = () => {
       }
   }, [blocks, presentingBlockId]);
 
-  // Export/Import/Clear Logic
   const handleExportState = useCallback(() => {
       const {
           blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
@@ -216,14 +210,12 @@ const App: React.FC = () => {
           }
       };
       reader.readAsText(file);
-      // Reset input
       e.target.value = '';
   }, []);
 
   const handleClearBoard = useCallback(() => {
-      if (window.confirm("Are you sure you want to clear the entire whiteboard? This cannot be undone unless you have exported your project.")) {
+      if (window.confirm("Are you sure you want to clear the entire whiteboard?")) {
           setBlocks([]);
-          // Optionally reset other states or keep them
       }
   }, []);
 
@@ -239,15 +231,11 @@ const App: React.FC = () => {
       let finalPos;
 
       if (dropX !== undefined && dropY !== undefined) {
-          // Place centered on drop coordinates
           finalPos = { x: Math.max(0, dropX - newBlockWidth / 2), y: Math.max(0, dropY - newBlockHeight / 2) };
       } else {
-          // Find a free spot if added via button/key (fallback)
-          // Optimization: Use spatial binning via findFreePosition (O(N) -> O(1))
           finalPos = findFreePosition(prevBlocks, newBlockWidth, newBlockHeight);
       }
 
-      // Optimization: Single-pass loop to find maxZ instead of mapping
       let maxZ = 0;
       for (const b of prevBlocks) {
           const z = b.zIndex || 0;
@@ -292,7 +280,6 @@ const App: React.FC = () => {
 
   const focusBlock = useCallback((blockId: number) => {
     setBlocks(prevBlocks => {
-      // Optimization: Single-pass to find maxZ and current Z
       let maxZ = 0;
       let currentZ = -1;
       let maxZCount = 0;
@@ -309,7 +296,6 @@ const App: React.FC = () => {
           if (b.id === blockId) currentZ = z;
       }
 
-      // Optimization: If block is already at the top AND is the only one at that level, skip update
       if (currentZ === maxZ && maxZCount === 1) return prevBlocks;
 
       const newZ = maxZ + 1;
@@ -328,47 +314,42 @@ const App: React.FC = () => {
     });
   }, []);
 
-  // Callbacks for Sidebar and RadialMenu
-  const handleToggleSettings = useCallback(() => setIsSettingsModalOpen(true), []);
+  const handleOpenSettings = useCallback((tab: 'General' | 'Vocabulary' | 'Grammar') => setSettingsModalTab(tab), []);
   const handleToggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), []);
-  const handleCloseSettings = useCallback(() => setIsSettingsModalOpen(false), []);
+  const handleCloseSettings = useCallback(() => setSettingsModalTab(null), []);
   const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
   return (
     <GamificationProvider>
     <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800">
       <GamificationHUD />
-      {/* Radial Menu replaces fixed top bar */}
+
       <RadialMenu 
-          onToggleSettings={handleToggleSettings}
+          onOpenSettings={handleOpenSettings}
           onToggleSidebar={handleToggleSidebar}
           onExportState={handleExportState}
           difficulty={difficulty}
           onCycleDifficulty={cycleDifficulty}
       />
 
-      {/* Settings Modal - conditionally rendered */}
-      {isSettingsModalOpen && (
+      {settingsModalTab && (
           <GlobalSettings 
               difficulty={difficulty} setDifficulty={setDifficulty}
               tone={tone} setTone={setTone}
               theme={theme} setTheme={setTheme}
+              focusVocabulary={focusVocabulary} setFocusVocabulary={setFocusVocabulary}
+              inclusionRate={inclusionRate} setInclusionRate={setInclusionRate}
+              focusGrammar={focusGrammar} setFocusGrammar={setFocusGrammar}
+              grammarInclusionRate={grammarInclusionRate} setGrammarInclusionRate={setGrammarInclusionRate}
               totalTime={totalTime}
               onClose={handleCloseSettings}
+              initialTab={settingsModalTab}
           />
       )}
 
       <Sidebar 
         isSidebarOpen={isSidebarOpen}
-        focusVocabulary={focusVocabulary}
-        setFocusVocabulary={setFocusVocabulary}
-        inclusionRate={inclusionRate}
-        setInclusionRate={setInclusionRate}
-        focusGrammar={focusGrammar}
-        setFocusGrammar={setFocusGrammar}
-        grammarInclusionRate={grammarInclusionRate}
-        setGrammarInclusionRate={setGrammarInclusionRate}
-        onAddExercise={addBlock} // Passed directly as it handles optional arguments safely
+        onAddExercise={addBlock}
         onExportState={handleExportState}
         onImportState={handleImportState}
         onClearBoard={handleClearBoard}

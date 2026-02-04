@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ExerciseBlock from './ExerciseBlock';
-import { SnapLinesOverlay } from './SnapLinesOverlay'; // Bolt Optimization
+import { SnapLinesOverlay } from './SnapLinesOverlay';
 import { ExerciseType } from '../enums';
 import { ExerciseBlockState } from '../types';
 import { MagicWandIcon } from './icons';
-import { useActivityLogger } from '../ActivityContext'; // Import logger context
+import { useActivityLogger } from '../ActivityContext';
 
 interface WhiteboardProps {
   blocks: ExerciseBlockState[];
@@ -12,7 +12,6 @@ interface WhiteboardProps {
   onUpdateBlock: (blockId: number, updates: Partial<ExerciseBlockState>) => void;
   onRemoveBlock: (blockId: number) => void;
   onFocusBlock: (blockId: number) => void;
-  // Props for presentation mode
   presentingBlockId: number | null;
   onEnterPresentation: (id: number) => void;
   onExitPresentation: () => void;
@@ -28,130 +27,179 @@ type SnapLine = {
 }
 
 const SNAP_THRESHOLD = 10;
+const FRICTION = 0.92; // Momentum decay factor
+const VELOCITY_THRESHOLD = 0.1;
 
 const Whiteboard: React.FC<WhiteboardProps> = ({ 
     blocks, onAddBlock, onUpdateBlock, onRemoveBlock, onFocusBlock, 
     presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide
 }) => {
-  // Optimization: Local state for active interaction to prevent 60fps re-renders of the App component
   const [activeInteraction, setActiveInteraction] = useState<{ blockId: number, x: number, y: number, width: number, height: number } | null>(null);
   const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
   
-  // Canvas View State
   const [scale, setScale] = useState(1);
-  const scaleRef = useRef(1); // Optimization: Ref for stable access in ExerciseBlock
+  const scaleRef = useRef(1);
   const pan = useRef({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
-  const [isSpacePressed, setIsSpacePressed] = useState(false); // Track spacebar for alternative pan
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+
+  // Momentum State
+  const velocity = useRef({ x: 0, y: 0 });
+  const lastTimestamp = useRef(0);
+  const rafId = useRef<number | null>(null);
 
   const canvasRef = useRef<HTMLDivElement>(null);
-  const backgroundRef = useRef<HTMLDivElement>(null); // Ref for the background grid
-  const containerRef = useRef<HTMLElement>(null); // Ref for the main element to get clientWidth/Height
+  const backgroundRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLElement>(null);
 
   const isWorkspaceEmpty = blocks.length === 0;
   const { logger } = useActivityLogger();
 
-  // Optimization: Keep a ref to blocks to avoid re-creating handleInteraction on every render
-  // This prevents all ExerciseBlocks from re-rendering when one is dragged
   const blocksRef = useRef(blocks);
   useEffect(() => {
     blocksRef.current = blocks;
   }, [blocks]);
 
-  // Performance: Cache snap points during interaction to avoid O(N) recalculation on every drag frame
   const snapPointsCache = useRef<{ vPoints: number[], hPoints: number[] } | null>(null);
 
   // -- PAN & ZOOM HANDLERS --
 
+  const updateTransform = () => {
+      if (canvasRef.current) {
+          canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`;
+      }
+      if (backgroundRef.current) {
+          backgroundRef.current.style.backgroundPosition = `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`;
+      }
+  };
+
+  const applyMomentum = useCallback(() => {
+      if (Math.abs(velocity.current.x) < VELOCITY_THRESHOLD && Math.abs(velocity.current.y) < VELOCITY_THRESHOLD) {
+          rafId.current = null;
+          return;
+      }
+
+      pan.current.x += velocity.current.x * 16; // Approx per frame
+      pan.current.y += velocity.current.y * 16;
+
+      velocity.current.x *= FRICTION;
+      velocity.current.y *= FRICTION;
+
+      updateTransform();
+      rafId.current = requestAnimationFrame(applyMomentum);
+  }, [scale]);
+
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Only allow panning if not already interacting with a block (dragging/resizing)
     if (activeInteraction) return;
 
-    // Check if target is the background container (the big grid div) or the main container
     const target = e.target as HTMLElement;
     const isBackground = target.id === 'whiteboard-background' || target.id === 'whiteboard-main' || target.id === 'whiteboard-content';
 
-    // Allow panning if:
-    // 1. Middle mouse (1) or Right mouse (2) is used anywhere
-    // 2. Left mouse (0) is used ON THE BACKGROUND (empty space) OR if Spacebar is held down
     if (e.button === 1 || e.button === 2 || (e.button === 0 && (isBackground || isSpacePressed))) {
       setIsPanning(true);
       lastMousePos.current = { x: e.clientX, y: e.clientY };
+      lastTimestamp.current = performance.now();
+
+      // Stop any existing momentum
+      if (rafId.current) {
+          cancelAnimationFrame(rafId.current);
+          rafId.current = null;
+      }
+      velocity.current = { x: 0, y: 0 };
       
-      // Prevent default browser drag behaviors (e.g., image drag, text selection)
       e.preventDefault(); 
-      e.stopPropagation(); // Stop propagation to prevent triggering onFocus for blocks
+      e.stopPropagation();
       logger?.startActivity('canvas_panning', 'movement', 'Canvas Panning');
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isPanning) {
+      const now = performance.now();
+      const dt = now - lastTimestamp.current;
       const dx = e.clientX - lastMousePos.current.x;
       const dy = e.clientY - lastMousePos.current.y;
+
       pan.current = { x: pan.current.x + dx, y: pan.current.y + dy };
       lastMousePos.current = { x: e.clientX, y: e.clientY };
 
-      if (canvasRef.current) {
-          canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`;
+      // Calculate velocity (pixels per ms)
+      if (dt > 0) {
+          // Smooth velocity slightly
+          const newVx = dx / dt;
+          const newVy = dy / dt;
+          velocity.current = {
+              x: newVx * 0.5 + velocity.current.x * 0.5,
+              y: newVy * 0.5 + velocity.current.y * 0.5
+          };
       }
-      // Performance Optimization: Update background translation independently without scale
-      // This avoids re-rasterizing the grid pattern on zoom (which changes scale but not pan directly here)
-      if (backgroundRef.current) {
-          backgroundRef.current.style.backgroundPosition = `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`;
-      }
+      lastTimestamp.current = now;
+
+      updateTransform();
     }
   };
 
   const handleMouseUp = () => {
     if(isPanning) {
         setIsPanning(false);
-        logger?.endActivity(); // End canvas panning activity
+        logger?.endActivity();
+
+        // Start Momentum
+        rafId.current = requestAnimationFrame(applyMomentum);
     }
   };
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    // Multiplicative zoom for smoother feel
-    // zoomFactor > 1 zooms in, < 1 zooms out
+    if (rafId.current) cancelAnimationFrame(rafId.current); // Stop momentum on wheel
+
     const zoomFactor = Math.exp(-e.deltaY * 0.001); 
     const newScale = Math.min(Math.max(0.1, scale * zoomFactor), 4);
     
-    // Zoom towards mouse pointer for better UX
     if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        // Calculate world coordinates before zoom
         const worldX = (mouseX - pan.current.x) / scale;
         const worldY = (mouseY - pan.current.y) / scale;
 
-        // Calculate new pan to keep world point under mouse
         const newPanX = mouseX - worldX * newScale;
         const newPanY = mouseY - worldY * newScale;
 
         pan.current = { x: newPanX, y: newPanY };
+
+        // Update transform immediately
+        if (canvasRef.current) {
+            canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${newScale})`;
+        }
+        if (backgroundRef.current) {
+            backgroundRef.current.style.backgroundPosition = `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`;
+        }
+
         logger?.logFocusItem('Movement', 'Canvas Zoom', 0.1, null, 1, [], `Scale: ${newScale.toFixed(2)}`);
     }
     setScale(newScale);
   };
 
-  // Robustly sync scaleRef with state changes (e.g. from zoom buttons or pinch gestures)
   useEffect(() => {
     scaleRef.current = scale;
   }, [scale]);
 
+  useEffect(() => {
+      // Update transform whenever scale changes via state (for wheel)
+      updateTransform();
+  }, [scale]);
+
   const handleContextMenu = (e: React.MouseEvent) => {
-      e.preventDefault(); // Prevent right-click menu to allow right-click panning
+      e.preventDefault();
   };
   
-  // Track Spacebar for "Hand Tool" emulation
   useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => { 
-          if (e.code === 'Space' && e.target === document.body) { // Only if space is pressed on body
-              e.preventDefault(); // Prevent scrolling page with space
+          if (e.code === 'Space' && e.target === document.body) {
+              e.preventDefault();
               setIsSpacePressed(true); 
               logger?.logFocusItem('Movement', 'Spacebar Panning Enabled', 0.1);
           }
@@ -170,8 +218,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       };
   }, [logger]);
 
-  // -- DROP LOGIC UPDATED FOR SCALE/PAN --
-  
   const handleDragOver = (e: React.DragEvent<HTMLElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
@@ -184,8 +230,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
     if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        // Convert screen coords to canvas coords:
-        // canvasX = (screenX - containerLeft - panX) / scale
         const x = (e.clientX - rect.left - pan.current.x) / scale;
         const y = (e.clientY - rect.top - pan.current.y) / scale;
         onAddBlock(type, x, y);
@@ -193,7 +237,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     }
   };
   
-  // -- SNAPPING & BLOCK INTERACTION --
   const getSnapPoints = useCallback((allBlocks: ExerciseBlockState[], excludeId: number) => {
     const vPoints: number[] = [];
     const hPoints: number[] = [];
@@ -211,7 +254,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       allBlocks: ExerciseBlockState[],
       newPosition: { x: number, y: number, width: number, height: number }
   ) => {
-      // Optimization: Use cached points if available to avoid O(N) iteration
       let points = snapPointsCache.current;
       if (!points) {
          points = getSnapPoints(allBlocks, movingBlock.id);
@@ -249,59 +291,24 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   }, [getSnapPoints]);
 
   const handleInteraction = useCallback((blockId: number, newPos: {x: number, y: number, width: number, height: number}) => {
-    // Optimization: Use ref to avoid dependency on 'blocks' which changes every frame during drag
     const currentBlocks = blocksRef.current;
-
-    // We need to find the block object.
     const block = currentBlocks.find(b => b.id === blockId);
     if (!block) return;
 
     const { snappedX, snappedY, newSnapLines } = calculateSnapping(block, currentBlocks, newPos);
     setSnapLines(newSnapLines);
-
-    // Update LOCAL state only, not global App state
     setActiveInteraction({ blockId, ...newPos, x: snappedX, y: snappedY });
   }, [calculateSnapping]);
   
   const handleInteractionStop = useCallback((blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => {
-      // Commit final position to global state
       onUpdateBlock(blockId, finalPos);
-
-      // Clear local state
       setActiveInteraction(null);
       setSnapLines([]);
-
-      // Clear the snap points cache when interaction ends
       snapPointsCache.current = null;
   }, [onUpdateBlock]);
 
-  // -- AUTO-CENTER LOGIC --
-  const centerOnBlock = (block: ExerciseBlockState) => {
-      if (!containerRef.current) return;
-      const container = containerRef.current;
-      const viewportW = container.clientWidth;
-      const viewportH = container.clientHeight;
-      
-      const blockCenterX = block.x + block.width / 2;
-      const blockCenterY = block.y + block.height / 2;
-
-      // Center block in viewport accounting for scale
-      const newPanX = (viewportW / 2) - (blockCenterX * scale);
-      const newPanY = (viewportH / 2) - (blockCenterY * scale);
-
-      pan.current = { x: newPanX, y: newPanY };
-      if (canvasRef.current) {
-          canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`;
-      }
-      if (backgroundRef.current) {
-          backgroundRef.current.style.backgroundPosition = `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`;
-      }
-      logger?.logFocusItem('Movement', 'Center on Block', 0.1, null, 1, [], `Block: ${block.exerciseType}, Pos: (${block.x.toFixed(0)}, ${block.y.toFixed(0)})`);
-  };
-
   const handleFocus = useCallback((blockId: number) => {
       onFocusBlock(blockId);
-      // Removed centerOnBlock(block) to prevent jarring movement on every click
   }, [onFocusBlock]);
 
   return (
@@ -328,12 +335,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             </div>
         )}
 
-        {/*
-           Bolt Optimization: Split background grid from content layer.
-           Background now only translates (pan) but does not scale.
-           This avoids recalculating backgroundSize string and triggering paint on every zoom frame.
-           Constant visual dot density is achieved naturally by keeping fixed bgSize and scale=1.
-        */}
         <div 
             ref={backgroundRef}
             id="whiteboard-background"
@@ -351,10 +352,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             className="absolute top-0 left-0 w-full h-full transition-transform duration-75 ease-out origin-top-left"
             style={{
                 transform: `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`,
-                // Background properties removed from here
                 width: '100000px',
                 height: '100000px',
-                pointerEvents: isPanning ? 'none' : 'auto' // Optimize drag performance
+                pointerEvents: isPanning ? 'none' : 'auto'
             }}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
@@ -363,7 +363,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
             {blocks.map(block => {
                 const isDragging = activeInteraction?.blockId === block.id;
-                // Merge global block state with local dragged state if applicable
                 const effectiveBlockState = isDragging
                     ? { ...block, ...activeInteraction }
                     : block;
