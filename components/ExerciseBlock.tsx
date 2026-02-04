@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { Rnd, RndDragCallback, RndResizeCallback } from 'react-rnd';
 import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from '../types';
-import { generateExercises } from '../services/geminiService';
+import { generateExercises } from '../services/mistralService';
 import { LoadingIcon, TrashIcon, SettingsIcon, ResetIcon, PlayIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon, MagicWandIcon } from './icons';
 import { useDebounce } from '../hooks/useDebounce';
 import { useResponsiveScale } from '../hooks/useResponsiveScale';

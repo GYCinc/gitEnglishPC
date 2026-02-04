@@ -12,7 +12,7 @@ import {
     ICollocationOddOneOutExercise, IInformationTransferExercise, IListeningSpecificInfoExercise, 
     IRegisterSortExercise 
 } from '../types';
-import { checkAnswerWithAI } from '../services/geminiService';
+import { checkAnswerWithAI } from '../services/mistralService';
 import { LoadingIcon, SpeakerWaveIcon, SparklesIcon } from './icons';
 import { useGamification } from '../GamificationContext';
 import { soundEffects } from '../services/SoundEffectsService';

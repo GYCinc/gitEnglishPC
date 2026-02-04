@@ -23,10 +23,43 @@ A React-based infinite whiteboard for generating and managing educational exerci
    ```
 
 2. **Setup Environment:**
-   Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key.
+   Copy `.env.example` to `.env.local` and set the `MISTRAL_API_KEY` to your Mistral API key.
 
 3. **Run the app:**
    ```bash
    pnpm dev
    # or npm run dev
    ```
+
+## Deployment
+
+### Build for Production
+
+To create a production-ready build:
+
+```bash
+pnpm build
+# or npm run build
+```
+
+This will create a `dist/` directory with optimized, minified files ready for deployment.
+
+### Deploy to Vercel (Recommended)
+
+1. Push your code to a Git repository
+2. Connect your repository to [Vercel](https://vercel.com)
+3. Add your environment variables in the Vercel dashboard:
+   - `MISTRAL_API_KEY`: Your Mistral API key
+4. Vercel will automatically detect the Vite project and build it
+
+### Deploy to Other Platforms
+
+For other platforms, ensure you:
+1. Build the project with `pnpm build`
+2. Serve the `dist/` directory with a web server
+3. Set the `MISTRAL_API_KEY` environment variable
+4. Configure your server to serve `index.html` for all routes (SPA fallback)
+
+### Environment Variables
+
+- `MISTRAL_API_KEY`: Required. Your Mistral API key for AI functionality.

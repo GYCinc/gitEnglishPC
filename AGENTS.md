@@ -5,7 +5,7 @@ Welcome to the Practice Genie repository. This document outlines the system work
 ## 1. Project Context
 **Practice Genie** is a React-based application for generating and managing educational exercises on an infinite whiteboard. It features:
 - **Infinite Canvas**: Draggable, resizable blocks (`react-rnd`).
-- **AI Integration**: Generates content using Google Gemini.
+- **AI Integration**: Generates content using Mistral AI.
 - **Interactive Exercises**: Fill-in-the-blanks, MCQs, etc.
 - **Presentation Mode**: Full-screen "Live Mode" for classroom use.
 
@@ -58,7 +58,7 @@ We prioritize speed, clarity, and user experience.
     *   The project is deployed on Vercel.
     *   `vercel.json` exists to handle SPA routing (rewrites).
     *   **Do not touch** `_microfrontends.json` unless specifically asked; it is disabled.
-*   **Google Gemini**: The app expects an API key. If missing, it falls back to mock data (which is good for testing).
+*   **Mistral AI**: The app expects an API key. If missing, it falls back to mock data (which is good for testing).
 
 ## 6. Agent Instructions
 When you (the agent) are working here:
