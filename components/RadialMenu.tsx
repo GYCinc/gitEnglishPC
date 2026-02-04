@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { SettingsIcon, DifficultyIcon, DownloadIcon, MenuIcon, XMarkIcon, ThemeIcon } from './icons';
+import { SettingsIcon, DifficultyIcon, DownloadIcon, MenuIcon, XMarkIcon, ThemeIcon, VocabularyIcon, GrammarIcon } from './icons';
 
 interface RadialMenuProps {
-    onToggleSettings: () => void;
+    onOpenSettings: (tab: 'General' | 'Vocabulary' | 'Grammar') => void;
     onToggleSidebar: () => void;
     onExportState: () => void;
     difficulty: string;
     onCycleDifficulty: () => void;
 }
 
-const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportState, difficulty, onCycleDifficulty }: RadialMenuProps) => {
+const RadialMenu = React.memo(({ onOpenSettings, onToggleSidebar, onExportState, difficulty, onCycleDifficulty }: RadialMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
@@ -34,13 +34,40 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
     }, [isOpen]);
 
     const menuItems = [
-        { icon: <SettingsIcon className="w-6 h-6" />, label: "Config", action: onToggleSettings, color: "text-amber-400" },
-        { icon: <DifficultyIcon className="w-6 h-6" />, label: difficulty, subLabel: "Difficulty", action: onCycleDifficulty, color: "text-emerald-400" },
-        { icon: <DownloadIcon className="w-6 h-6" />, label: "Export", action: onExportState, color: "text-blue-400" },
-        { icon: <ThemeIcon className="w-6 h-6" />, label: "Themes", action: () => console.log("Theme toggle - Future feature"), color: "text-purple-400" },
+        {
+            icon: <VocabularyIcon className="w-6 h-6" />,
+            label: "Vocabulary",
+            action: () => onOpenSettings('Vocabulary'),
+            color: "text-amber-400"
+        },
+        {
+            icon: <GrammarIcon className="w-6 h-6" />,
+            label: "Grammar",
+            action: () => onOpenSettings('Grammar'),
+            color: "text-emerald-400"
+        },
+        {
+            icon: <DifficultyIcon className="w-6 h-6" />,
+            label: difficulty,
+            subLabel: "Difficulty",
+            action: onCycleDifficulty,
+            color: "text-blue-400"
+        },
+        {
+            icon: <SettingsIcon className="w-6 h-6" />,
+            label: "Setup",
+            action: () => onOpenSettings('General'),
+            color: "text-slate-400"
+        },
+        {
+            icon: <DownloadIcon className="w-6 h-6" />,
+            label: "Export",
+            action: onExportState,
+            color: "text-purple-400"
+        },
     ];
 
-    const radius = 100; // Increased radius for larger buttons
+    const radius = 110; // Increased radius slightly for more items
 
     return (
         <div id="radial-menu-container" className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center justify-center font-casual perspective-[1000px]"
@@ -49,7 +76,7 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
         >
             {/* Visual Arc Grouping (Only visible when open) */}
             <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
-                 <div className="w-[240px] h-[120px] rounded-b-full border-b-2 border-dashed border-white/10 mask-image-gradient"></div>
+                 <div className="w-[280px] h-[140px] rounded-b-full border-b-2 border-dashed border-white/10 mask-image-gradient"></div>
             </div>
 
             {/* Main Orb */}
@@ -74,14 +101,36 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
 
             {/* Satellites */}
             {menuItems.map((item, index) => {
-                // Distribute items in a semi-circle below the main button
-                const angleDegree = 160 - (index * 40); // From 160deg (left-down) to 40deg (right-down)
+                // Distribute items in a semi-circle below the main button (180 degrees)
+                const totalAngle = 180;
+                const startAngle = 180; // Left
+                const step = totalAngle / (menuItems.length - 1);
+                const angleDegree = startAngle - (index * step);
                 const angleRad = (angleDegree * Math.PI) / 180;
                 
                 const x = radius * Math.cos(angleRad);
-                const y = radius * Math.sin(angleRad);
+                const y = radius * Math.sin(angleRad); // Positive Y is down in CSS transform usually? No, standard trig Y is up, but CSS top/left...
+                // Actually let's test. translate(x, y).
+                // We want them BELOW. So Y should be positive.
+                // cos(180) = -1 (Left), sin(180) = 0.
+                // We want semi-circle DOWN.
+                // Angles: 180 (Left) -> 360 (Right).
+                // Or 0 (Right) -> 180 (Left) but Y positive.
 
-                // Animation calculation
+                // Let's use:
+                // Index 0: Left (-x, 0y) -> Angle 180
+                // Index 4: Right (+x, 0y) -> Angle 0
+                // Index 2: Bottom (0x, +y) -> Angle 90
+
+                // So angle goes from 180 down to 0.
+                // x = r * cos(angle)
+                // y = r * sin(angle)
+
+                // Wait, sin(180) is 0. sin(90) is 1. sin(0) is 0.
+                // So Y will be positive (down) for 0-180 range if we map it right.
+                // Actually screen coords Y increases downwards.
+                // sin(0)=0, sin(90)=1, sin(180)=0. Perfect.
+
                 const style = isOpen 
                     ? {
                         transform: `translate(${x}px, ${y}px) scale(1)`,
