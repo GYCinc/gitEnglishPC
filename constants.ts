@@ -1,4 +1,4 @@
-import { ExerciseType, Difficulty, Tone } from './types';
+import { ExerciseType, Difficulty, Tone } from './enums';
 
 export const DIFFICULTY_LEVELS = Object.values(Difficulty);
 export const TONES = Object.values(Tone);

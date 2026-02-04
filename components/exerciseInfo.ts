@@ -1,5 +1,5 @@
 
-import { ExerciseType, Difficulty } from '../types';
+import { ExerciseType, Difficulty } from '../enums';
 
 export interface ExerciseInfo {
   name: string;

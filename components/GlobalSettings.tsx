@@ -1,5 +1,5 @@
 import React from 'react';
-import { Difficulty, Tone } from '../types';
+import { Difficulty, Tone } from '../enums';
 import { DIFFICULTY_LEVELS, TONES, DIFFICULTY_LABELS } from '../constants';
 // Add SettingsIcon import
 import { DifficultyIcon, ToneIcon, ThemeIcon, InfoIcon, XMarkIcon, SettingsIcon } from './icons'; // XMarkIcon added

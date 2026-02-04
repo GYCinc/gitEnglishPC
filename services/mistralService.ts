@@ -1,4 +1,4 @@
-import { ExerciseType, Difficulty, Tone } from '../types';
+import { ExerciseType, Difficulty, Tone } from '../enums';
 
 // Ensure MISTRAL_API_KEY is set in the environment
 const apiKey = process.env.MISTRAL_API_KEY || "DUMMY_KEY_FOR_VERIFICATION";

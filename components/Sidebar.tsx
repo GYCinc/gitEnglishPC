@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { EXERCISE_CATEGORIES, PEDAGOGY_COLORS, EXERCISE_PEDAGOGY } from '../constants';
-import { ExerciseType } from '../types';
+import { ExerciseType } from '../enums';
 import { EXERCISE_INFO } from './exerciseInfo';
 import { 
     ChevronDownIcon, 

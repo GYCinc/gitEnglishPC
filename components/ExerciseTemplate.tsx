@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ExerciseType } from '../types';
+import { ExerciseType } from '../enums';
 
 // Helper components for building templates
 const TemplateBox: React.FC<{ className?: string, children?: React.ReactNode }> = ({ className = '', children }) => (

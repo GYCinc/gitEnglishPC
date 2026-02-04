@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ExerciseBlock from './ExerciseBlock';
 import { SnapLinesOverlay } from './SnapLinesOverlay'; // Bolt Optimization
-import { ExerciseType, ExerciseBlockState } from '../types';
+import { ExerciseType } from '../enums';
+import { ExerciseBlockState } from '../types';
 import { MagicWandIcon } from './icons';
 import { useActivityLogger } from '../ActivityContext'; // Import logger context
 

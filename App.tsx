@@ -3,7 +3,7 @@ import Sidebar from './components/Sidebar';
 import Whiteboard from './components/Whiteboard';
 import RadialMenu from './components/RadialMenu'; // New import
 import GlobalSettings from './components/GlobalSettings'; // Refactored GlobalSettings
-import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from './types';
+import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from './enums';
 import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration, DIFFICULTY_LEVELS } from './constants';
 import { MenuIcon } from './components/icons';
 import { GamificationProvider } from './GamificationContext';

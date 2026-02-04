@@ -1,4 +1,4 @@
-import { ExerciseType } from '../types';
+import { ExerciseType } from '../enums';
 
 export const EXERCISE_INSTRUCTIONS: Partial<Record<ExerciseType, string>> = {
   [ExerciseType.FITB]: 'Drag a word from the word bank to fill in the blank.',
