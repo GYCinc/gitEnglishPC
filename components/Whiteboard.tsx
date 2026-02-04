@@ -98,7 +98,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       // Performance Optimization: Update background translation independently without scale
       // This avoids re-rasterizing the grid pattern on zoom (which changes scale but not pan directly here)
       if (backgroundRef.current) {
-          backgroundRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px)`;
+          backgroundRef.current.style.backgroundPosition = `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`;
       }
     }
   };
@@ -293,7 +293,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
           canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`;
       }
       if (backgroundRef.current) {
-          backgroundRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px)`;
+          backgroundRef.current.style.backgroundPosition = `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`;
       }
       logger?.logFocusItem('Movement', 'Center on Block', 0.1, null, 1, [], `Block: ${block.exerciseType}, Pos: (${block.x.toFixed(0)}, ${block.y.toFixed(0)})`);
   };
@@ -336,13 +336,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
         <div 
             ref={backgroundRef}
             id="whiteboard-background"
-            className="absolute top-0 left-0 w-full h-full transition-transform duration-75 ease-out origin-top-left pointer-events-none"
+            className="absolute inset-0 w-full h-full transition-all duration-75 ease-out pointer-events-none"
             style={{ 
-                transform: `translate(${pan.current.x}px, ${pan.current.y}px)`, // No scale
-                backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)',
-                backgroundSize: '20px 20px', // Fixed size
-                width: '100000px', // Massive virtual size
-                height: '100000px',
+                backgroundPosition: `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`,
+                backgroundImage: 'radial-gradient(rgba(148, 163, 184, 0.4) 1px, transparent 1px)',
+                backgroundSize: '20px 20px',
             }}
         />
 
