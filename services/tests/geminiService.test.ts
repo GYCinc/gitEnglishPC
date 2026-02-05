@@ -1,29 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateExercises } from '../geminiService';
 import { ExerciseType, Difficulty, Tone } from '../../enums';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// Mock the GoogleGenerativeAI class and its methods
-const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
-  generateContent: mockGenerateContent,
-}));
-
-vi.mock('@google/generative-ai', () => {
-  return {
-    GoogleGenerativeAI: vi.fn(() => ({
-      getGenerativeModel: mockGetGenerativeModel,
-    })),
-    SchemaType: {
-      STRING: 'STRING',
-      ARRAY: 'ARRAY',
-      OBJECT: 'OBJECT',
-    },
-    Modality: {
-        IMAGE: 'IMAGE'
-    }
-  };
-});
 
 describe('geminiService', () => {
   const originalEnv = process.env;
@@ -31,14 +8,12 @@ describe('geminiService', () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
-    mockGenerateContent.mockClear();
-    mockGetGenerativeModel.mockClear();
-    // Clear the class mock
-    (GoogleGenerativeAI as any).mockClear();
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {
     process.env = originalEnv;
+    vi.restoreAllMocks();
   });
 
   it('should use dummy data when API_KEY is missing', async () => {
@@ -58,16 +33,22 @@ describe('geminiService', () => {
     expect(result[0].question).toContain('This is a [BLANK] sentence');
   });
 
-  it('should call Gemini API when API_KEY is present', async () => {
+  it('should call Gemini REST API when API_KEY is present', async () => {
     process.env.API_KEY = 'test-key';
 
-    // Mock successful response
     const mockResponse = {
-      response: {
-        text: () => JSON.stringify([{ question: 'Test?', answer: 'Yes', wordBank: ['Yes', 'No'] }]),
-      },
+        ok: true,
+        json: async () => ({
+            candidates: [{
+                content: {
+                    parts: [{
+                        text: JSON.stringify([{ question: 'REST Q?', answer: 'A', wordBank: ['A'] }])
+                    }]
+                }
+            }]
+        })
     };
-    mockGenerateContent.mockResolvedValue(mockResponse);
+    (global.fetch as any).mockResolvedValue(mockResponse);
 
     const result = await generateExercises(
       ExerciseType.FITB,
@@ -81,21 +62,24 @@ describe('geminiService', () => {
       0
     );
 
-    // Verify instantiation
-    // expect(GoogleGenerativeAI).toHaveBeenCalledWith('test-key');
-    // Verify model retrieval
-    // expect(mockGetGenerativeModel).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-2.0-flash' }));
-    // Verify generation
-    expect(mockGenerateContent).toHaveBeenCalled();
-
-    // Verify result parsing
+    expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'),
+        expect.objectContaining({
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+    );
     expect(result).toHaveLength(1);
-    expect(result[0].question).toBe('Test?');
+    expect(result[0].question).toBe('REST Q?');
   });
 
-  it('should handle API errors gracefully', async () => {
+  it('should handle REST API errors gracefully', async () => {
      process.env.API_KEY = 'test-key';
-     mockGenerateContent.mockRejectedValue(new Error('API Error'));
+     const mockResponse = {
+         ok: false,
+         statusText: "Bad Request"
+     };
+     (global.fetch as any).mockResolvedValue(mockResponse);
 
      const result = await generateExercises(
       ExerciseType.FITB,

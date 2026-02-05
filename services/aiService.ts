@@ -1,10 +1,12 @@
 import * as mistral from './mistralService';
-import * as gemini from './geminiService';
+import * as deepseek from './deepSeekService';
 import { ExerciseType, Difficulty, Tone } from '../enums';
 
 /**
- * Unified AI Service that delegates to the available provider.
- * Priority: Mistral > Gemini > Dummy (handled by providers).
+ * Unified AI Service.
+ * Routing Logic:
+ * - Fast tasks (checkAnswer) -> Mistral
+ * - Long tasks (generateExercises) -> DeepSeek
  */
 
 export const generateExercises = async (
@@ -18,23 +20,8 @@ export const generateExercises = async (
   focusGrammar: string[],
   grammarInclusionRate: number
 ) => {
-  if (process.env.MISTRAL_API_KEY) {
-    console.log("Using Mistral AI for exercise generation.");
-    return mistral.generateExercises(
-      exerciseType,
-      difficulty,
-      tone,
-      theme,
-      amount,
-      focusVocabulary,
-      inclusionRate,
-      focusGrammar,
-      grammarInclusionRate
-    );
-  }
-
-  console.log("Using Gemini AI (or Dummy) for exercise generation.");
-  return gemini.generateExercises(
+  console.log("Routing generation task to DeepSeek.");
+  return deepseek.generateExercises(
     exerciseType,
     difficulty,
     tone,
@@ -52,8 +39,6 @@ export const checkAnswerWithAI = async (
   exerciseContext: any,
   userResponse: any
 ) => {
-  if (process.env.MISTRAL_API_KEY) {
-    return mistral.checkAnswerWithAI(exerciseType, exerciseContext, userResponse);
-  }
-  return gemini.checkAnswerWithAI(exerciseType, exerciseContext, userResponse);
+  console.log("Routing checkAnswer task to Mistral.");
+  return mistral.checkAnswerWithAI(exerciseType, exerciseContext, userResponse);
 };

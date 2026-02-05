@@ -1,45 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { generateExercises } from '../aiService';
+import { generateExercises, checkAnswerWithAI } from '../aiService';
 import * as mistral from '../mistralService';
-import * as gemini from '../geminiService';
+import * as deepseek from '../deepSeekService';
 import { ExerciseType, Difficulty, Tone } from '../../enums';
 
 vi.mock('../mistralService');
-vi.mock('../geminiService');
+vi.mock('../deepSeekService');
 
-describe('aiService', () => {
-    const originalEnv = process.env;
-
-    beforeEach(() => {
-        process.env = { ...originalEnv };
-        vi.clearAllMocks();
-    });
-
-    afterEach(() => {
-        process.env = originalEnv;
-    });
-
-    it('should prefer Mistral if MISTRAL_API_KEY is set', async () => {
-        process.env.MISTRAL_API_KEY = 'exists';
-        process.env.API_KEY = 'exists'; // Gemini also exists
-
+describe('aiService Routing', () => {
+    it('should route generateExercises to DeepSeek', async () => {
         await generateExercises(
             ExerciseType.FITB, Difficulty.A1, Tone.Casual, 'test', 1, [], 0, [], 0
         );
-
-        expect(mistral.generateExercises).toHaveBeenCalled();
-        expect(gemini.generateExercises).not.toHaveBeenCalled();
-    });
-
-    it('should fallback to Gemini if MISTRAL_API_KEY is missing', async () => {
-        delete process.env.MISTRAL_API_KEY;
-        process.env.API_KEY = 'exists';
-
-        await generateExercises(
-            ExerciseType.FITB, Difficulty.A1, Tone.Casual, 'test', 1, [], 0, [], 0
-        );
-
+        expect(deepseek.generateExercises).toHaveBeenCalled();
         expect(mistral.generateExercises).not.toHaveBeenCalled();
-        expect(gemini.generateExercises).toHaveBeenCalled();
+    });
+
+    it('should route checkAnswerWithAI to Mistral', async () => {
+        await checkAnswerWithAI('type', {}, 'response');
+        expect(mistral.checkAnswerWithAI).toHaveBeenCalled();
+        // DeepSeek doesn't have checkAnswer exported/mocked in this context but logically we check mistral was called
     });
 });
