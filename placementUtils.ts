@@ -8,86 +8,69 @@ interface Point {
 const PADDING = 50;
 const GRID_STEP = 50;
 const CANVAS_SIZE = 3000;
-const BIN_SIZE = 500;
 
 /**
- * Finds a free position for a new block using Spatial Hashing (Binning).
- * Optimization: Instead of checking every block (O(N)), we checks only blocks in nearby bins.
- * This changes the complexity from O(Grid * N) to O(Grid * Density), providing
- * significant speedups when N is large.
+ * Finds a free position for a new block using an Occupancy Grid.
+ * Optimization: Uses a Uint8Array grid where each cell represents a 50x50 area.
+ * This allows O(1) checks for occupancy relative to N (number of existing blocks),
+ * ensuring performance remains stable even with thousands of blocks.
  */
 export function findFreePosition(
   prevBlocks: ExerciseBlockState[],
   newBlockWidth: number,
   newBlockHeight: number
 ): Point {
-  const COLS = Math.ceil(CANVAS_SIZE / BIN_SIZE);
-  const ROWS = Math.ceil(CANVAS_SIZE / BIN_SIZE);
+  const GRID_ROWS = Math.ceil(CANVAS_SIZE / GRID_STEP);
+  const GRID_COLS = Math.ceil(CANVAS_SIZE / GRID_STEP);
+  // 0 = free, 1 = occupied
+  const grid = new Uint8Array(GRID_ROWS * GRID_COLS);
 
-  // Initialize spatial bins
-  const bins: ExerciseBlockState[][][] = Array.from({ length: ROWS }, () =>
-    Array.from({ length: COLS }, () => [])
-  );
-
-  // Fill bins with existing blocks
+  // Mark occupied cells
   for (const b of prevBlocks) {
-    // Determine which bins this block touches (considering PADDING influence)
-    // We expand the block's "presence" by PADDING so that when we query a bin,
-    // we find any block that could overlap a candidate in that bin.
-    const minX = Math.floor((b.x - PADDING) / BIN_SIZE);
-    const maxX = Math.floor((b.x + b.width + PADDING) / BIN_SIZE);
-    const minY = Math.floor((b.y - PADDING) / BIN_SIZE);
-    const maxY = Math.floor((b.y + b.height + PADDING) / BIN_SIZE);
+    const startX = b.x - PADDING;
+    const endX = b.x + b.width + PADDING;
+    const startY = b.y - PADDING;
+    const endY = b.y + b.height + PADDING;
 
-    for (let by = Math.max(0, minY); by <= Math.min(ROWS - 1, maxY); by++) {
-      for (let bx = Math.max(0, minX); bx <= Math.min(COLS - 1, maxX); bx++) {
-        bins[by][bx].push(b);
+    const minGx = Math.max(0, Math.floor(startX / GRID_STEP));
+    const maxGx = Math.min(GRID_COLS - 1, Math.floor((endX - 1) / GRID_STEP));
+    const minGy = Math.max(0, Math.floor(startY / GRID_STEP));
+    const maxGy = Math.min(GRID_ROWS - 1, Math.floor((endY - 1) / GRID_STEP));
+
+    for (let gy = minGy; gy <= maxGy; gy++) {
+      const rowOffset = gy * GRID_COLS;
+      for (let gx = minGx; gx <= maxGx; gx++) {
+        grid[rowOffset + gx] = 1;
       }
     }
   }
 
-  // Iterate through grid points to find a non-overlapping spot
-  for (let y = PADDING; y < CANVAS_SIZE; y += GRID_STEP) {
-    // Determine bins the CANDIDATE block would touch
-    const cMinY = Math.floor(y / BIN_SIZE);
-    const cMaxY = Math.floor((y + newBlockHeight) / BIN_SIZE);
+  const reqColsW = Math.ceil(newBlockWidth / GRID_STEP);
+  const reqRowsH = Math.ceil(newBlockHeight / GRID_STEP);
 
-    for (let x = PADDING; x < CANVAS_SIZE; x += GRID_STEP) {
-      const cMinX = Math.floor(x / BIN_SIZE);
-      const cMaxX = Math.floor((x + newBlockWidth) / BIN_SIZE);
+  const startG = Math.floor(PADDING / GRID_STEP);
 
-      let hasOverlap = false;
+  for (let gy = startG; gy <= GRID_ROWS - reqRowsH; gy++) {
+     for (let gx = startG; gx <= GRID_COLS - reqColsW; gx++) {
+         let occupied = false;
 
-      // Check only relevant bins
-      outerCheck:
-      for (let by = cMinY; by <= cMaxY; by++) {
-        if (by >= ROWS) break;
-        for (let bx = cMinX; bx <= cMaxX; bx++) {
-          if (bx >= COLS) break;
+         checkLoop:
+         for (let cy = 0; cy < reqRowsH; cy++) {
+             const checkRowOffset = (gy + cy) * GRID_COLS;
+             for (let cx = 0; cx < reqColsW; cx++) {
+                 if (grid[checkRowOffset + gx + cx] === 1) {
+                     occupied = true;
+                     gx += cx; // Optimization: skip past blockage
+                     break checkLoop;
+                 }
+             }
+         }
 
-          const bin = bins[by][bx];
-          for (const existingBlock of bin) {
-            // Strict overlap check (matches original logic)
-            // Note: PADDING is applied to both sides effectively
-            if (
-              x < existingBlock.x + existingBlock.width + PADDING &&
-              x + newBlockWidth + PADDING > existingBlock.x &&
-              y < existingBlock.y + existingBlock.height + PADDING &&
-              y + newBlockHeight + PADDING > existingBlock.y
-            ) {
-              hasOverlap = true;
-              break outerCheck;
-            }
-          }
-        }
-      }
-
-      if (!hasOverlap) {
-        return { x, y };
-      }
-    }
+         if (!occupied) {
+             return { x: gx * GRID_STEP, y: gy * GRID_STEP };
+         }
+     }
   }
 
-  // Fallback to top-left if no space found (matches original behavior)
   return { x: PADDING, y: PADDING };
 }
