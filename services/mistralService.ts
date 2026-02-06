@@ -1,10 +1,5 @@
 import { ExerciseType, Difficulty, Tone } from '../enums';
 
-// Ensure MISTRAL_API_KEY is set in the environment
-const apiKey = process.env.MISTRAL_API_KEY || "DUMMY_KEY_FOR_VERIFICATION";
-if (!process.env.MISTRAL_API_KEY) {
-  console.warn("MISTRAL_API_KEY environment variable not set. Mistral API calls will fail or be mocked.");
-}
 
 /**
  * Constructs the prompt and schema for exercise generation based on input parameters.
@@ -842,7 +837,7 @@ export const generateExercises = async (
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+        "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`
       },
       body: JSON.stringify({
         model: "mistral-large-latest", // Using Mistral's most capable model
@@ -916,7 +911,7 @@ export const checkAnswerWithAI = async (
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+        "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`
       },
       body: JSON.stringify({
         model: "mistral-small-latest", // Using Mistral's efficient model for quick feedback
