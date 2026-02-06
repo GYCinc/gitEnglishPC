@@ -338,7 +338,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
         <div 
             ref={backgroundRef}
             id="whiteboard-background"
-            className="absolute inset-0 w-full h-full transition-all duration-75 ease-out pointer-events-none"
+            className="absolute inset-0 w-full h-full pointer-events-none"
             style={{ 
                 backgroundPosition: `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`,
                 backgroundImage: 'radial-gradient(rgba(148, 163, 184, 0.4) 1px, transparent 1px)',
@@ -349,7 +349,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
         <div
             ref={canvasRef}
             id="whiteboard-content"
-            className="absolute top-0 left-0 w-full h-full transition-transform duration-75 ease-out origin-top-left"
+            className="absolute top-0 left-0 w-full h-full origin-top-left"
             style={{
                 transform: `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`,
                 width: '100000px',
