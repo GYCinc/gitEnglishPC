@@ -505,6 +505,17 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     const [isLoading, setIsLoading] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+    // Local position state for smooth dragging (uncontrolled by parent state during drag)
+    const [localPos, setLocalPos] = useState({ x, y });
+    const [isDragging, setIsDragging] = useState(false);
+
+    // Sync local state when props change (only if not dragging to prevent jitter)
+    useEffect(() => {
+        if (!isDragging) {
+             setLocalPos({ x, y });
+        }
+    }, [x, y, isDragging]);
+
     // Performance Optimization: Local state for Rnd scale
     // We avoid passing the changing 'scale' prop directly to prevent re-rendering all blocks on zoom.
     // Instead, we update this local state only when interaction starts.
@@ -687,7 +698,9 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     // Stable handlers to create interaction data and pass to parent
     // Optimization: Use blockStateRef to keep these callbacks stable (avoid recreation on every drag frame)
     const handleDrag: RndDragCallback = useCallback((e, data) => {
-        onInteraction(id, { ...blockStateRef.current, x: data.x, y: data.y });
+        const newPos = { x: data.x, y: data.y };
+        setLocalPos(newPos);
+        onInteraction(id, { ...blockStateRef.current, ...newPos });
     }, [id, onInteraction]);
 
     const handleDragStop: RndDragCallback = useCallback((e, data) => {
@@ -730,9 +743,13 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     return (
         <Rnd
             size={isPresenting ? { width: '100%', height: '100%' } : { width, height }}
-            position={isPresenting ? { x: 0, y: 0 } : { x, y }}
+            position={isPresenting ? { x: 0, y: 0 } : localPos}
+            onDragStart={() => setIsDragging(true)}
             onDrag={handleDrag}
-            onDragStop={handleDragStop}
+            onDragStop={(e, d) => {
+                setIsDragging(false);
+                handleDragStop(e, d);
+            }}
             onResize={handleResize}
             onResizeStop={handleResizeStop}
             disableDragging={isPresenting}
