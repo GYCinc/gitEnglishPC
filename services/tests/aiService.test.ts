@@ -1,19 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateExercises, checkAnswerWithAI } from '../aiService';
 import * as mistral from '../mistralService';
-import * as deepseek from '../deepSeekService';
 import { ExerciseType, Difficulty, Tone } from '../../enums';
 
 vi.mock('../mistralService');
-vi.mock('../deepSeekService');
 
 describe('aiService Routing', () => {
-    it('should route generateExercises to DeepSeek', async () => {
+    it('should route generateExercises to Mistral', async () => {
         await generateExercises(
             ExerciseType.FITB, Difficulty.A1, Tone.Casual, 'test', 1, [], 0, [], 0
         );
-        expect(deepseek.generateExercises).toHaveBeenCalled();
-        expect(mistral.generateExercises).not.toHaveBeenCalled();
+        expect(mistral.generateExercises).toHaveBeenCalled();
     });
 
     it('should route checkAnswerWithAI to Mistral', async () => {

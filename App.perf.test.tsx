@@ -5,25 +5,26 @@ import App from './App';
 import React from 'react';
 
 // Mock child components
-vi.mock('./components/Sidebar', () => ({
-  default: ({ setInclusionRate, setFocusVocabulary, setFocusGrammar, setGrammarInclusionRate, onAddExercise }: any) => {
+vi.mock('./components/Sidebar', () => ({ default: () => <div /> }));
+vi.mock('./components/Whiteboard', () => ({ default: () => <div /> }));
+vi.mock('./components/GlobalSettings', () => ({ default: () => <div /> }));
+vi.mock('./components/GamificationHUD', () => ({ default: () => <div /> }));
+
+// Mock RadialMenu to expose a way to trigger state updates (difficulty)
+vi.mock('./components/RadialMenu', () => ({
+  default: ({ onCycleDifficulty }: any) => {
     return (
-      <div data-testid="sidebar">
+      <div data-testid="radial-menu">
         <button
-            onClick={() => setInclusionRate((prev: number) => prev + 1)}
-            data-testid="update-inclusion-rate"
+            onClick={onCycleDifficulty}
+            data-testid="cycle-difficulty"
         >
-            Update Inclusion Rate
+            Cycle Difficulty
         </button>
       </div>
     );
   }
 }));
-
-vi.mock('./components/Whiteboard', () => ({ default: () => <div /> }));
-vi.mock('./components/RadialMenu', () => ({ default: () => <div /> }));
-vi.mock('./components/GlobalSettings', () => ({ default: () => <div /> }));
-vi.mock('./components/GamificationHUD', () => ({ default: () => <div /> }));
 
 describe('App Performance', () => {
   beforeEach(() => {
@@ -39,7 +40,7 @@ describe('App Performance', () => {
 
   it('debounces localStorage updates for high-frequency state changes', () => {
     const { getByTestId } = render(<App />);
-    const updateBtn = getByTestId('update-inclusion-rate');
+    const updateBtn = getByTestId('cycle-difficulty');
 
     const UPDATE_COUNT = 20;
 
@@ -53,10 +54,10 @@ describe('App Performance', () => {
     });
 
     const calls = vi.mocked(localStorage.setItem).mock.calls;
-    const inclusionRateCallsBefore = calls.filter(call => call[0] === 'practiceGenie-inclusionRate');
+    const difficultyCallsBefore = calls.filter(call => call[0] === 'practiceGenie-difficulty');
 
     // Should be 0 because we haven't advanced timers yet
-    expect(inclusionRateCallsBefore.length).toBe(0);
+    expect(difficultyCallsBefore.length).toBe(0);
 
     // Advance timers to trigger debounce
     act(() => {
@@ -64,11 +65,11 @@ describe('App Performance', () => {
     });
 
     const callsAfter = vi.mocked(localStorage.setItem).mock.calls;
-    const inclusionRateCallsAfter = callsAfter.filter(call => call[0] === 'practiceGenie-inclusionRate');
+    const difficultyCallsAfter = callsAfter.filter(call => call[0] === 'practiceGenie-difficulty');
 
     // Should be exactly 1 call now
-    expect(inclusionRateCallsAfter.length).toBe(1);
+    expect(difficultyCallsAfter.length).toBe(1);
 
-    console.log(`Optimization Verified: ${inclusionRateCallsAfter.length} write for ${UPDATE_COUNT} updates.`);
+    console.log(`Optimization Verified: ${difficultyCallsAfter.length} write for ${UPDATE_COUNT} updates.`);
   });
 });
