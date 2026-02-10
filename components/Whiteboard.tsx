@@ -177,8 +177,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
         if (backgroundRef.current) {
             backgroundRef.current.style.backgroundPosition = `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`;
         }
-
-        logger?.logFocusItem('Movement', 'Canvas Zoom', 0.1, null, 1, [], `Scale: ${newScale.toFixed(2)}`);
     }
     setScale(newScale);
   };
@@ -191,6 +189,20 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       // Update transform whenever scale changes via state (for wheel)
       updateTransform();
   }, [scale]);
+
+  const isFirstRender = useRef(true);
+  // Debounced activity logging for Zoom
+  useEffect(() => {
+    if (isFirstRender.current) {
+        isFirstRender.current = false;
+        return;
+    }
+    const timeout = setTimeout(() => {
+        logger?.logFocusItem('Movement', 'Canvas Zoom', 0.1, null, 1, [], `Scale: ${scale.toFixed(2)}`);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [scale, logger]);
 
   const handleContextMenu = (e: React.MouseEvent) => {
       e.preventDefault();
