@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import ExerciseBlock from './ExerciseBlock';
+import { BlocksLayer } from './BlocksLayer';
 import { SnapLinesOverlay } from './SnapLinesOverlay';
 import { ExerciseType } from '../enums';
 import { ExerciseBlockState } from '../types';
@@ -301,11 +301,24 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   }, [calculateSnapping]);
   
   const handleInteractionStop = useCallback((blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => {
-      onUpdateBlock(blockId, finalPos);
+      // Recalculate snap on drop to ensure the block lands on the line
+      const currentBlocks = blocksRef.current;
+      const block = currentBlocks.find(b => b.id === blockId);
+
+      let finalX = finalPos.x;
+      let finalY = finalPos.y;
+
+      if (block) {
+          const { snappedX, snappedY } = calculateSnapping(block, currentBlocks, finalPos);
+          finalX = snappedX;
+          finalY = snappedY;
+      }
+
+      onUpdateBlock(blockId, { ...finalPos, x: finalX, y: finalY });
       setActiveInteraction(null);
       setSnapLines([]);
       snapPointsCache.current = null;
-  }, [onUpdateBlock]);
+  }, [onUpdateBlock, calculateSnapping]);
 
   const handleFocus = useCallback((blockId: number) => {
       onFocusBlock(blockId);
@@ -361,30 +374,20 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
         >
             <SnapLinesOverlay lines={snapLines} scale={scale} />
 
-            {blocks.map(block => {
-                const isDragging = activeInteraction?.blockId === block.id;
-                const effectiveBlockState = isDragging
-                    ? { ...block, ...activeInteraction }
-                    : block;
-
-                return (
-                    <ExerciseBlock
-                        key={block.id}
-                        blockState={effectiveBlockState}
-                        onUpdate={onUpdateBlock}
-                        onRemove={onRemoveBlock}
-                        onFocus={handleFocus}
-                        onInteraction={handleInteraction}
-                        onInteractionStop={handleInteractionStop}
-                        isPresenting={presentingBlockId === block.id}
-                        onEnterPresentation={onEnterPresentation}
-                        onExitPresentation={onExitPresentation}
-                        onNextSlide={onNextSlide}
-                        onPrevSlide={onPrevSlide}
-                        scaleRef={scaleRef}
-                    />
-                );
-            })}
+            <BlocksLayer
+                blocks={blocks}
+                onUpdateBlock={onUpdateBlock}
+                onRemoveBlock={onRemoveBlock}
+                onFocusBlock={handleFocus}
+                onInteraction={handleInteraction}
+                onInteractionStop={handleInteractionStop}
+                presentingBlockId={presentingBlockId}
+                onEnterPresentation={onEnterPresentation}
+                onExitPresentation={onExitPresentation}
+                onNextSlide={onNextSlide}
+                onPrevSlide={onPrevSlide}
+                scaleRef={scaleRef}
+            />
         </div>
     </main>
   );
