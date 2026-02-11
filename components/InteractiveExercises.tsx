@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
     ExerciseType, IFITBExercise, ICollocationExercise, IPhrasalVerbGapFillExercise, 
     IWordFormationExercise, IMultipleChoiceExercise, IPredictionExercise, IRuleDiscoveryExercise, 
@@ -355,8 +355,18 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
 
 export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExercise | IDialogueCompletionExercise; colors: any; }> = ({ exercise, colors }) => {
     const text = 'paragraph' in exercise ? exercise.paragraph : exercise.dialogue;
-    const textParts = text.split('[BLANK]');
     
+    // Memoize text processing to avoid expensive split operations on every render
+    const processedParts = useMemo(() => {
+        return text.split('[BLANK]').map((part, partIndex) => {
+            return part.split(/(\n)/g).map((line, lineIndex) => ({
+                id: `${partIndex}-${lineIndex}`,
+                isBreak: line === '\n',
+                content: line
+            }));
+        });
+    }, [text]);
+
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -397,12 +407,12 @@ export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExe
     return (
         <div className={`text-base leading-loose font-casual ${colors.textOnLight}`}>
             <Confetti active={showConfetti} />
-            {textParts.map((part, index) => (
+            {processedParts.map((lines, index) => (
                 <React.Fragment key={index}>
-                    {part.split(/(\\n)/g).map((line, lineIndex) => 
-                      line === '\n' ? <br key={lineIndex} /> : <span key={lineIndex}>{line}</span>
+                    {lines.map((lineObj) =>
+                      lineObj.isBreak ? <br key={lineObj.id} /> : <span key={lineObj.id}>{lineObj.content}</span>
                     )}
-                    {index < textParts.length - 1 && (
+                    {index < processedParts.length - 1 && (
                         <select 
                             value={answers[index] || ''}
                             onChange={(e) => handleChange(index, e.target.value)}

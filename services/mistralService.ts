@@ -804,6 +804,13 @@ export const generateExercises = async (
               correctAnswer: "Option A"
           }));
       }
+      if (exerciseType === ExerciseType.ClozeParagraph) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              paragraph: `This is a dummy [BLANK] for testing.\nIt has multiple [BLANK] to verify rendering.\nEven newlines are [BLANK].`,
+              answers: ["paragraph", "lines", "supported"],
+              wordBank: ["paragraph", "lines", "supported", "distractor1", "distractor2"]
+          }));
+      }
       // Add more dummy data types if needed, otherwise fallback to error
       return { error: "Dummy data not implemented for this type." };
   }
