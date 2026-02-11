@@ -14,7 +14,7 @@ vi.mock('../ActivityLogger', () => {
         logFocusItem: vi.fn(),
     };
     return {
-        ActivityLogger: vi.fn().mockImplementation(() => mockLogger)
+        ActivityLogger: vi.fn().mockImplementation(function() { return mockLogger; })
     };
 });
 

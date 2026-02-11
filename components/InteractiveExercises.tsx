@@ -193,13 +193,25 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
     );
 };
 
+const MCQOptionButton = React.memo(({ option, onClick, disabled, className }: { option: string, onClick: (option: string) => void, disabled: boolean, className: string }) => {
+    const handleClick = React.useCallback(() => {
+        onClick(option);
+    }, [onClick, option]);
+
+    return (
+        <button onClick={handleClick} disabled={disabled} className={`p-3 rounded-xl text-sm font-bold text-left transition-all duration-200 ${className}`}>
+            {option}
+        </button>
+    );
+});
+
 export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPredictionExercise | IRuleDiscoveryExercise | ISpotTheDifferenceExercise | IPolitenessScenariosExercise | IInferringMeaningExercise; colors: any; }> = ({ exercise, colors }) => {
     const [selected, setSelected] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const { addXP, checkStreak } = useGamification();
     const [showConfetti, setShowConfetti] = useState(false);
 
-    const handleClick = (option: string) => {
+    const handleClick = React.useCallback((option: string) => {
         if (isAnswered) return;
         setSelected(option);
         setIsAnswered(true);
@@ -214,7 +226,7 @@ export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPre
         } else {
             soundEffects.playIncorrect();
         }
-    };
+    }, [isAnswered, exercise.correctAnswer, addXP, checkStreak]);
 
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
@@ -256,9 +268,13 @@ export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPre
                         else buttonClass = 'bg-slate-100 text-slate-400 border-slate-200 opacity-60';
                     }
                     return (
-                        <button key={option} onClick={() => handleClick(option)} disabled={isAnswered} className={`p-3 rounded-xl text-sm font-bold text-left transition-all duration-200 ${buttonClass}`}>
-                            {option}
-                        </button>
+                        <MCQOptionButton
+                            key={option}
+                            option={option}
+                            onClick={handleClick}
+                            disabled={isAnswered}
+                            className={buttonClass}
+                        />
                     );
                 })}
             </div>
