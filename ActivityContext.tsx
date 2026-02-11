@@ -30,28 +30,27 @@ interface ActivityLoggerProviderProps {
 
 export const ActivityLoggerProvider: React.FC<ActivityLoggerProviderProps> = ({ children, moduleId }) => {
   const [studentId, setStudentId] = useState<string | null>(() => localStorage.getItem('studentId') || null);
-  const loggerRef = useRef<ActivityLogger | null>(null);
+  const [logger, setLogger] = useState<ActivityLogger | null>(null);
 
   // Initialize logger only once or when studentId/moduleId changes
   useEffect(() => {
+    let newLogger: ActivityLogger | null = null;
     if (studentId) {
       localStorage.setItem('studentId', studentId);
-      loggerRef.current = new ActivityLogger(moduleId, studentId);
-      loggerRef.current.startSession();
+      newLogger = new ActivityLogger(moduleId, studentId);
+      newLogger.startSession();
+      setLogger(newLogger);
     } else {
       localStorage.removeItem('studentId');
-      // If studentId is cleared, end current session and clear logger
-      if (loggerRef.current) {
-        loggerRef.current.endSession();
-        loggerRef.current = null;
-      }
+      setLogger(null);
     }
 
     // Cleanup on unmount or if studentId is changed/cleared
     return () => {
-      if (loggerRef.current && studentId) {
-        loggerRef.current.endSession(); // Ensure session ends cleanly
-        loggerRef.current = null;
+      if (newLogger) {
+        newLogger.endSession(); // Ensure session ends cleanly
+      } else if (logger) {
+        logger.endSession();
       }
     };
   }, [studentId, moduleId]);
@@ -62,20 +61,20 @@ export const ActivityLoggerProvider: React.FC<ActivityLoggerProviderProps> = ({ 
 
   // Memoized functions to safely call logger methods
   const logFocusItem = useCallback((category: FocusCategory, concept: string, timeSpentSeconds: number, score: number | null = null, attempts: number = 1, errors: string[] = [], contentText: string | null = null) => {
-    loggerRef.current?.logFocusItem(category, concept, timeSpentSeconds, score, attempts, errors, contentText);
-  }, []);
+    logger?.logFocusItem(category, concept, timeSpentSeconds, score, attempts, errors, contentText);
+  }, [logger]);
 
   const startActivity = useCallback((activityId: string, type: ActivityType, name: string) => {
-    loggerRef.current?.startActivity(activityId, type, name);
-  }, []);
+    logger?.startActivity(activityId, type, name);
+  }, [logger]);
 
   const endActivity = useCallback(() => {
-    loggerRef.current?.endActivity();
-  }, []);
+    logger?.endActivity();
+  }, [logger]);
 
 
   const value = useMemo(() => ({
-    logger: loggerRef.current,
+    logger,
     studentId,
     setStudentId,
     moduleId,
@@ -83,7 +82,7 @@ export const ActivityLoggerProvider: React.FC<ActivityLoggerProviderProps> = ({ 
     logFocusItem,
     startActivity,
     endActivity,
-  }), [loggerRef.current, studentId, moduleId, isValidStudentId, logFocusItem, startActivity, endActivity]);
+  }), [logger, studentId, moduleId, isValidStudentId, logFocusItem, startActivity, endActivity]);
 
   return (
     <ActivityLoggerContext.Provider value={value}>
