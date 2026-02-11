@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
     ExerciseType, IFITBExercise, ICollocationExercise, IPhrasalVerbGapFillExercise, 
     IWordFormationExercise, IMultipleChoiceExercise, IPredictionExercise, IRuleDiscoveryExercise, 
@@ -571,37 +571,82 @@ export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionEx
     );
 };
 
+interface StoryPart { id: string; text: string; }
+
+const StoryPartItem = React.memo(({
+    part,
+    index,
+    onDragStart,
+    onDragEnter,
+    onDragEnd,
+    colors
+}: {
+    part: StoryPart;
+    index: number;
+    onDragStart: (e: React.DragEvent<HTMLLIElement>, index: number) => void;
+    onDragEnter: (e: React.DragEvent<HTMLLIElement>, index: number) => void;
+    onDragEnd: () => void;
+    colors: any;
+}) => {
+    return (
+        <li
+            draggable
+            onDragStart={(e) => onDragStart(e, index)}
+            onDragEnter={(e) => onDragEnter(e, index)}
+            onDragEnd={onDragEnd}
+            onDragOver={(e) => e.preventDefault()}
+            className={`p-3 rounded-xl cursor-grab active:cursor-grabbing bg-white border-2 ${colors.chip.border} shadow-sm hover:shadow-md transition-all`}
+        >
+            <span className="font-bold mr-2 text-slate-500">{index + 1}.</span> {part.text}
+        </li>
+    );
+});
+StoryPartItem.displayName = 'StoryPartItem';
+
 export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingExercise; colors: any; }> = ({ exercise, colors }) => {
-    const [parts, setParts] = useState(() => shuffleArray(exercise.storyParts || []));
+    const [parts, setParts] = useState<StoryPart[]>(() => {
+        const rawParts = exercise.storyParts || [];
+        const partsWithIds = rawParts.map((text, i) => ({ id: `part-${i}`, text }));
+        return shuffleArray(partsWithIds);
+    });
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
     const dragItem = useRef<number | null>(null);
     const dragOverItem = useRef<number | null>(null);
     const { addXP, checkStreak } = useGamification();
     const [showConfetti, setShowConfetti] = useState(false);
 
-    const handleDragStart = (e: React.DragEvent<HTMLLIElement>, index: number) => {
+    // Stable Handlers
+    const handleDragStart = useCallback((e: React.DragEvent<HTMLLIElement>, index: number) => {
         dragItem.current = index;
-    };
+    }, []);
     
-    const handleDragEnter = (e: React.DragEvent<HTMLLIElement>, index: number) => {
+    const handleDragEnter = useCallback((e: React.DragEvent<HTMLLIElement>, index: number) => {
         dragOverItem.current = index;
-    };
+    }, []);
 
-    const handleDragEnd = () => {
+    const handleDragEnd = useCallback(() => {
         if (dragItem.current !== null && dragOverItem.current !== null) {
-            const newParts = [...parts];
-            const draggedItemContent = newParts.splice(dragItem.current, 1)[0];
-            newParts.splice(dragOverItem.current, 0, draggedItemContent);
-            setParts(newParts);
+            setParts(prevParts => {
+                const newParts = [...prevParts];
+                const dragIdx = dragItem.current;
+                const overIdx = dragOverItem.current;
+
+                if (dragIdx === null || overIdx === null) return prevParts;
+
+                const draggedItemContent = newParts.splice(dragIdx, 1)[0];
+                newParts.splice(overIdx, 0, draggedItemContent);
+                return newParts;
+            });
         }
         dragItem.current = null;
         dragOverItem.current = null;
         setStatus('neutral');
-    };
+    }, []);
 
     const checkAnswer = () => {
         const originalParts = exercise.storyParts || [];
-        const isCorrect = parts.join('') === originalParts.join('');
+        const currentText = parts.map(p => p.text).join('');
+        const isCorrect = currentText === originalParts.join('');
         setStatus(isCorrect ? 'correct' : 'incorrect');
 
         if (isCorrect) {
@@ -629,17 +674,15 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
             <h4 className="font-playful text-xl mb-2">{exercise.title}</h4>
             <ul className={`space-y-2 border-4 border-dashed p-2 rounded-2xl transition-colors ${statusClasses[status]}`}>
                 {parts.map((part, i) => (
-                    <li
-                        key={i}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, i)}
-                        onDragEnter={(e) => handleDragEnter(e, i)}
+                    <StoryPartItem
+                        key={part.id}
+                        part={part}
+                        index={i}
+                        onDragStart={handleDragStart}
+                        onDragEnter={handleDragEnter}
                         onDragEnd={handleDragEnd}
-                        onDragOver={(e) => e.preventDefault()}
-                        className={`p-3 rounded-xl cursor-grab active:cursor-grabbing bg-white border-2 ${colors.chip.border} shadow-sm hover:shadow-md transition-all`}
-                    >
-                       <span className="font-bold mr-2 text-slate-500">{i+1}.</span> {part}
-                    </li>
+                        colors={colors}
+                    />
                 ))}
             </ul>
              <button onClick={checkAnswer} className={`w-full mt-3 p-2.5 rounded-xl font-bold text-white shadow-sm hover:shadow-md transition-all active:scale-95 ${buttonBg}`}>Check Order</button>

@@ -804,6 +804,17 @@ export const generateExercises = async (
               correctAnswer: "Option A"
           }));
       }
+      if (exerciseType === ExerciseType.StorySequencing) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: `The Lost Key #${i+1}`,
+              storyParts: [
+                  "First, Sarah woke up and realized she was late.",
+                  "Then, she rushed to the door but couldn't find her keys.",
+                  "After searching everywhere, she found them in the fridge.",
+                  "Finally, she left the house laughing at herself."
+              ]
+          }));
+      }
       // Add more dummy data types if needed, otherwise fallback to error
       return { error: "Dummy data not implemented for this type." };
   }
