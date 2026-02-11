@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
     ExerciseType, IFITBExercise, ICollocationExercise, IPhrasalVerbGapFillExercise, 
     IWordFormationExercise, IMultipleChoiceExercise, IPredictionExercise, IRuleDiscoveryExercise, 
@@ -658,7 +658,23 @@ export const InteractiveReadingGist: React.FC<{ exercise: IReadingGistExercise; 
 );
 
 export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExercise; colors: any; }> = ({ exercise, colors }) => {
-    const [answers, setAnswers] = useState<Record<number, string>>({});
+    // Generate stable IDs for questions to avoid index-as-key issues
+    const questions = useMemo(() => {
+        const seen = new Map<string, number>();
+        return exercise.questions.map((q) => {
+            let id = q.question;
+            if (seen.has(id)) {
+                const count = seen.get(id)! + 1;
+                seen.set(id, count);
+                id = `${id}_${count}`;
+            } else {
+                seen.set(id, 1);
+            }
+            return { ...q, id };
+        });
+    }, [exercise.questions]);
+
+    const [answers, setAnswers] = useState<Record<string, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const { addXP, checkStreak } = useGamification();
@@ -700,16 +716,16 @@ export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExerci
                 {exercise.text}
             </div>
             <div className="space-y-4">
-                {exercise.questions.map((q, i) => (
-                    <div key={i} className="bg-slate-50 p-3 rounded-xl">
+                {questions.map((q) => (
+                    <div key={q.id} className="bg-slate-50 p-3 rounded-xl">
                         <label className="block text-sm font-bold mb-2 text-slate-700">{q.question}</label>
                         <input 
                             type="text" 
                             className={inputStyle} 
                             placeholder="Answer here..." 
-                            value={answers[i] || ''}
+                            value={answers[q.id] || ''}
                             onChange={(e) => {
-                                setAnswers(prev => ({...prev, [i]: e.target.value}));
+                                setAnswers(prev => ({...prev, [q.id]: e.target.value}));
                                 setFeedback(null);
                             }}
                         />
