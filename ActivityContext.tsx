@@ -31,6 +31,8 @@ interface ActivityLoggerProviderProps {
 export const ActivityLoggerProvider: React.FC<ActivityLoggerProviderProps> = ({ children, moduleId }) => {
   const [studentId, setStudentId] = useState<string | null>(() => localStorage.getItem('studentId') || null);
   const loggerRef = useRef<ActivityLogger | null>(null);
+  // Force update to propagate logger changes
+  const [, setForceUpdate] = useState({});
 
   // Initialize logger only once or when studentId/moduleId changes
   useEffect(() => {
@@ -46,6 +48,7 @@ export const ActivityLoggerProvider: React.FC<ActivityLoggerProviderProps> = ({ 
         loggerRef.current = null;
       }
     }
+    setForceUpdate({});
 
     // Cleanup on unmount or if studentId is changed/cleared
     return () => {
