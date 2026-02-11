@@ -35,14 +35,17 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide
 }) => {
   const [activeInteraction, setActiveInteraction] = useState<{ blockId: number, x: number, y: number, width: number, height: number } | null>(null);
+  const activeInteractionRef = useRef(activeInteraction);
   const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
   
   const [scale, setScale] = useState(1);
   const scaleRef = useRef(1);
   const pan = useRef({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const isPanningRef = useRef(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const isSpacePressedRef = useRef(false);
 
   // Momentum State
   const velocity = useRef({ x: 0, y: 0 });
@@ -61,18 +64,31 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     blocksRef.current = blocks;
   }, [blocks]);
 
+  // Sync state to refs for event handlers to avoid re-creation
+  useEffect(() => {
+    isPanningRef.current = isPanning;
+  }, [isPanning]);
+
+  useEffect(() => {
+    activeInteractionRef.current = activeInteraction;
+  }, [activeInteraction]);
+
+  useEffect(() => {
+    isSpacePressedRef.current = isSpacePressed;
+  }, [isSpacePressed]);
+
   const snapPointsCache = useRef<{ vPoints: number[], hPoints: number[] } | null>(null);
 
   // -- PAN & ZOOM HANDLERS --
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
       if (canvasRef.current) {
-          canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scale})`;
+          canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${scaleRef.current})`;
       }
       if (backgroundRef.current) {
           backgroundRef.current.style.backgroundPosition = `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`;
       }
-  };
+  }, []);
 
   const applyMomentum = useCallback(() => {
       if (Math.abs(velocity.current.x) < VELOCITY_THRESHOLD && Math.abs(velocity.current.y) < VELOCITY_THRESHOLD) {
@@ -88,15 +104,15 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
       updateTransform();
       rafId.current = requestAnimationFrame(applyMomentum);
-  }, [scale]);
+  }, [updateTransform]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (activeInteraction) return;
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (activeInteractionRef.current) return;
 
     const target = e.target as HTMLElement;
     const isBackground = target.id === 'whiteboard-background' || target.id === 'whiteboard-main' || target.id === 'whiteboard-content';
 
-    if (e.button === 1 || e.button === 2 || (e.button === 0 && (isBackground || isSpacePressed))) {
+    if (e.button === 1 || e.button === 2 || (e.button === 0 && (isBackground || isSpacePressedRef.current))) {
       setIsPanning(true);
       lastMousePos.current = { x: e.clientX, y: e.clientY };
       lastTimestamp.current = performance.now();
@@ -112,10 +128,10 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       e.stopPropagation();
       logger?.startActivity('canvas_panning', 'movement', 'Canvas Panning');
     }
-  };
+  }, [logger]);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isPanning) {
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isPanningRef.current) {
       const now = performance.now();
       const dt = now - lastTimestamp.current;
       const dx = e.clientX - lastMousePos.current.x;
@@ -138,48 +154,47 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseUp = () => {
-    if(isPanning) {
+  const handleMouseUp = useCallback(() => {
+    if(isPanningRef.current) {
         setIsPanning(false);
         logger?.endActivity();
 
         // Start Momentum
         rafId.current = requestAnimationFrame(applyMomentum);
     }
-  };
+  }, [applyMomentum, logger]);
 
-  const handleWheel = (e: React.WheelEvent) => {
+  const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     if (rafId.current) cancelAnimationFrame(rafId.current); // Stop momentum on wheel
 
+    const currentScale = scaleRef.current;
     const zoomFactor = Math.exp(-e.deltaY * 0.001); 
-    const newScale = Math.min(Math.max(0.1, scale * zoomFactor), 4);
+    const newScale = Math.min(Math.max(0.1, currentScale * zoomFactor), 4);
     
     if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        const worldX = (mouseX - pan.current.x) / scale;
-        const worldY = (mouseY - pan.current.y) / scale;
+        const worldX = (mouseX - pan.current.x) / currentScale;
+        const worldY = (mouseY - pan.current.y) / currentScale;
 
         const newPanX = mouseX - worldX * newScale;
         const newPanY = mouseY - worldY * newScale;
 
         pan.current = { x: newPanX, y: newPanY };
 
+        // Update ref immediately for consistency in rapid events
+        scaleRef.current = newScale;
+
         // Update transform immediately
-        if (canvasRef.current) {
-            canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${newScale})`;
-        }
-        if (backgroundRef.current) {
-            backgroundRef.current.style.backgroundPosition = `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`;
-        }
+        updateTransform();
     }
     setScale(newScale);
-  };
+  }, [updateTransform]);
 
   useEffect(() => {
     scaleRef.current = scale;
@@ -204,9 +219,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     return () => clearTimeout(timeout);
   }, [scale, logger]);
 
-  const handleContextMenu = (e: React.MouseEvent) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
       e.preventDefault();
-  };
+  }, []);
   
   useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => { 
@@ -230,24 +245,24 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       };
   }, [logger]);
 
-  const handleDragOver = (e: React.DragEvent<HTMLElement>) => {
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent<HTMLElement>) => {
+  const handleDrop = useCallback((e: React.DragEvent<HTMLElement>) => {
     e.preventDefault();
     const type = e.dataTransfer.getData('exerciseType') as ExerciseType;
     if (!type || !Object.values(ExerciseType).includes(type)) return;
 
     if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        const x = (e.clientX - rect.left - pan.current.x) / scale;
-        const y = (e.clientY - rect.top - pan.current.y) / scale;
+        const x = (e.clientX - rect.left - pan.current.x) / scaleRef.current;
+        const y = (e.clientY - rect.top - pan.current.y) / scaleRef.current;
         onAddBlock(type, x, y);
         logger?.logFocusItem('Project Management', 'Block Added via Drag', 0.1, null, 1, [], `Type: ${type}, Pos: (${x.toFixed(0)}, ${y.toFixed(0)})`);
     }
-  };
+  }, [onAddBlock, logger]);
   
   const getSnapPoints = useCallback((allBlocks: ExerciseBlockState[], excludeId: number) => {
     const vPoints: number[] = [];
