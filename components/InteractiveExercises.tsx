@@ -591,29 +591,27 @@ interface StoryPart { id: string; text: string; }
 
 const StoryPartItem = React.memo(({
     part,
-    index,
     onDragStart,
     onDragEnter,
     onDragEnd,
     colors
 }: {
     part: StoryPart;
-    index: number;
-    onDragStart: (e: React.DragEvent<HTMLLIElement>, index: number) => void;
-    onDragEnter: (e: React.DragEvent<HTMLLIElement>, index: number) => void;
+    onDragStart: (e: React.DragEvent<HTMLLIElement>, id: string) => void;
+    onDragEnter: (e: React.DragEvent<HTMLLIElement>, id: string) => void;
     onDragEnd: () => void;
     colors: any;
 }) => {
     return (
         <li
             draggable
-            onDragStart={(e) => onDragStart(e, index)}
-            onDragEnter={(e) => onDragEnter(e, index)}
+            onDragStart={(e) => onDragStart(e, part.id)}
+            onDragEnter={(e) => onDragEnter(e, part.id)}
             onDragEnd={onDragEnd}
             onDragOver={(e) => e.preventDefault()}
-            className={`p-3 rounded-xl cursor-grab active:cursor-grabbing bg-white border-2 ${colors.chip.border} shadow-sm hover:shadow-md transition-all`}
+            className={`p-3 rounded-xl cursor-grab active:cursor-grabbing bg-white border-2 ${colors.chip.border} shadow-sm hover:shadow-md transition-all [counter-increment:story-counter]`}
         >
-            <span className="font-bold mr-2 text-slate-500">{index + 1}.</span> {part.text}
+            <span className="font-bold mr-2 text-slate-500 after:content-[counter(story-counter)_'.']"></span> {part.text}
         </li>
     );
 });
@@ -625,6 +623,11 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
         const partsWithIds = rawParts.map((text, i) => ({ id: `part-${i}`, text }));
         return shuffleArray(partsWithIds);
     });
+    // Performance optimization: Use ref for stable access in handlers without re-renders
+    const partsRef = useRef(parts);
+    useEffect(() => {
+        partsRef.current = parts;
+    }, [parts]);
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
     const dragItem = useRef<number | null>(null);
     const dragOverItem = useRef<number | null>(null);
@@ -632,11 +635,14 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
     const [showConfetti, setShowConfetti] = useState(false);
 
     // Stable Handlers
-    const handleDragStart = useCallback((e: React.DragEvent<HTMLLIElement>, index: number) => {
+    const handleDragStart = useCallback((e: React.DragEvent<HTMLLIElement>, id: string) => {
+        // Look up index dynamically to keep handler stable and avoid passing index prop
+        const index = partsRef.current.findIndex(p => p.id === id);
         dragItem.current = index;
     }, []);
     
-    const handleDragEnter = useCallback((e: React.DragEvent<HTMLLIElement>, index: number) => {
+    const handleDragEnter = useCallback((e: React.DragEvent<HTMLLIElement>, id: string) => {
+        const index = partsRef.current.findIndex(p => p.id === id);
         dragOverItem.current = index;
     }, []);
 
@@ -688,12 +694,11 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
         <div className={`text-base font-casual ${colors.textOnLight}`}>
             <Confetti active={showConfetti} />
             <h4 className="font-playful text-xl mb-2">{exercise.title}</h4>
-            <ul className={`space-y-2 border-4 border-dashed p-2 rounded-2xl transition-colors ${statusClasses[status]}`}>
-                {parts.map((part, i) => (
+            <ul className={`space-y-2 border-4 border-dashed p-2 rounded-2xl transition-colors ${statusClasses[status]} [counter-reset:story-counter]`}>
+                {parts.map((part) => (
                     <StoryPartItem
                         key={part.id}
                         part={part}
-                        index={i}
                         onDragStart={handleDragStart}
                         onDragEnter={handleDragEnter}
                         onDragEnd={handleDragEnd}
