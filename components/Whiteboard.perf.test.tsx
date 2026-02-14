@@ -13,16 +13,6 @@ vi.mock('./BlocksLayer', () => ({
   BlocksLayer: () => <div data-testid="blocks-layer" />
 }));
 
-<<<<<<< HEAD
-describe('Whiteboard Performance & Functionality', () => {
-  let mockLogFocusItem: any;
->>>>>>> origin/perf-whiteboard-handler-optimization-6427643733806023472
-  beforeEach(() => {
-    (useActivityLogger as any).mockReturnValue({ logger: mockLogger });
-    mockLogFocusItem.mockClear();
-    vi.useFakeTimers();
-  });
-=======
 vi.mock('./SnapLinesOverlay', () => ({
   SnapLinesOverlay: () => <div data-testid="snap-lines" />
 }));
@@ -32,22 +22,28 @@ vi.mock('./icons', () => ({
 }));
 
 describe('Whiteboard Performance & Functionality', () => {
-  const mockLogFocusItem = vi.fn();
-  const mockLogger = {
-    logFocusItem: mockLogFocusItem,
-    endActivity: vi.fn(),
-  };
-  beforeEach(() => {
-    (useActivityLogger as any).mockReturnValue({ logger: mockLogger });
-    mockLogFocusItem.mockClear();
-    vi.useFakeTimers();
-  });
-=======
-describe('Whiteboard Performance & Functionality', () => {
   let mockLogFocusItem: any;
->>>>>>> origin/perf-whiteboard-handler-optimization-6427643733806023472
+  let mockLogger: any;
+
+  const defaultProps = {
+    blocks: [],
+    onAddBlock: vi.fn(),
+    onUpdateBlock: vi.fn(),
+    onRemoveBlock: vi.fn(),
+    onFocusBlock: vi.fn(),
+    presentingBlockId: null,
+    onEnterPresentation: vi.fn(),
+    onExitPresentation: vi.fn(),
+    onNextSlide: vi.fn(),
+    onPrevSlide: vi.fn(),
+  };
 
   beforeEach(() => {
+    mockLogFocusItem = vi.fn();
+    mockLogger = {
+      logFocusItem: mockLogFocusItem,
+      endActivity: vi.fn(),
+    };
     (useActivityLogger as any).mockReturnValue({ logger: mockLogger });
     mockLogFocusItem.mockClear();
     vi.useFakeTimers();
@@ -96,7 +92,6 @@ describe('Whiteboard Performance & Functionality', () => {
         vi.advanceTimersByTime(1000);
     });
 
-<<<<<<< HEAD
     const callsImmediately = mockLogFocusItem.mock.calls.filter((call: any[]) => call[1] === 'Canvas Zoom');
 
     // In optimized code, this should be 0.
@@ -111,40 +106,6 @@ describe('Whiteboard Performance & Functionality', () => {
 
     // Should be exactly 1 call total after debounce
     expect(callsTotal.length).toBe(1);
->>>>>>> origin/perf-whiteboard-handler-optimization-6427643733806023472
-  });
-=======
-    const callsImmediately = mockLogFocusItem.mock.calls.filter((call: any[]) => call[1] === 'Canvas Zoom');
-
-    // In optimized code, this should be 0.
-    expect(callsImmediately.length).toBe(0);
-
-    // Advance timers to trigger the debounced log
-    act(() => {
-      vi.advanceTimersByTime(500);
-    });
-
-    const callsTotal = mockLogFocusItem.mock.calls.filter((call: any[]) => call[1] === 'Canvas Zoom');
-
-    // Should be exactly 1 call total after debounce
-    expect(callsTotal.length).toBe(1);
-  });
-=======
-    const callsImmediately = mockLogFocusItem.mock.calls.filter((call: any[]) => call[1] === 'Canvas Zoom');
-
-    // In optimized code, this should be 0.
-    expect(callsImmediately.length).toBe(0);
-
-    // Advance timers to trigger the debounced log
-    act(() => {
-      vi.advanceTimersByTime(500);
-    });
-
-    const callsTotal = mockLogFocusItem.mock.calls.filter((call: any[]) => call[1] === 'Canvas Zoom');
-
-    // Should be exactly 1 call total after debounce
-    expect(callsTotal.length).toBe(1);
->>>>>>> origin/perf-whiteboard-handler-optimization-6427643733806023472
   });
 
   it('should still support panning after refactor (using refs)', () => {

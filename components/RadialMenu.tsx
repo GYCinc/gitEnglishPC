@@ -11,7 +11,7 @@ interface RadialMenuProps {
 
 const RadialMenu = React.memo(({ onOpenSettings, onToggleSidebar, onExportState, difficulty, onCycleDifficulty }: RadialMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
+    const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
 
     // Close menu on click outside or Escape
     useEffect(() => {
@@ -70,9 +70,20 @@ const RadialMenu = React.memo(({ onOpenSettings, onToggleSidebar, onExportState,
     const radius = 110; // Increased radius slightly for more items
 
     return (
-        <div id="radial-menu-container" className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center justify-center font-casual perspective-[1000px]"
-             onMouseEnter={() => setIsHovered(true)}
-             onMouseLeave={() => setIsHovered(false)}
+<<<<<<< HEAD
+        <div id="radial-menu-container" className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center justify-center font-casual"
+             onMouseEnter={() => !isOpen && setHoveredLabel('Menu')}
+             onMouseLeave={() => setHoveredLabel(null)}
+>>>>>>> origin/palette-radial-menu-labels-632690208127028546
+=======
+        <div id="radial-menu-container" className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center justify-center font-casual"
+             onMouseEnter={() => !isOpen && setHoveredLabel('Menu')}
+             onMouseLeave={() => setHoveredLabel(null)}
+=======
+        <div id="radial-menu-container" className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center justify-center font-casual"
+             onMouseEnter={() => !isOpen && setHoveredLabel('Menu')}
+             onMouseLeave={() => setHoveredLabel(null)}
+>>>>>>> origin/palette-radial-menu-labels-632690208127028546
         >
             {/* Visual Arc Grouping (Only visible when open) */}
             <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
@@ -85,11 +96,32 @@ const RadialMenu = React.memo(({ onOpenSettings, onToggleSidebar, onExportState,
                     e.stopPropagation();
                     setIsOpen(!isOpen);
                 }}
-                className={`relative w-16 h-16 rounded-full shadow-[0_0_30px_-5px_rgba(0,0,0,0.3)] flex items-center justify-center transition-all duration-300 z-[102]
-                            ${isOpen ? 'bg-slate-900 text-white rotate-90 scale-105 ring-4 ring-white/10' : 'bg-slate-800/80 text-white hover:bg-slate-700 hover:scale-105 hover:shadow-blue-500/20 ring-1 ring-white/20'}
-                            backdrop-blur-xl border border-white/10 group`}
+<<<<<<< HEAD
+                className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 z-[102]
+                            ${isOpen ? 'bg-blue-800 text-white rotate-90 scale-110' : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 hover:shadow-blue-500/30'}
+                            border-4 border-white/20 backdrop-blur-sm ring-1 ring-black/5`}
                 aria-label={isOpen ? "Close Menu" : "Open Menu"}
                 aria-expanded={isOpen}
+                onMouseEnter={() => setHoveredLabel(isOpen ? 'Close' : 'Menu')}
+                onMouseLeave={() => setHoveredLabel(null)}
+>>>>>>> origin/palette-radial-menu-labels-632690208127028546
+=======
+                className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 z-[102]
+                            ${isOpen ? 'bg-blue-800 text-white rotate-90 scale-110' : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 hover:shadow-blue-500/30'}
+                            border-4 border-white/20 backdrop-blur-sm ring-1 ring-black/5`}
+                aria-label={isOpen ? "Close Menu" : "Open Menu"}
+                aria-expanded={isOpen}
+                onMouseEnter={() => setHoveredLabel(isOpen ? 'Close' : 'Menu')}
+                onMouseLeave={() => setHoveredLabel(null)}
+=======
+                className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 z-[102]
+                            ${isOpen ? 'bg-blue-800 text-white rotate-90 scale-110' : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 hover:shadow-blue-500/30'}
+                            border-4 border-white/20 backdrop-blur-sm ring-1 ring-black/5`}
+                aria-label={isOpen ? "Close Menu" : "Open Menu"}
+                aria-expanded={isOpen}
+                onMouseEnter={() => setHoveredLabel(isOpen ? 'Close' : 'Menu')}
+                onMouseLeave={() => setHoveredLabel(null)}
+>>>>>>> origin/palette-radial-menu-labels-632690208127028546
             >
                 {isOpen ? <XMarkIcon className="w-8 h-8 transition-transform duration-300 rotate-90" /> : <MenuIcon className="w-8 h-8" />}
 
@@ -131,25 +163,48 @@ const RadialMenu = React.memo(({ onOpenSettings, onToggleSidebar, onExportState,
                 // Actually screen coords Y increases downwards.
                 // sin(0)=0, sin(90)=1, sin(180)=0. Perfect.
 
-                const style = isOpen 
-                    ? {
-                        transform: `translate(${x}px, ${y}px) scale(1)`,
-                        opacity: 1,
-                        pointerEvents: 'auto' as const,
-                        transitionDelay: `${index * 40}ms`
-                      }
-                    : {
-                        transform: `translate(0px, 0px) scale(0.3)`,
-                        opacity: 0,
-                        pointerEvents: 'none' as const,
-                        transitionDelay: `${(menuItems.length - 1 - index) * 30}ms`
-                      };
+<<<<<<< HEAD
+                const style: React.CSSProperties = isOpen
+                    ? { transform: `translate(${x}px, ${y}px) scale(1)`, opacity: 1, pointerEvents: 'auto', transitionDelay: `${index * 50}ms` }
+                    : { transform: `translate(0px, 0px) scale(0.5)`, opacity: 0, pointerEvents: 'none', transitionDelay: `${(menuItems.length - 1 - index) * 50}ms` }; // Reverse delay for closing
+>>>>>>> origin/palette-radial-menu-labels-632690208127028546
+=======
+                const style: React.CSSProperties = isOpen
+                    ? { transform: `translate(${x}px, ${y}px) scale(1)`, opacity: 1, pointerEvents: 'auto', transitionDelay: `${index * 50}ms` }
+                    : { transform: `translate(0px, 0px) scale(0.5)`, opacity: 0, pointerEvents: 'none', transitionDelay: `${(menuItems.length - 1 - index) * 50}ms` }; // Reverse delay for closing
+=======
+                const style: React.CSSProperties = isOpen
+                    ? { transform: `translate(${x}px, ${y}px) scale(1)`, opacity: 1, pointerEvents: 'auto', transitionDelay: `${index * 50}ms` }
+                    : { transform: `translate(0px, 0px) scale(0.5)`, opacity: 0, pointerEvents: 'none', transitionDelay: `${(menuItems.length - 1 - index) * 50}ms` }; // Reverse delay for closing
+>>>>>>> origin/palette-radial-menu-labels-632690208127028546
 
                 return (
                     <div
                         key={index}
                         style={style}
-                        className="absolute flex flex-col items-center justify-center transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)"
+<<<<<<< HEAD
+                        className="absolute w-10 h-10 bg-white text-blue-800 rounded-full shadow-lg border border-slate-200 
+                                   flex items-center justify-center transition-all duration-300 hover:bg-blue-50 hover:text-blue-600 hover:scale-110"
+                        title={item.label} // Keep native title for fallback
+                        aria-label={item.label} // Accessible label
+                        onMouseEnter={() => setHoveredLabel(item.label)}
+                        onMouseLeave={() => setHoveredLabel(null)}
+>>>>>>> origin/palette-radial-menu-labels-632690208127028546
+=======
+                        className="absolute w-10 h-10 bg-white text-blue-800 rounded-full shadow-lg border border-slate-200 
+                                   flex items-center justify-center transition-all duration-300 hover:bg-blue-50 hover:text-blue-600 hover:scale-110"
+                        title={item.label} // Keep native title for fallback
+                        aria-label={item.label} // Accessible label
+                        onMouseEnter={() => setHoveredLabel(item.label)}
+                        onMouseLeave={() => setHoveredLabel(null)}
+=======
+                        className="absolute w-10 h-10 bg-white text-blue-800 rounded-full shadow-lg border border-slate-200 
+                                   flex items-center justify-center transition-all duration-300 hover:bg-blue-50 hover:text-blue-600 hover:scale-110"
+                        title={item.label} // Keep native title for fallback
+                        aria-label={item.label} // Accessible label
+                        onMouseEnter={() => setHoveredLabel(item.label)}
+                        onMouseLeave={() => setHoveredLabel(null)}
+>>>>>>> origin/palette-radial-menu-labels-632690208127028546
                     >
                         <button
                             onClick={() => {
@@ -183,10 +238,27 @@ const RadialMenu = React.memo(({ onOpenSettings, onToggleSidebar, onExportState,
                 );
             })}
             
-            {/* Main Label tooltip when closed */}
-            {!isOpen && isHovered && (
-                 <div className="absolute top-20 text-[10px] font-bold uppercase tracking-widest text-slate-200 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/10 animate-in fade-in slide-in-from-top-1">
-                     Open Menu
+<<<<<<< HEAD
+            {/* Central Label tooltip */}
+            {hoveredLabel && (
+                 <div className="absolute top-16 text-[10px] font-bold uppercase tracking-widest text-slate-600 bg-white/90 px-2 py-1 rounded-md shadow-sm border border-slate-100 animate-in fade-in slide-in-from-top-1 whitespace-nowrap z-[101]">
+                     {hoveredLabel}
+>>>>>>> origin/palette-radial-menu-labels-632690208127028546
+                 </div>
+            )}
+=======
+            {/* Central Label tooltip */}
+            {hoveredLabel && (
+                 <div className="absolute top-16 text-[10px] font-bold uppercase tracking-widest text-slate-600 bg-white/90 px-2 py-1 rounded-md shadow-sm border border-slate-100 animate-in fade-in slide-in-from-top-1 whitespace-nowrap z-[101]">
+                     {hoveredLabel}
+                 </div>
+            )}
+=======
+            {/* Central Label tooltip */}
+            {hoveredLabel && (
+                 <div className="absolute top-16 text-[10px] font-bold uppercase tracking-widest text-slate-600 bg-white/90 px-2 py-1 rounded-md shadow-sm border border-slate-100 animate-in fade-in slide-in-from-top-1 whitespace-nowrap z-[101]">
+                     {hoveredLabel}
+>>>>>>> origin/palette-radial-menu-labels-632690208127028546
                  </div>
             )}
         </div>
