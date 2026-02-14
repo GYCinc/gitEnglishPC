@@ -39,7 +39,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   
   const [scale, setScale] = useState(1);
   const scaleRef = useRef(1);
-  const lastZoomLogTime = useRef(0);
   const pan = useRef({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const isPanningRef = useRef(false);
@@ -183,17 +182,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             backgroundRef.current.style.backgroundPosition = `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`;
         }
     }
-<<<<<<< HEAD
-
     scaleRef.current = newScale;
->>>>>>> origin/perf-whiteboard-handler-optimization-6427643733806023472
-    setScale(newScale);
-=======
-    scaleRef.current = newScale;
-    setScale(newScale);
-=======
-    scaleRef.current = newScale;
->>>>>>> origin/perf-whiteboard-handler-optimization-6427643733806023472
     setScale(newScale);
   }, []);
 
@@ -206,7 +195,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       updateTransform();
   }, [scale, updateTransform]);
 
-<<<<<<< HEAD
   const isFirstRender = useRef(true);
   // Debounced activity logging for Zoom
   useEffect(() => {
@@ -222,44 +210,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   }, [scale, logger]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
->>>>>>> origin/perf-whiteboard-handler-optimization-6427643733806023472
-      e.preventDefault();
-  }, []);
-=======
-  const isFirstRender = useRef(true);
-  // Debounced activity logging for Zoom
-  useEffect(() => {
-    if (isFirstRender.current) {
-        isFirstRender.current = false;
-        return;
-    }
-    const timeout = setTimeout(() => {
-        logger?.logFocusItem('Movement', 'Canvas Zoom', 0.1, null, 1, [], `Scale: ${scale.toFixed(2)}`);
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [scale, logger]);
-
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-      e.preventDefault();
-  }, []);
-=======
-  const isFirstRender = useRef(true);
-  // Debounced activity logging for Zoom
-  useEffect(() => {
-    if (isFirstRender.current) {
-        isFirstRender.current = false;
-        return;
-    }
-    const timeout = setTimeout(() => {
-        logger?.logFocusItem('Movement', 'Canvas Zoom', 0.1, null, 1, [], `Scale: ${scale.toFixed(2)}`);
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [scale, logger]);
-
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
->>>>>>> origin/perf-whiteboard-handler-optimization-6427643733806023472
       e.preventDefault();
   }, []);
   

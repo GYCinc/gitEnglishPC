@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect, useId } from 'react';
 import { Rnd, RndDragCallback, RndResizeCallback } from 'react-rnd';
-import { ExerciseType, Difficulty, Tone } from '../enums';
-import { ExerciseBlockState } from '../types';
-import { generateExercises } from '../services/mistralService';
+import { ExerciseBlockState, ExerciseType, Difficulty, Tone } from '../types';
+import { generateExercises } from '../services/aiService';
 import { LoadingIcon, TrashIcon, SettingsIcon, ResetIcon, PlayIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon, MagicWandIcon } from './icons';
 import { useDebounce } from '../hooks/useDebounce';
 import { useResponsiveScale } from '../hooks/useResponsiveScale';
@@ -33,7 +32,7 @@ export interface ExerciseBlockProps {
   onExitPresentation: () => void;
   onNextSlide: () => void; // Global next slide (for next block in app.tsx)
   onPrevSlide: () => void; // Global prev slide (for prev block in app.tsx)
-  scaleRef: React.MutableRefObject<number>; // Ref to current zoom scale (optimization)
+  scale?: number; // Current zoom scale of the whiteboard
 }
 
 // Helper for accessible icon buttons with tooltips
@@ -181,28 +180,6 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
                         iconClassName="w-6 h-6"
                         tooltipAlign="left"
                     />
->>>>>>> origin/palette-ux-accessible-tooltips-4125487314027858250
-=======
-                {isPresenting && (
-                    <AccessibleIconButton
-                        icon={XMarkIcon}
-                        label="Exit Live Mode"
-                        onClick={handleExitPresentation}
-                        className="p-2 rounded-full hover:bg-slate-700 text-neutral-gray-400 hover:text-white transition-colors mr-2 relative z-50"
-                        iconClassName="w-6 h-6"
-                        tooltipAlign="left"
-                    />
-                )}
-=======
-                    <AccessibleIconButton
-                        icon={XMarkIcon}
-                        label="Exit Live Mode"
-                        onClick={handleExitPresentation}
-                        className="p-2 rounded-full hover:bg-slate-700 text-neutral-gray-400 hover:text-white transition-colors mr-2 relative z-50"
-                        iconClassName="w-6 h-6"
-                        tooltipAlign="left"
-                    />
->>>>>>> origin/palette-ux-accessible-tooltips-4125487314027858250
                 )}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                      <h3 className={`font-playful font-bold ${isPresenting ? 'text-3xl' : 'text-lg'} select-none ${textColor} tracking-wide truncate`}>{title}</h3>
@@ -219,8 +196,8 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
                  {isPresenting && totalItems && totalItems > 1 && (
                      <div className="flex items-center gap-4 mr-4 border-r border-slate-700 pr-4">
                          <span className="text-sm font-mono font-bold text-neutral-gray-400">{currentItem} / {totalItems}</span>
-                          <button onMouseDown={(e) => e.stopPropagation()} onClick={handlePrevItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === 1} aria-label="Previous item"><ChevronLeftIcon className="w-6 h-6" /></button>
-                          <button onMouseDown={(e) => e.stopPropagation()} onClick={handleNextItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === totalItems} aria-label="Next item"><ChevronRightIcon className="w-6 h-6" /></button>
+                          <button onMouseDown={(e) => e.stopPropagation()} onClick={handlePrevItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === 1}><ChevronLeftIcon className="w-6 h-6" /></button>
+                          <button onMouseDown={(e) => e.stopPropagation()} onClick={handleNextItem} className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={currentItem === totalItems}><ChevronRightIcon className="w-6 h-6" /></button>
                      </div>
                  )}
 
@@ -240,7 +217,6 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
                              onMouseDown={(e) => e.stopPropagation()}
                             className={`w-6 bg-transparent text-center text-xs font-bold outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none ${quantity ? 'text-primary-blue-400' : 'text-neutral-gray-300'}`}
                             title="Manually set amount (overrides auto-size)"
-                            aria-label="Exercise quantity"
                         />
                      </div>
                  )}
@@ -255,7 +231,6 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
                                 onClick={handleEnterPresentation}
                                 className="px-3 py-1.5 rounded-full bg-red-600 text-white font-bold hover:bg-red-500 transition-all shadow-lg hover:shadow-red-500/30 active:scale-95 flex items-center gap-2 mr-2 animate-pulse-slow"
                                 title="Start Live Mode"
-                                aria-label="Start Live Mode"
                              >
                                 <PlayIcon className="w-3.5 h-3.5 fill-current" />
                                 <span className="text-xs uppercase tracking-wider">Live</span>
@@ -272,29 +247,6 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
                             />
                          ) : (
                             <button onMouseDown={(e) => e.stopPropagation()} onClick={handleGenerate} className="px-3 py-1 rounded-full text-xs bg-gradient-to-r from-warm-orange-500 to-innovation-pink-500 text-white font-bold hover:brightness-110 transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap" title="Generate" aria-label="Generate Exercises">
->>>>>>> origin/palette-ux-accessible-tooltips-4125487314027858250
-=======
-                         {isGenerated ? (
-                            <AccessibleIconButton
-                                icon={ResetIcon}
-                                label="Regenerate"
-                                onClick={handleRegenerate}
-                                className="p-1.5 rounded-full hover:bg-primary-blue-500/20 text-primary-blue-400 hover:text-primary-blue-300 transition-colors"
-                                tooltipAlign="right"
-                            />
-                         ) : (
-                            <button onMouseDown={(e) => e.stopPropagation()} onClick={handleGenerate} className="px-3 py-1 rounded-full text-xs bg-gradient-to-r from-warm-orange-500 to-innovation-pink-500 text-white font-bold hover:brightness-110 transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap" title="Generate" aria-label="Generate Exercises">
-=======
-                            <AccessibleIconButton
-                                icon={ResetIcon}
-                                label="Regenerate"
-                                onClick={handleRegenerate}
-                                className="p-1.5 rounded-full hover:bg-primary-blue-500/20 text-primary-blue-400 hover:text-primary-blue-300 transition-colors"
-                                tooltipAlign="right"
-                            />
-                         ) : (
-                            <button onMouseDown={(e) => e.stopPropagation()} onClick={handleGenerate} className="px-3 py-1 rounded-full text-xs bg-gradient-to-r from-warm-orange-500 to-innovation-pink-500 text-white font-bold hover:brightness-110 transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap" title="Generate" aria-label="Generate Exercises">
->>>>>>> origin/palette-ux-accessible-tooltips-4125487314027858250
                                 <MagicWandIcon className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">Generate</span>
                             </button>
@@ -313,38 +265,6 @@ const Header = React.memo(React.forwardRef<HTMLDivElement, {
                             className="p-1.5 rounded-full hover:bg-energy-red-500/20 text-energy-red-400 hover:text-energy-red-300 transition-colors"
                             tooltipAlign="right"
                         />
->>>>>>> origin/palette-ux-accessible-tooltips-4125487314027858250
-=======
-                         <AccessibleIconButton
-                            icon={SettingsIcon}
-                            label="Settings"
-                            onClick={handleToggleSettings}
-                            className={`p-1.5 rounded-full ${isSettingsOpen ? 'bg-slate-700 text-white' : 'text-neutral-gray-400 hover:text-white'} transition-colors`}
-                            tooltipAlign="right"
-                        />
-                        <AccessibleIconButton
-                            icon={TrashIcon}
-                            label="Remove"
-                            onClick={handleRemove}
-                            className="p-1.5 rounded-full hover:bg-energy-red-500/20 text-energy-red-400 hover:text-energy-red-300 transition-colors"
-                            tooltipAlign="right"
-                        />
-=======
-                         <AccessibleIconButton
-                            icon={SettingsIcon}
-                            label="Settings"
-                            onClick={handleToggleSettings}
-                            className={`p-1.5 rounded-full ${isSettingsOpen ? 'bg-slate-700 text-white' : 'text-neutral-gray-400 hover:text-white'} transition-colors`}
-                            tooltipAlign="right"
-                        />
-                        <AccessibleIconButton
-                            icon={TrashIcon}
-                            label="Remove"
-                            onClick={handleRemove}
-                            className="p-1.5 rounded-full hover:bg-energy-red-500/20 text-energy-red-400 hover:text-energy-red-300 transition-colors"
-                            tooltipAlign="right"
-                        />
->>>>>>> origin/palette-ux-accessible-tooltips-4125487314027858250
                      </>
                  )}
             </div>
@@ -534,127 +454,16 @@ const PlaceholderView: React.FC<{ amount: number; exerciseType: ExerciseType; }>
     </div>
 ));
 
-// Extracted Content Component for Performance
-interface ExerciseBlockContentProps {
-    colors: any;
-    presentationCardVisualClasses: string;
-    exerciseType: ExerciseType;
-    pedagogy: string;
-    handleRemoveWrapper: () => void;
-    handleRegenerate: () => void;
-    handleToggleSettingsWrapper: () => void;
-    isSettingsOpen: boolean;
-    isGenerated: boolean;
-    handleGenerate: () => void;
-    generateAmount: number;
-    estimatedDuration: number;
-    quantity: number | undefined;
-    handleQuantityChangeWrapper: (val: number | undefined) => void;
-    isSingleInstance: boolean;
-    isPresenting: boolean;
-    handleEnterPresentationWrapper: () => void;
-    onExitPresentation: () => void;
-    handlePrevItem: () => void;
-    handleNextItem: () => void;
-    currentSlide: number;
-    content: any;
-    id: number;
-    difficulty: Difficulty;
-    tone: Tone;
-    theme: string;
-    onUpdate: (blockId: number, updates: Partial<ExerciseBlockState>) => void;
-    presentationScale: number;
-    renderContent: () => React.ReactNode;
-    headerRef: React.RefObject<HTMLDivElement>;
-    settingsRef: React.RefObject<HTMLDivElement>;
-    contentWrapperRef: React.RefObject<HTMLDivElement>;
-}
-
-const ExerciseBlockContent: React.FC<ExerciseBlockContentProps> = React.memo(({
-    colors, presentationCardVisualClasses, exerciseType, pedagogy, handleRemoveWrapper, handleRegenerate,
-    handleToggleSettingsWrapper, isSettingsOpen, isGenerated, handleGenerate, generateAmount, estimatedDuration,
-    quantity, handleQuantityChangeWrapper, isSingleInstance, isPresenting, handleEnterPresentationWrapper,
-    onExitPresentation, handlePrevItem, handleNextItem, currentSlide, content, id, difficulty, tone, theme,
-    onUpdate, presentationScale, renderContent, headerRef, settingsRef, contentWrapperRef
-}) => {
-    return (
-        <div className={`card-visual flex flex-col h-full w-full bg-paper-bg border-4 ${colors.border} ${presentationCardVisualClasses}`}>
-            <Header
-                ref={headerRef}
-                title={exerciseType}
-                pedagogy={pedagogy}
-                textColor={colors.textOnDark}
-                onRemove={handleRemoveWrapper}
-                onRegenerate={handleRegenerate}
-                onToggleSettings={handleToggleSettingsWrapper}
-                isSettingsOpen={isSettingsOpen}
-                isGenerated={isGenerated}
-                onGenerate={handleGenerate}
-                generateAmount={generateAmount}
-                estimatedDuration={estimatedDuration}
-                quantity={quantity}
-                onQuantityChange={handleQuantityChangeWrapper}
-                isSingleInstance={isSingleInstance}
-                isPresenting={isPresenting}
-                onEnterPresentation={handleEnterPresentationWrapper}
-                onExitPresentation={onExitPresentation}
-                onPrevItem={handlePrevItem}
-                onNextItem={handleNextItem}
-                currentItem={currentSlide + 1}
-                totalItems={Array.isArray(content) ? content.length : 1}
-            />
-
-            {isSettingsOpen && !isPresenting && (
-                <Settings
-                    ref={settingsRef}
-                    id={id}
-                    difficulty={difficulty}
-                    tone={tone}
-                    theme={theme}
-                    exerciseType={exerciseType}
-                    onUpdate={onUpdate}
-                />
-            )}
-
-            <div className={`p-5 min-h-0 overflow-hidden flex-grow overflow-y-auto custom-scrollbar-light ${isPresenting ? 'flex justify-center items-center' : ''}`}>
-                <div
-                    ref={contentWrapperRef}
-                    className={`w-fit max-w-[900px] ${isGenerated ? '' : 'w-full'} origin-center transition-transform duration-200`}
-                        style={isPresenting ? { transform: `scale(${presentationScale})` } : {}}
-                >
-                    {renderContent()}
-                </div>
-            </div>
-        </div>
-    );
-});
-
 const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     blockState, onUpdate, onRemove, onFocus,
     onInteraction, onInteractionStop,
     isPresenting, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide,
-    scaleRef
+    scale = 1
 }) => {
     const { id, x, y, width, height, zIndex, exerciseType, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate, isGenerated, quantity } = blockState;
     const [content, setContent] = useState<any[] | { error: string }>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-    // Local position state for smooth dragging (uncontrolled by parent state during drag)
-    const [localPos, setLocalPos] = useState({ x, y });
-    const [isDragging, setIsDragging] = useState(false);
-
-    // Sync local state when props change (only if not dragging to prevent jitter)
-    useEffect(() => {
-        if (!isDragging) {
-             setLocalPos({ x, y });
-        }
-    }, [x, y, isDragging]);
-
-    // Performance Optimization: Local state for Rnd scale
-    // We avoid passing the changing 'scale' prop directly to prevent re-rendering all blocks on zoom.
-    // Instead, we update this local state only when interaction starts.
-    const [internalScale, setInternalScale] = useState(scaleRef.current);
     
     const { logger, startActivity, endActivity } = useActivityLogger();
 
@@ -792,13 +601,11 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isPresenting, handleNextItem, handlePrevItem, onExitPresentation]);
     
-    // Stable render function to prevent re-renders of ExerciseBlockContent
-    const renderContent = useCallback(() => {
+    const renderContent = () => {
         if (isLoading) {
             return (
-                <div className="flex justify-center items-center h-full min-h-[200px]" role="status" aria-live="polite" aria-label="Generating exercise content">
+                <div className="flex justify-center items-center h-full min-h-[200px]">
                     <LoadingIcon className="w-12 h-12 text-neutral-gray-300 animate-spin" />
-                    <span className="sr-only">Generating exercise content...</span>
                 </div>
             );
         }
@@ -828,14 +635,12 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
                 )}
             </>
         );
-    }, [isLoading, isGenerated, generateAmount, exerciseType, content, colors, isPresenting, currentSlide, id]);
+    };
 
     // Stable handlers to create interaction data and pass to parent
     // Optimization: Use blockStateRef to keep these callbacks stable (avoid recreation on every drag frame)
     const handleDrag: RndDragCallback = useCallback((e, data) => {
-        const newPos = { x: data.x, y: data.y };
-        setLocalPos(newPos);
-        onInteraction(id, { ...blockStateRef.current, ...newPos });
+        onInteraction(id, { ...blockStateRef.current, x: data.x, y: data.y });
     }, [id, onInteraction]);
 
     const handleDragStop: RndDragCallback = useCallback((e, data) => {
@@ -878,13 +683,9 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     return (
         <Rnd
             size={isPresenting ? { width: '100%', height: '100%' } : { width, height }}
-            position={isPresenting ? { x: 0, y: 0 } : localPos}
-            onDragStart={() => setIsDragging(true)}
+            position={isPresenting ? { x: 0, y: 0 } : { x, y }}
             onDrag={handleDrag}
-            onDragStop={(e, d) => {
-                setIsDragging(false);
-                handleDragStop(e, d);
-            }}
+            onDragStop={handleDragStop}
             onResize={handleResize}
             onResizeStop={handleResizeStop}
             disableDragging={isPresenting}
@@ -893,7 +694,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
             minHeight={150}
             // Remove bounds="parent" to allow dragging anywhere, including "above" the initial viewport
             dragHandleClassName="handle"
-            scale={isPresenting ? 1 : internalScale} // Use internal scale which updates on interaction
+            scale={isPresenting ? 1 : scale} // Rnd's internal scale for dragging/resizing, independent of visual content scale
             style={{
                 zIndex: isPresenting ? 9999 : zIndex,
                 // Optimization: Skip layout/paint for off-screen blocks
@@ -901,56 +702,60 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
                 containIntrinsicSize: `${width}px ${height}px`
             }}
             className={`rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden transition-all hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)] ${presentationRndStyle}`}
-            onMouseDown={() => {
-                // Update internal scale before drag starts to ensure correct delta calculation
-                if (scaleRef.current !== internalScale) {
-                    setInternalScale(scaleRef.current);
-                }
-                onFocus(id);
-            }}
+            onMouseDown={() => onFocus(id)}
             onDoubleClick={() => {
                 if (isGenerated && !isPresenting && onEnterPresentation) onEnterPresentation(id);
             }}
         >
-             {/*
-                Optimization: Memoize the inner content to prevent expensive re-renders when parent 'scale' prop changes.
-                The 'scale' prop from Whiteboard only affects Rnd's coordinate system, not the internal visual content (unless presenting).
-                This allows zooming the canvas without re-diffing the heavy DOM tree of every block.
-             */}
-             <ExerciseBlockContent
-                colors={colors}
-                presentationCardVisualClasses={presentationCardVisualClasses}
-                exerciseType={exerciseType}
-                pedagogy={pedagogy}
-                handleRemoveWrapper={handleRemoveWrapper}
-                handleRegenerate={handleRegenerate}
-                handleToggleSettingsWrapper={handleToggleSettingsWrapper}
-                isSettingsOpen={isSettingsOpen}
-                isGenerated={isGenerated}
-                handleGenerate={handleGenerate}
-                generateAmount={generateAmount}
-                estimatedDuration={estimatedDuration}
-                quantity={quantity}
-                handleQuantityChangeWrapper={handleQuantityChangeWrapper}
-                isSingleInstance={isSingleInstance}
-                isPresenting={isPresenting}
-                handleEnterPresentationWrapper={handleEnterPresentationWrapper}
-                onExitPresentation={onExitPresentation}
-                handlePrevItem={handlePrevItem}
-                handleNextItem={handleNextItem}
-                currentSlide={currentSlide}
-                content={content}
-                id={id}
-                difficulty={difficulty}
-                tone={tone}
-                theme={theme}
-                onUpdate={onUpdate}
-                presentationScale={presentationScale}
-                renderContent={renderContent}
-                headerRef={headerRef}
-                settingsRef={settingsRef}
-                contentWrapperRef={contentWrapperRef}
-            />
+            {/* This inner div is the actual visible "paper card" */}
+            <div className={`card-visual flex flex-col h-full w-full bg-paper-bg border-4 ${colors.border} ${presentationCardVisualClasses}`}>
+                <Header
+                    ref={headerRef}
+                    title={exerciseType}
+                    pedagogy={pedagogy}
+                    textColor={colors.textOnDark}
+                    onRemove={handleRemoveWrapper}
+                    onRegenerate={handleRegenerate}
+                    onToggleSettings={handleToggleSettingsWrapper}
+                    isSettingsOpen={isSettingsOpen}
+                    isGenerated={isGenerated}
+                    onGenerate={handleGenerate}
+                    generateAmount={generateAmount}
+                    estimatedDuration={estimatedDuration}
+                    quantity={quantity}
+                    onQuantityChange={handleQuantityChangeWrapper}
+                    isSingleInstance={isSingleInstance}
+                    isPresenting={isPresenting}
+                    onEnterPresentation={handleEnterPresentationWrapper}
+                    onExitPresentation={onExitPresentation}
+                    onPrevItem={handlePrevItem}
+                    onNextItem={handleNextItem}
+                    currentItem={currentSlide + 1}
+                    totalItems={Array.isArray(content) ? content.length : 1}
+                />
+
+                {isSettingsOpen && !isPresenting && (
+                    <Settings
+                        ref={settingsRef}
+                        id={id}
+                        difficulty={difficulty}
+                        tone={tone}
+                        theme={theme}
+                        exerciseType={exerciseType}
+                        onUpdate={onUpdate}
+                    />
+                )}
+                
+                <div className={`p-5 min-h-0 overflow-hidden flex-grow overflow-y-auto custom-scrollbar-light ${isPresenting ? 'flex justify-center items-center' : ''}`}>
+                    <div 
+                        ref={contentWrapperRef} 
+                        className={`w-fit max-w-[900px] ${isGenerated ? '' : 'w-full'} origin-center transition-transform duration-200`}
+                         style={isPresenting ? { transform: `scale(${presentationScale})` } : {}}
+                    >
+                        {renderContent()}
+                    </div>
+                </div>
+            </div>
         </Rnd>
     );
 });
