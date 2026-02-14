@@ -2,7 +2,6 @@ import { render, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Whiteboard from './Whiteboard';
 import React from 'react';
-import { ExerciseType } from '../enums';
 import { useActivityLogger } from '../ActivityContext';
 
 // Mock dependencies
@@ -14,7 +13,7 @@ vi.mock('../ActivityContext', () => ({
 vi.mock('./BlocksLayer', () => ({ BlocksLayer: () => <div data-testid="blocks-layer" /> }));
 vi.mock('./SnapLinesOverlay', () => ({ SnapLinesOverlay: () => <div data-testid="snap-lines" /> }));
 
-describe('Whiteboard Performance - Zoom Logging', () => {
+describe('Whiteboard Performance & Functionality', () => {
   let mockLogFocusItem: any;
 
   beforeEach(() => {
@@ -65,7 +64,6 @@ describe('Whiteboard Performance - Zoom Logging', () => {
     const callsImmediately = mockLogFocusItem.mock.calls.filter((call: any[]) => call[1] === 'Canvas Zoom');
 
     // In optimized code, this should be 0.
-    // In unoptimized code (baseline), this will be WHEEL_EVENTS_COUNT.
     expect(callsImmediately.length).toBe(0);
 
     // Advance timers to trigger the debounced log
@@ -77,5 +75,52 @@ describe('Whiteboard Performance - Zoom Logging', () => {
 
     // Should be exactly 1 call total after debounce
     expect(callsTotal.length).toBe(1);
+  });
+
+  it('should still support panning after refactor (using refs)', () => {
+    const { container } = render(<Whiteboard {...defaultProps} />);
+    const mainDiv = container.querySelector('#whiteboard-main');
+    const contentDiv = container.querySelector('#whiteboard-content');
+
+    if (!mainDiv || !contentDiv) throw new Error('Whiteboard elements not found');
+
+    // Trigger MouseDown (Start Pan)
+    fireEvent.mouseDown(mainDiv, { clientX: 100, clientY: 100, button: 0, target: mainDiv });
+
+    // Verify panning state (via class if possible, or just behavior)
+    expect(mainDiv.className).toContain('cursor-grabbing');
+
+    // Trigger MouseMove (Pan)
+    act(() => {
+        fireEvent.mouseMove(mainDiv, { clientX: 150, clientY: 150 }); // moved 50px
+    });
+
+    // Note: The implementation updates style directly on ref.current
+    expect(contentDiv.getAttribute('style')).toContain('translate(50px, 50px)');
+
+    // Trigger MouseUp (Stop Pan)
+    fireEvent.mouseUp(mainDiv);
+
+    expect(mainDiv.className).not.toContain('cursor-grabbing');
+  });
+
+  it('should still support zooming after refactor (using scaleRef)', () => {
+    const { container } = render(<Whiteboard {...defaultProps} />);
+    const mainDiv = container.querySelector('#whiteboard-main');
+    const contentDiv = container.querySelector('#whiteboard-content');
+
+    if (!mainDiv || !contentDiv) throw new Error('Whiteboard elements not found');
+
+    // Trigger Wheel
+    act(() => {
+        fireEvent.wheel(mainDiv, { deltaY: -100, clientX: 500, clientY: 500 });
+    });
+
+    // deltaY -100 -> zoomFactor = exp(100 * 0.001) = exp(0.1) ≈ 1.105
+    // newScale ≈ 1.105
+
+    // Check transform
+    const style = contentDiv.getAttribute('style');
+    expect(style).toMatch(/scale\(1\.1/);
   });
 });
