@@ -791,7 +791,204 @@ export const generateExercises = async (
               wordBank: ["dummy", "fake", "wrong", "test"]
           }));
       }
-      if (exerciseType === ExerciseType.Matching) {
+      if (exerciseType === ExerciseType.CollocationGapFill) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              question: `I made a [BLANK] to study harder #${i+1}.`,
+              answer: "decision",
+              wordBank: ["decision", "choice", "thought", "action"],
+              collocation: "make a decision"
+          }));
+      }
+      if (exerciseType === ExerciseType.PhrasalVerbGapFill) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              question: `Don't give [BLANK] on your dreams #${i+1}.`,
+              answer: "up",
+              wordBank: ["up", "in", "off", "away"],
+              phrasalVerb: "give up"
+          }));
+      }
+      if (exerciseType === ExerciseType.WordFormation) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              question: `The [BLANK] (CREATE) was amazing #${i+1}.`,
+              rootWord: "CREATE",
+              answer: "creation"
+          }));
+      }
+      if (exerciseType === ExerciseType.CollocationOddOneOut) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              keyword: "rain",
+              options: ["heavy", "strong", "light", "torrential"],
+              correctAnswer: "strong"
+          }));
+      }
+      if (exerciseType === ExerciseType.SentenceScramble) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              scrambledWords: ["sentence", "is", "This", "a"],
+              correct: "This is a sentence."
+          }));
+      }
+      if (exerciseType === ExerciseType.ErrorCorrection) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              incorrectSentence: "He go to school every day.",
+              correctSentence: "He goes to school every day."
+          }));
+      }
+      if (exerciseType === ExerciseType.ClozeParagraph) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              paragraph: "Yesterday I [BLANK] to the park. It was very [BLANK].",
+              answers: ["went", "nice"],
+              wordBank: ["went", "nice", "go", "bad", "happy"]
+          }));
+      }
+      if (exerciseType === ExerciseType.DialogueCompletion) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              dialogue: "A: Hello!\nB: [BLANK]!",
+              answers: ["Hi"],
+              wordBank: ["Hi", "Bye", "No"]
+          }));
+      }
+      if (exerciseType === ExerciseType.ReadingGist) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "A Sunny Day",
+              text: "The sun was shining and the birds were singing. It was a perfect day for a picnic.",
+              question: "What is the main idea?",
+              options: ["It was a good day.", "It was raining.", "The birds were loud."],
+              correctAnswer: "It was a good day."
+          }));
+      }
+      if (exerciseType === ExerciseType.ReadingDetail) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "The Menu",
+              text: "Pizza: $10. Pasta: $12. Salad: $8.",
+              questions: [
+                  { question: "How much is the pizza?", answer: "$10" },
+                  { question: "How much is the pasta?", answer: "$12" }
+              ]
+          }));
+      }
+      if (exerciseType === ExerciseType.ListeningSpecificInfo) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "Weather Report",
+              audioText: "It will be hot today with a high of 90 degrees.",
+              questions: [
+                  { question: "What is the high temperature?", answer: "90 degrees" }
+              ]
+          }));
+      }
+      if (exerciseType === ExerciseType.InformationTransfer) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "User Profile",
+              text: "John Doe is 30 years old and lives in New York.",
+              formFields: ["Name", "Age", "Location"]
+          }));
+      }
+      if (exerciseType === ExerciseType.DictoGloss) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "The Forest",
+              text: "The forest was deep and dark. Many creatures lived there in harmony."
+          }));
+      }
+      if (exerciseType === ExerciseType.FunctionalWriting) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "Requesting Information",
+              scenario: "You want to join a gym.",
+              task: "Write an email to the gym manager asking about membership prices."
+          }));
+      }
+      if (exerciseType === ExerciseType.ProblemSolvingScenario) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "Lost in the City",
+              scenario: "You are in a new city and your phone battery is dead. You need to find your hotel."
+          }));
+      }
+      if (exerciseType === ExerciseType.MoralDilemma) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "The Found Wallet",
+              dilemma: "You find a wallet with $1000 inside. There is no ID. What do you do?"
+          }));
+      }
+      if (exerciseType === ExerciseType.RolePlayScenario) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "At the Restaurant",
+              character: "The Customer",
+              situation: "You are at a fancy restaurant and your food is cold.",
+              task: "Complain to the waiter and ask for a new dish."
+          }));
+      }
+      if (exerciseType === ExerciseType.StorytellingFromPrompts) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "The Mystery Box",
+              prompts: ["a key", "a map", "a dark cellar"],
+              task: "Write a story that includes all three prompts."
+          }));
+      }
+      if (exerciseType === ExerciseType.JustifyYourOpinion) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "Social Media",
+              statement: "Social media does more harm than good.",
+              task: "Do you agree or disagree? Justify your opinion."
+          }));
+      }
+      if (exerciseType === ExerciseType.PictureComparison) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "City vs Country",
+              promptA: "A busy city street with lots of traffic and tall buildings.",
+              promptB: "A quiet country road with green fields and a few cows.",
+              task: "Compare and contrast living in the city and the country."
+          }));
+      }
+      if (exerciseType === ExerciseType.Prediction) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              storyStart: "John was walking his dog when suddenly the dog saw a squirrel and started to run.",
+              options: ["John let go of the leash.", "The squirrel invited the dog for tea.", "John flew away like a bird."],
+              correctAnswer: "John let go of the leash."
+          }));
+      }
+      if (exerciseType === ExerciseType.RuleDiscovery) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              sentences: ["I have seen that movie.", "She has visited London.", "They have eaten lunch."],
+              question: "What grammar rule is being used?",
+              options: ["Present Perfect", "Past Simple", "Future Continuous"],
+              correctAnswer: "Present Perfect"
+          }));
+      }
+      if (exerciseType === ExerciseType.SpotTheDifference) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              sentenceA: "I like to swim.",
+              sentenceB: "I liked to swim.",
+              question: "What is the difference in meaning?",
+              options: ["A is present, B is past.", "A is past, B is present.", "There is no difference."],
+              correctAnswer: "A is present, B is past."
+          }));
+      }
+      if (exerciseType === ExerciseType.RegisterSort) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: "Formal vs Informal",
+              categories: ["Formal", "Informal"],
+              phrases: ["Could you please...", "Hey, can you..."],
+              solution: [
+                  { phrase: "Could you please...", category: "Formal" },
+                  { phrase: "Hey, can you...", category: "Informal" }
+              ]
+          }));
+      }
+      if (exerciseType === ExerciseType.PolitenessScenarios) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              scenario: "You want to borrow a pen from a stranger.",
+              question: "What is the most appropriate thing to say?",
+              options: ["Give me your pen.", "May I borrow your pen, please?", "Pen, now."],
+              correctAnswer: "May I borrow your pen, please?"
+          }));
+      }
+      if (exerciseType === ExerciseType.InferringMeaning) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              dialogue: "A: Are you coming to the party?\nB: I have a big exam tomorrow.",
+              question: "What does B mean?",
+              options: ["B is going to the party.", "B is not going to the party.", "B likes exams."],
+              correctAnswer: "B is not going to the party."
+          }));
+      }
+      if (exerciseType === ExerciseType.Matching || exerciseType === ExerciseType.FunctionMatching) {
           return Array.from({ length: amount }).map((_, i) => ({
               prompts: [`Prompt A #${i+1}`, `Prompt B #${i+1}`, `Prompt C #${i+1}`],
               answers: [`Answer A #${i+1}`, `Answer B #${i+1}`, `Answer C #${i+1}`]
@@ -815,8 +1012,15 @@ export const generateExercises = async (
               ]
           }));
       }
-      // Add more dummy data types if needed, otherwise fallback to error
-      return { error: "Dummy data not implemented for this type." };
+      if (exerciseType === ExerciseType.PicturePrompt) {
+          return Array.from({ length: amount }).map((_, i) => ({
+              title: `Picture Prompt #${i + 1}`,
+              imageUrl: `https://placehold.co/600x400?text=Dummy+Image+${i+1}`,
+              prompt: "Describe what you see in this picture."
+          }));
+      }
+      // Fallback for any other type
+      return [];
   }
 
   try {
