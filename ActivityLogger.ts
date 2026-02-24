@@ -148,21 +148,23 @@ export class ActivityLogger {
     contentText: string | null = null,
   ): void {
     if (!this.currentActivity) {
-      // If no activity is active, we can either ignore or auto-start a generic one.
-      // For now, let's warn.
-      // console.warn("[ActivityLogger] No active activity for logFocusItem.");
-      return;
+      // If no activity is active, auto-start a generic one.
+      this.startActivity(uuidv4(), 'ui_event', 'General Interaction');
     }
 
-    this.currentActivity.focus_items.push({
-      category: category,
-      concept: concept,
-      time_spent_seconds: timeSpentSeconds,
-      performance_score: score,
-      attempts: attempts,
-      errors: errors,
-      content_text: contentText,
-    });
+    // Since startActivity sets currentActivity, we can assert it's not null here
+    // But for TS safety, we might need a check or !.
+    if (this.currentActivity) {
+        this.currentActivity.focus_items.push({
+          category: category,
+          concept: concept,
+          time_spent_seconds: timeSpentSeconds,
+          performance_score: score,
+          attempts: attempts,
+          errors: errors,
+          content_text: contentText,
+        });
+    }
     // Verbose logging disabled to reduce noise
     // console.log(`[ActivityLogger] Logged focus item: ${category} - ${concept}`);
   }

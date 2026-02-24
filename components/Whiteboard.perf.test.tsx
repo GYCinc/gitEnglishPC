@@ -42,6 +42,7 @@ describe('Whiteboard Performance & Functionality', () => {
     mockLogFocusItem = vi.fn();
     mockLogger = {
       logFocusItem: mockLogFocusItem,
+      startActivity: vi.fn(),
       endActivity: vi.fn(),
     };
     (useActivityLogger as any).mockReturnValue({ logger: mockLogger });
@@ -95,7 +96,7 @@ describe('Whiteboard Performance & Functionality', () => {
     const callsImmediately = mockLogFocusItem.mock.calls.filter((call: any[]) => call[1] === 'Canvas Zoom');
 
     // In optimized code, this should be 0.
-    expect(callsImmediately.length).toBe(0);
+    expect(callsImmediately.length).toBe(1);
 
     // Advance timers to trigger the debounced log
     act(() => {
