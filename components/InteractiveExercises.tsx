@@ -727,7 +727,7 @@ export const InteractiveReadingGist: React.FC<{ exercise: IReadingGistExercise; 
         <div className={`p-4 rounded-2xl bg-white border-2 ${colors.chip.border} mb-6 shadow-inner leading-relaxed whitespace-pre-wrap`}>
             {exercise.text}
         </div>
-        <InteractiveMCQ exercise={{...exercise}} colors={colors} />
+        <InteractiveMCQ exercise={exercise} colors={colors} />
     </div>
 ));
 InteractiveReadingGist.displayName = 'InteractiveReadingGist';
