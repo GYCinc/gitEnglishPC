@@ -29,7 +29,7 @@ export const Chip: React.FC<{
   disabled?: boolean;
   className?: string;
   chipColors: { bg: string; text: string; border: string; };
-}> = ({ text, onClick, onDragStart, draggable, disabled, className = '', chipColors }) => (
+}> = React.memo(({ text, onClick, onDragStart, draggable, disabled, className = '', chipColors }) => (
     <span
         draggable={draggable && !disabled}
         onDragStart={onDragStart}
@@ -38,14 +38,15 @@ export const Chip: React.FC<{
     >
         {text}
     </span>
-);
+));
+Chip.displayName = 'Chip';
 
 export const FeedbackSection: React.FC<{ 
     onCheck: () => void; 
     feedback: string | null; 
     loading: boolean;
     hasInput: boolean;
-}> = ({ onCheck, feedback, loading, hasInput }) => {
+}> = React.memo(({ onCheck, feedback, loading, hasInput }) => {
     return (
         <div className="mt-6 pt-4 border-t border-dashed border-slate-300">
             {!feedback && (
@@ -76,11 +77,12 @@ export const FeedbackSection: React.FC<{
             )}
         </div>
     );
-};
+});
+FeedbackSection.displayName = 'FeedbackSection';
 
 // --- EXERCISES ---
 
-export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationExercise | IPhrasalVerbGapFillExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationExercise | IPhrasalVerbGapFillExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const [droppedWord, setDroppedWord] = useState<string | null>(null);
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
     const { addXP, checkStreak } = useGamification();
@@ -129,9 +131,10 @@ export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationE
             </div>
         </div>
     );
-};
+});
+InteractiveFITB.displayName = 'InteractiveFITB';
 
-export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const [userInput, setUserInput] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -191,7 +194,8 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
             />
         </div>
     );
-};
+});
+InteractiveWordFormation.displayName = 'InteractiveWordFormation';
 
 const MCQOptionButton = React.memo(({ option, onClick, disabled, className }: { option: string, onClick: (option: string) => void, disabled: boolean, className: string }) => {
     const handleClick = React.useCallback(() => {
@@ -205,7 +209,7 @@ const MCQOptionButton = React.memo(({ option, onClick, disabled, className }: { 
     );
 });
 
-export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPredictionExercise | IRuleDiscoveryExercise | ISpotTheDifferenceExercise | IPolitenessScenariosExercise | IInferringMeaningExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPredictionExercise | IRuleDiscoveryExercise | ISpotTheDifferenceExercise | IPolitenessScenariosExercise | IInferringMeaningExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const [selected, setSelected] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const { addXP, checkStreak } = useGamification();
@@ -280,14 +284,15 @@ export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPre
             </div>
         </div>
     );
-};
+});
+InteractiveMCQ.displayName = 'InteractiveMCQ';
 
 export interface ScrambledWord {
   id: number;
   word: string;
 }
 
-export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScrambleExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScrambleExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const [solution, setSolution] = useState<ScrambledWord[]>([]);
     const [bank, setBank] = useState<ScrambledWord[]>([]);
     const [feedback, setFeedback] = useState<string | null>(null);
@@ -367,9 +372,10 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
             />
         </div>
     );
-};
+});
+InteractiveSentenceScramble.displayName = 'InteractiveSentenceScramble';
 
-export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExercise | IDialogueCompletionExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExercise | IDialogueCompletionExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const text = 'paragraph' in exercise ? exercise.paragraph : exercise.dialogue;
     const textParts = text.split('[BLANK]');
     
@@ -438,9 +444,10 @@ export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExe
             />
         </div>
     );
-};
+});
+InteractiveClozeOrDialogue.displayName = 'InteractiveClozeOrDialogue';
 
-export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunctionMatchingExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunctionMatchingExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     type MatchInfo = { answerIndex: number; isCorrect: boolean };
     const [shuffledAnswers, setShuffledAnswers] = useState(() => shuffleArray(exercise.answers || []));
     const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
@@ -525,10 +532,11 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
             </div>
         </div>
     );
-};
+});
+InteractiveMatching.displayName = 'InteractiveMatching';
 
 
-export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const [userInput, setUserInput] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -585,7 +593,8 @@ export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionEx
             />
         </div>
     );
-};
+});
+InteractiveErrorCorrection.displayName = 'InteractiveErrorCorrection';
 
 interface StoryPart { id: string; text: string; }
 
@@ -617,7 +626,7 @@ const StoryPartItem = React.memo(({
 });
 StoryPartItem.displayName = 'StoryPartItem';
 
-export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const [parts, setParts] = useState<StoryPart[]>(() => {
         const rawParts = exercise.storyParts || [];
         const partsWithIds = rawParts.map((text, i) => ({ id: `part-${i}`, text }));
@@ -709,9 +718,10 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
              <button onClick={checkAnswer} className={`w-full mt-3 p-2.5 rounded-xl font-bold text-white shadow-sm hover:shadow-md transition-all active:scale-95 ${buttonBg}`}>Check Order</button>
         </div>
     );
-};
+});
+InteractiveStorySequencing.displayName = 'InteractiveStorySequencing';
 
-export const InteractiveReadingGist: React.FC<{ exercise: IReadingGistExercise; colors: any; }> = ({ exercise, colors }) => (
+export const InteractiveReadingGist: React.FC<{ exercise: IReadingGistExercise; colors: any; }> = React.memo(({ exercise, colors }) => (
     <div className={`text-base font-casual ${colors.textOnLight}`}>
         <h4 className="font-playful text-2xl mb-1">{exercise.title}</h4>
         <div className={`p-4 rounded-2xl bg-white border-2 ${colors.chip.border} mb-6 shadow-inner leading-relaxed whitespace-pre-wrap`}>
@@ -719,9 +729,10 @@ export const InteractiveReadingGist: React.FC<{ exercise: IReadingGistExercise; 
         </div>
         <InteractiveMCQ exercise={{...exercise}} colors={colors} />
     </div>
-);
+));
+InteractiveReadingGist.displayName = 'InteractiveReadingGist';
 
-export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     // Generate stable IDs for questions to avoid index-as-key issues
     const questions = useMemo(() => {
         const seen = new Map<string, number>();
@@ -804,9 +815,10 @@ export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExerci
             />
         </div>
     );
-};
+});
+InteractiveReadingDetail.displayName = 'InteractiveReadingDetail';
 
-export const InteractivePicturePrompt: React.FC<{ exercise: IPicturePromptExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractivePicturePrompt: React.FC<{ exercise: IPicturePromptExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
   const [response, setResponse] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -867,10 +879,11 @@ export const InteractivePicturePrompt: React.FC<{ exercise: IPicturePromptExerci
       />
     </div>
   );
-};
+});
+InteractivePicturePrompt.displayName = 'InteractivePicturePrompt';
 
 
-export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExercise | IFunctionalWritingExercise | IProblemSolvingScenarioExercise | IRolePlayScenarioExercise | IStorytellingFromPromptsExercise | IJustifyYourOpinionExercise | IPictureComparisonExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExercise | IFunctionalWritingExercise | IProblemSolvingScenarioExercise | IRolePlayScenarioExercise | IStorytellingFromPromptsExercise | IJustifyYourOpinionExercise | IPictureComparisonExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
   const [response, setResponse] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -970,9 +983,10 @@ export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExer
       />
     </div>
   );
-};
+});
+InteractiveOpenResponseTask.displayName = 'InteractiveOpenResponseTask';
 
-export const InteractiveDictoGloss: React.FC<{ exercise: IDictoGlossExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveDictoGloss: React.FC<{ exercise: IDictoGlossExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const [showText, setShowText] = useState(true);
     const [response, setResponse] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
@@ -1044,17 +1058,19 @@ export const InteractiveDictoGloss: React.FC<{ exercise: IDictoGlossExercise; co
             />
         </div>
     );
-};
+});
+InteractiveDictoGloss.displayName = 'InteractiveDictoGloss';
 
-export const InteractiveCollocationOddOneOut: React.FC<{ exercise: ICollocationOddOneOutExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveCollocationOddOneOut: React.FC<{ exercise: ICollocationOddOneOutExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const customExercise = {
         question: `Which word does NOT belong with "${exercise.keyword}"?`,
         ...exercise
     };
     return <InteractiveMCQ exercise={customExercise} colors={colors} />;
-};
+});
+InteractiveCollocationOddOneOut.displayName = 'InteractiveCollocationOddOneOut';
 
-export const InteractiveInformationTransfer: React.FC<{ exercise: IInformationTransferExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveInformationTransfer: React.FC<{ exercise: IInformationTransferExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -1117,9 +1133,10 @@ export const InteractiveInformationTransfer: React.FC<{ exercise: IInformationTr
             />
         </div>
     );
-};
+});
+InteractiveInformationTransfer.displayName = 'InteractiveInformationTransfer';
 
-export const InteractiveListening: React.FC<{ exercise: IListeningSpecificInfoExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveListening: React.FC<{ exercise: IListeningSpecificInfoExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     // Generate stable IDs for questions to avoid index-as-key issues
     const questions = useMemo(() => {
         const seen = new Map<string, number>();
@@ -1203,9 +1220,10 @@ export const InteractiveListening: React.FC<{ exercise: IListeningSpecificInfoEx
             />
         </div>
     );
-};
+});
+InteractiveListening.displayName = 'InteractiveListening';
 
-export const InteractiveRegisterSort: React.FC<{ exercise: IRegisterSortExercise; colors: any; }> = ({ exercise, colors }) => {
+export const InteractiveRegisterSort: React.FC<{ exercise: IRegisterSortExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const [unclassified, setUnclassified] = useState(() => shuffleArray(exercise.phrases));
     const [classified, setClassified] = useState<Record<string, string[]>>(() => 
         exercise.categories.reduce((acc, cat) => ({...acc, [cat]: []}), {})
@@ -1261,4 +1279,5 @@ export const InteractiveRegisterSort: React.FC<{ exercise: IRegisterSortExercise
             </div>
         </div>
     );
-};
+});
+InteractiveRegisterSort.displayName = 'InteractiveRegisterSort';
