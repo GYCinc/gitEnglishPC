@@ -822,15 +822,19 @@ export const generateExercises = async (
   try {
     // Handle image generation separately for PicturePrompt exercise
     if (exerciseType === ExerciseType.PicturePrompt) {
-      // For now, we'll return a placeholder since Mistral doesn't support image generation
+      // Use Pollinations.ai for free image generation based on the prompt
       const generatedExercises = [];
       for (let i = 0; i < amount; i++) {
         const imagePrompt = `A compelling and slightly ambiguous scene about "${theme}". The style should be ${tone}. The image is for an ESL student at a ${difficulty} level to analyze. ${i > 0 ? `Variation ${i + 1}.` : ''}`;
-        
-        // Since Mistral doesn't support image generation, we'll return a placeholder
+
+        // Pollinations is a free, keyless AI image generation API
+        // Add a random seed to ensure visual variety between generations
+        const seed = Math.floor(Math.random() * 1000000);
+        const encodedPrompt = encodeURIComponent(imagePrompt);
+
         generatedExercises.push({
           title: `Picture Prompt #${i + 1}`,
-          imageUrl: `https://placehold.co/600x400?text=${encodeURIComponent(theme)}`,
+          imageUrl: `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&nologo=true`,
           prompt: imagePrompt
         });
       }
