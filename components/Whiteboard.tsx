@@ -1,3 +1,5 @@
+import { DrawingPath } from '../types';
+import { DrawingLayer } from './DrawingLayer';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { BlocksLayer } from './BlocksLayer';
 import { SnapLinesOverlay } from './SnapLinesOverlay';
@@ -17,6 +19,9 @@ interface WhiteboardProps {
   onExitPresentation: () => void;
   onNextSlide: () => void;
   onPrevSlide: () => void;
+  paths: DrawingPath[];
+  onAddPath: (path: DrawingPath) => void;
+  isDrawingMode: boolean;
 }
 
 type SnapLine = {
@@ -32,7 +37,7 @@ const VELOCITY_THRESHOLD = 0.1;
 
 const Whiteboard: React.FC<WhiteboardProps> = ({ 
     blocks, onAddBlock, onUpdateBlock, onRemoveBlock, onFocusBlock, 
-    presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide
+    presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide, paths, onAddPath, isDrawingMode
 }) => {
   const [activeInteraction, setActiveInteraction] = useState<{ blockId: number, x: number, y: number, width: number, height: number } | null>(null);
   const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
@@ -92,6 +97,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   }, [updateTransform]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (isDrawingMode) return;
     if (activeInteraction) return;
 
     const target = e.target as HTMLElement;
@@ -345,7 +351,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     <main 
       ref={containerRef}
       id="whiteboard-main"
-      className={`flex-grow bg-slate-200 relative overflow-hidden ${isPanning ? 'cursor-grabbing' : (isSpacePressed ? 'cursor-grab' : 'cursor-default')} font-casual`}
+      className={`flex-grow bg-slate-200 relative overflow-hidden ${isDrawingMode ? 'cursor-crosshair' : (isPanning ? 'cursor-grabbing' : (isSpacePressed ? 'cursor-grab' : 'cursor-default'))} font-casual`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -390,6 +396,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             onDrop={handleDrop}
         >
             <SnapLinesOverlay lines={snapLines} scale={scale} />
+            <DrawingLayer paths={paths} onAddPath={onAddPath} isDrawingMode={isDrawingMode} scale={scale} />
 
             <BlocksLayer
                 blocks={blocks}
@@ -404,6 +411,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
                 onNextSlide={onNextSlide}
                 onPrevSlide={onPrevSlide}
                 scaleRef={scaleRef}
+                disableInteraction={isDrawingMode}
             />
         </div>
     </main>

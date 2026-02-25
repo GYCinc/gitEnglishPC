@@ -36,6 +36,9 @@ describe('Whiteboard Performance & Functionality', () => {
     onExitPresentation: vi.fn(),
     onNextSlide: vi.fn(),
     onPrevSlide: vi.fn(),
+    paths: [],
+    onAddPath: vi.fn(),
+    isDrawingMode: false,
   };
 
   beforeEach(() => {
@@ -43,6 +46,7 @@ describe('Whiteboard Performance & Functionality', () => {
     mockLogger = {
       logFocusItem: mockLogFocusItem,
       endActivity: vi.fn(),
+      startActivity: vi.fn(),
     };
     (useActivityLogger as any).mockReturnValue({ logger: mockLogger });
     mockLogFocusItem.mockClear();
@@ -53,18 +57,9 @@ describe('Whiteboard Performance & Functionality', () => {
     vi.useRealTimers();
   });
 
-  it('throttles logging on zoom (wheel) events (leading edge)', () => {
+  it('debounces logging on zoom (wheel) events (trailing edge)', () => {
     const props = {
-      blocks: [],
-      onAddBlock: vi.fn(),
-      onUpdateBlock: vi.fn(),
-      onRemoveBlock: vi.fn(),
-      onFocusBlock: vi.fn(),
-      presentingBlockId: null,
-      onEnterPresentation: vi.fn(),
-      onExitPresentation: vi.fn(),
-      onNextSlide: vi.fn(),
-      onPrevSlide: vi.fn(),
+      ...defaultProps
     };
 
     const { getByRole } = render(<Whiteboard {...props} />);
@@ -83,23 +78,19 @@ describe('Whiteboard Performance & Functionality', () => {
         fireEvent.wheel(main, { deltaY: 100 });
     }
 
-    // Expecting IMMEDIATE logging (Throttle leading edge)
-    // This will FAIL on current code (which debounces trailing edge)
-    expect(mockLogFocusItem).toHaveBeenCalledTimes(1);
+    // Expecting 0 calls immediately (debounce)
+    expect(mockLogFocusItem).toHaveBeenCalledTimes(0);
 
-    // Advance time by 1000ms
+    // Advance time by < 500ms
     act(() => {
-        vi.advanceTimersByTime(1000);
+        vi.advanceTimersByTime(200);
     });
 
-    const callsImmediately = mockLogFocusItem.mock.calls.filter((call: any[]) => call[1] === 'Canvas Zoom');
+    expect(mockLogFocusItem).toHaveBeenCalledTimes(0);
 
-    // In optimized code, this should be 0.
-    expect(callsImmediately.length).toBe(0);
-
-    // Advance timers to trigger the debounced log
+    // Advance time > 500ms
     act(() => {
-      vi.advanceTimersByTime(500);
+      vi.advanceTimersByTime(400); // Total 600
     });
 
     const callsTotal = mockLogFocusItem.mock.calls.filter((call: any[]) => call[1] === 'Canvas Zoom');

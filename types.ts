@@ -67,3 +67,15 @@ export interface ExerciseCategory {
   icon: FC<{className?: string}>;
   types: ExerciseType[];
 }
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface DrawingPath {
+  id: string;
+  points: Point[];
+  color: string;
+  width: number;
+}
