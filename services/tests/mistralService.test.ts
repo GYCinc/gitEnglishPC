@@ -74,4 +74,32 @@ describe('mistralService', () => {
         expect(result).toHaveLength(1);
         expect(result[0].question).toBe('Mistral Q?');
     });
+
+    it('should generate PicturePrompt exercises using Pollinations.ai without calling Mistral API', async () => {
+        process.env.MISTRAL_API_KEY = 'mistral-key';
+
+        // ExerciseType.PicturePrompt is special and handled locally
+        // We do NOT mock fetch here because we expect it NOT to be called for PicturePrompt
+        // (unless checking answer, but generateExercises is synchronous regarding API calls for PicturePrompt now)
+        // Wait, generateExercises is async.
+
+        const result: any = await generateExercises(
+            ExerciseType.PicturePrompt,
+            Difficulty.B1,
+            Tone.Professional,
+            'office meeting',
+            2,
+            [],
+            0,
+            [],
+            0
+        );
+
+        expect(global.fetch).not.toHaveBeenCalled();
+        expect(result).toHaveLength(2);
+        expect(result[0].title).toBe('Picture Prompt #1');
+        expect(result[0].imageUrl).toContain('https://image.pollinations.ai/prompt/');
+        expect(result[0].imageUrl).toContain('office%20meeting'); // Encoded
+        expect(result[0].imageUrl).toContain('seed=');
+    });
 });
