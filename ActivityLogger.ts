@@ -75,10 +75,6 @@ export class ActivityLogger {
   private activities: Activity[];
   private currentActivity: (Omit<Activity, 'duration_seconds'> & { start_time: number }) | null;
 
-  // Buffer settings
-  private streamBuffer: StreamEvent[] = [];
-  private readonly BUFFER_LIMIT = 500; // Auto-flush (or prune) limit to prevent memory leaks if endActivity isn't called
-
   constructor(moduleId: string, studentId: string) {
     this.moduleId = moduleId;
     this.studentId = studentId;
@@ -124,7 +120,6 @@ export class ActivityLogger {
       stream_data: [],
       metadata: {  }, // Initialize metadata
     };
-    this.streamBuffer = []; // Reset buffer
     console.log(`[ActivityLogger] Activity started: ${name} (${activityId})`);
   }
 
@@ -171,7 +166,7 @@ export class ActivityLogger {
 
   /**
    * Log high-frequency stream events (cursor, scroll, etc.)
-   * These are buffered and added to the activity upon completion.
+   * These are added to the activity directly.
    */
   logStreamEvent(type: string, data: any): void {
       if (!this.currentActivity) return;
@@ -182,15 +177,7 @@ export class ActivityLogger {
           timestamp: Date.now()
       };
 
-      this.streamBuffer.push(event);
-
-      // Simple safety check
-      if (this.streamBuffer.length > this.BUFFER_LIMIT) {
-          // If buffer is full, we flush it to the current activity's stream_data immediately
-          // to prevent memory issues, although ideally stream_data handles it.
-          this.currentActivity.stream_data.push(...this.streamBuffer);
-          this.streamBuffer = [];
-      }
+      this.currentActivity.stream_data.push(event);
   }
 
   /**
@@ -213,12 +200,6 @@ export class ActivityLogger {
 
     const duration =
       (performance.now() - this.currentActivity.start_time) / 1000;
-
-    // Flush remaining stream buffer
-    if (this.streamBuffer.length > 0) {
-        this.currentActivity.stream_data.push(...this.streamBuffer);
-        this.streamBuffer = [];
-    }
 
     // Construct the final activity object
     const activity: Activity = {

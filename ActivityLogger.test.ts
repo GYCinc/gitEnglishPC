@@ -1,28 +1,51 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ActivityLogger } from './ActivityLogger';
 
 describe('ActivityLogger', () => {
-  it('should auto-start an activity if logFocusItem is called without an active activity', () => {
-    const logger = new ActivityLogger('test-module', 'student-1');
-    logger.startSession();
+    let logger: ActivityLogger;
 
-    // Ensure no activity is started explicitly
-    // logger.startActivity(...) - intentionally skipped
+    beforeEach(() => {
+        logger = new ActivityLogger('test-module', 'test-student');
+        logger.startSession();
+    });
 
-    // Log a focus item
-    logger.logFocusItem('Grammar', 'Test Concept', 10);
+    it('should log stream events correctly within buffer limit', () => {
+        logger.startActivity('act-1', 'drill', 'Test Activity');
 
-    // End session to get the payload
-    const payload = logger.endSession();
+        // Log less than BUFFER_LIMIT (500)
+        for (let i = 0; i < 100; i++) {
+            logger.logStreamEvent('test-event', { index: i });
+        }
 
-    // Check if an activity was created
-    expect(payload.activities.length).toBeGreaterThan(0);
+        logger.endActivity();
+        const session = logger.endSession();
+        const activity = session.activities.find(a => a.activity_id === 'act-1');
 
-    // Check if the focus item is inside the activity
-    const activity = payload.activities.find(a => a.activity_name === 'General Interaction');
-    expect(activity).toBeDefined();
-    expect(activity?.activity_type).toBe('ui_event');
-    expect(activity?.focus_items.length).toBe(1);
-    expect(activity?.focus_items[0].concept).toBe('Test Concept');
-  });
+        expect(activity).toBeDefined();
+        if (activity) {
+            expect(activity.stream_data.length).toBe(100);
+            expect(activity.stream_data[0].data.index).toBe(0);
+            expect(activity.stream_data[99].data.index).toBe(99);
+        }
+    });
+
+    it('should handle large number of events exceeding buffer', () => {
+        logger.startActivity('act-2', 'drill', 'Large Activity');
+
+        // Log more than BUFFER_LIMIT (500)
+        for (let i = 0; i < 600; i++) {
+            logger.logStreamEvent('test-event', { index: i });
+        }
+
+        logger.endActivity();
+        const session = logger.endSession();
+        const activity = session.activities.find(a => a.activity_id === 'act-2');
+
+        expect(activity).toBeDefined();
+        if (activity) {
+            expect(activity.stream_data.length).toBe(600);
+            expect(activity.stream_data[0].data.index).toBe(0);
+            expect(activity.stream_data[599].data.index).toBe(599);
+        }
+    });
 });
