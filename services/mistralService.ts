@@ -781,6 +781,29 @@ export const generateExercises = async (
   focusGrammar: string[],
   grammarInclusionRate: number
 ) => {
+  // Handle image generation separately for PicturePrompt exercise (Uses Pollinations.ai, no key required)
+  if (exerciseType === ExerciseType.PicturePrompt) {
+    const generatedExercises = [];
+    for (let i = 0; i < amount; i++) {
+      // Create a descriptive prompt for the student/analysis
+      const analysisPrompt = `A compelling and slightly ambiguous scene about "${theme}". The style should be ${tone}. The image is for an ESL student at a ${difficulty} level to analyze. ${i > 0 ? `Variation ${i + 1}.` : ''}`;
+
+      // Create a specific prompt for the image generator (removing meta-instructions)
+      const visualPrompt = `A compelling and slightly ambiguous scene about ${theme}, ${tone} style, high quality, detailed${i > 0 ? `, variation ${i + 1}` : ''}`;
+
+      // Use Pollinations.ai for image generation (free, no key required)
+      const encodedPrompt = encodeURIComponent(visualPrompt);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=600&height=400&nologo=true`;
+
+      generatedExercises.push({
+        title: `Picture Prompt #${i + 1}`,
+        imageUrl: imageUrl,
+        prompt: analysisPrompt
+      });
+    }
+    return generatedExercises;
+  }
+
   if (process.env.MISTRAL_API_KEY === undefined) {
       console.warn("Using DUMMY data for verification as MISTRAL_API_KEY is missing.");
       // Dummy data map for verification
@@ -820,30 +843,6 @@ export const generateExercises = async (
   }
 
   try {
-    // Handle image generation separately for PicturePrompt exercise
-    if (exerciseType === ExerciseType.PicturePrompt) {
-      // Use Pollinations.ai for free image generation based on the prompt
-      const generatedExercises = [];
-      for (let i = 0; i < amount; i++) {
-        const imagePrompt = `A compelling and slightly ambiguous scene about "${theme}". The style should be ${tone}. The image is for an ESL student at a ${difficulty} level to analyze. ${i > 0 ? `Variation ${i + 1}.` : ''}`;
-
-        // Pollinations is a free, keyless AI image generation API
-        // Add a random seed to ensure visual variety between generations
-        const seed = Math.floor(Math.random() * 1000000);
-        const encodedPrompt = encodeURIComponent(imagePrompt);
-
-        generatedExercises.push({
-          title: `Picture Prompt #${i + 1}`,
-          imageUrl: `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&nologo=true`,
-          prompt: imagePrompt
-        });
-      }
-      if (generatedExercises.length === 0) {
-        return { error: "Failed to generate any images for the picture prompt." };
-      }
-      return generatedExercises;
-    }
-
     // Get prompt and schema for text-based exercises
     const { prompt, schema } = getPromptAndSchema(exerciseType, difficulty, tone, theme, amount, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate);
 
