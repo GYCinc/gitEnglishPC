@@ -4,7 +4,7 @@ import Whiteboard from './components/Whiteboard';
 import RadialMenu from './components/RadialMenu';
 import GlobalSettings from './components/GlobalSettings';
 import { ExerciseType, Difficulty, Tone } from './enums';
-import { ExerciseBlockState } from './types';
+import { DrawingPath, ExerciseBlockState } from "./types";
 import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration, DIFFICULTY_LEVELS } from './constants';
 import { GamificationProvider } from './GamificationContext';
 import GamificationHUD from './components/GamificationHUD';
@@ -24,6 +24,8 @@ const GRAMMAR_RATE_KEY = `${APP_PREFIX}grammarInclusionRate`;
 
 const App: React.FC = () => {
   const [blocks, setBlocks] = useState<ExerciseBlockState[]>(() => {
+  const [paths, setPaths] = useState<DrawingPath[]>([]);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
     try {
       const savedPages = localStorage.getItem(PAGES_KEY);
       if (savedPages) {

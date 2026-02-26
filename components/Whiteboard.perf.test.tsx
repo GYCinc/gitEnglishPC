@@ -1,154 +1,148 @@
 import { render, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Whiteboard from './Whiteboard';
-import { ActivityLoggerProvider } from '../ActivityContext';
-import { ActivityLogger } from '../ActivityLogger';
 import React from 'react';
+import { useActivityLogger } from '../ActivityContext';
 
-const mockLogger = {
-    startSession: vi.fn(),
-    endSession: vi.fn(),
-    startActivity: vi.fn(),
-    endActivity: vi.fn(),
-    logFocusItem: vi.fn(),
-};
+// Mock dependencies
+vi.mock('../ActivityContext', () => ({
+  useActivityLogger: vi.fn()
+}));
 
-vi.mock('../ActivityLogger', () => {
-    return {
-        ActivityLogger: vi.fn(function() {
-            return mockLogger;
-        })
+vi.mock('./BlocksLayer', () => ({
+  BlocksLayer: () => <div data-testid="blocks-layer" />
+}));
+
+vi.mock('./SnapLinesOverlay', () => ({
+  SnapLinesOverlay: () => <div data-testid="snap-lines" />
+}));
+
+vi.mock('./icons', () => ({
+    MagicWandIcon: () => <div data-testid="magic-wand" />
+}));
+
+describe('Whiteboard Performance & Functionality', () => {
+  let mockLogFocusItem: any;
+  let mockLogger: any;
+
+  const defaultProps = {
+    blocks: [],
+    onAddBlock: vi.fn(),
+    onUpdateBlock: vi.fn(),
+    onRemoveBlock: vi.fn(),
+    onFocusBlock: vi.fn(),
+    presentingBlockId: null,
+    onEnterPresentation: vi.fn(),
+    onExitPresentation: vi.fn(),
+    onNextSlide: vi.fn(),
+    onPrevSlide: vi.fn(),
+    paths: [],
+    onAddPath: vi.fn(),
+    isDrawingMode: false,
+  };
+
+  beforeEach(() => {
+    mockLogFocusItem = vi.fn();
+    mockLogger = {
+      logFocusItem: mockLogFocusItem,
+      endActivity: vi.fn(),
+      startActivity: vi.fn(),
     };
-});
+    (useActivityLogger as any).mockReturnValue({ logger: mockLogger });
+    mockLogFocusItem.mockClear();
+    vi.useFakeTimers();
+  });
 
-describe('Whiteboard Performance', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        localStorage.setItem('studentId', 'test-student');
-        vi.useFakeTimers();
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('debounces logging on zoom (wheel) events (trailing edge)', () => {
+    const props = {
+      ...defaultProps
+    };
+
+    const { getByRole } = render(<Whiteboard {...props} />);
+
+    let main;
+    try {
+        main = getByRole('main');
+    } catch (e) {
+        main = document.getElementById('whiteboard-main');
+    }
+
+    if (!main) throw new Error('Could not find main element');
+
+    // Simulate 20 rapid wheel events
+    for (let i = 0; i < 20; i++) {
+        fireEvent.wheel(main, { deltaY: 100 });
+    }
+
+    // Expecting 0 calls immediately (debounce)
+    expect(mockLogFocusItem).toHaveBeenCalledTimes(0);
+
+    // Advance time by < 500ms
+    act(() => {
+        vi.advanceTimersByTime(200);
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
+    expect(mockLogFocusItem).toHaveBeenCalledTimes(0);
+
+    // Advance time > 500ms
+    act(() => {
+      vi.advanceTimersByTime(400); // Total 600
     });
 
-    it('debounces zoom events (optimized)', () => {
-        render(
-            <ActivityLoggerProvider moduleId="test-module">
-                <Whiteboard
-                    blocks={[]}
-                    onAddBlock={() => {}}
-                    onUpdateBlock={() => {}}
-                    onRemoveBlock={() => {}}
-                    onFocusBlock={() => {}}
-                    presentingBlockId={null}
-                    onEnterPresentation={() => {}}
-                    onExitPresentation={() => {}}
-                    onNextSlide={() => {}}
-                    onPrevSlide={() => {}}
-                />
-            </ActivityLoggerProvider>
-        );
+    const callsTotal = mockLogFocusItem.mock.calls.filter((call: any[]) => call[1] === 'Canvas Zoom');
 
-        const whiteboard = document.getElementById('whiteboard-main');
-        if (!whiteboard) throw new Error('Whiteboard not found');
+    // Should be exactly 1 call total after debounce
+    expect(callsTotal.length).toBe(1);
+  });
 
-        // Simulate 10 wheel events rapidly
-        act(() => {
-            for (let i = 0; i < 10; i++) {
-                fireEvent.wheel(whiteboard, { deltaY: 100 });
-            }
-        });
+  it('should still support panning after refactor (using refs)', () => {
+    const { container } = render(<Whiteboard {...defaultProps} />);
+    const mainDiv = container.querySelector('#whiteboard-main');
+    const contentDiv = container.querySelector('#whiteboard-content');
 
-        const loggerInstance = vi.mocked(ActivityLogger).mock.results[0].value;
+    if (!mainDiv || !contentDiv) throw new Error('Whiteboard elements not found');
 
-        // Immediately, there should be 0 zoom logs (because it's debounced)
-        let zoomLogs = loggerInstance.logFocusItem.mock.calls.filter((call: any) => call[1] === 'Canvas Zoom');
-        expect(zoomLogs.length).toBe(0);
+    // Trigger MouseDown (Start Pan)
+    fireEvent.mouseDown(mainDiv, { clientX: 100, clientY: 100, button: 0, target: mainDiv });
 
-        // Advance time by 500ms
-        act(() => {
-            vi.advanceTimersByTime(500);
-        });
+    // Verify panning state (via class if possible, or just behavior)
+    expect(mainDiv.className).toContain('cursor-grabbing');
 
-        // Now there should be exactly 1 log
-        zoomLogs = loggerInstance.logFocusItem.mock.calls.filter((call: any) => call[1] === 'Canvas Zoom');
-        expect(zoomLogs.length).toBe(1);
-        console.log('Verified: 10 wheel events resulted in 1 debounced log call.');
+    // Trigger MouseMove (Pan)
+    act(() => {
+        fireEvent.mouseMove(mainDiv, { clientX: 150, clientY: 150 }); // moved 50px
     });
 
-    it('handles rapid panning events without errors (stability)', () => {
-        const { container } = render(
-            <ActivityLoggerProvider moduleId="test-module">
-                <Whiteboard
-                    blocks={[]}
-                    onAddBlock={() => {}}
-                    onUpdateBlock={() => {}}
-                    onRemoveBlock={() => {}}
-                    onFocusBlock={() => {}}
-                    presentingBlockId={null}
-                    onEnterPresentation={() => {}}
-                    onExitPresentation={() => {}}
-                    onNextSlide={() => {}}
-                    onPrevSlide={() => {}}
-                />
-            </ActivityLoggerProvider>
-        );
+    // Note: The implementation updates style directly on ref.current
+    expect(contentDiv.getAttribute('style')).toContain('translate(50px, 50px)');
 
-        const main = container.querySelector('#whiteboard-main');
-        if (!main) throw new Error('Whiteboard main not found');
+    // Trigger MouseUp (Stop Pan)
+    fireEvent.mouseUp(mainDiv);
 
-        // Simulate Mouse Down (Start Pan)
-        fireEvent.mouseDown(main, { clientX: 100, clientY: 100, button: 0 });
+    expect(mainDiv.className).not.toContain('cursor-grabbing');
+  });
 
-        // Simulate Rapid Mouse Move (Pan)
-        act(() => {
-            for (let i = 0; i < 50; i++) {
-                fireEvent.mouseMove(main, { clientX: 100 + i, clientY: 100 + i });
-            }
-        });
+  it('should still support zooming after refactor (using scaleRef)', () => {
+    const { container } = render(<Whiteboard {...defaultProps} />);
+    const mainDiv = container.querySelector('#whiteboard-main');
+    const contentDiv = container.querySelector('#whiteboard-content');
 
-        // Simulate Mouse Up (End Pan)
-        fireEvent.mouseUp(main);
+    if (!mainDiv || !contentDiv) throw new Error('Whiteboard elements not found');
 
-        // Advance timers for momentum
-        act(() => {
-            vi.advanceTimersByTime(100);
-        });
-
-        // Ensure no errors and component is still rendered
-        expect(container.querySelector('#whiteboard-main')).toBeTruthy();
+    // Trigger Wheel
+    act(() => {
+        fireEvent.wheel(mainDiv, { deltaY: -100, clientX: 500, clientY: 500 });
     });
 
-    it('handles wheel events (zoom) correctly (stability)', () => {
-        const { container } = render(
-            <ActivityLoggerProvider moduleId="test-module">
-                <Whiteboard
-                    blocks={[]}
-                    onAddBlock={() => {}}
-                    onUpdateBlock={() => {}}
-                    onRemoveBlock={() => {}}
-                    onFocusBlock={() => {}}
-                    presentingBlockId={null}
-                    onEnterPresentation={() => {}}
-                    onExitPresentation={() => {}}
-                    onNextSlide={() => {}}
-                    onPrevSlide={() => {}}
-                />
-            </ActivityLoggerProvider>
-        );
+    // deltaY -100 -> zoomFactor = exp(100 * 0.001) = exp(0.1) ≈ 1.105
+    // newScale ≈ 1.105
 
-        const main = container.querySelector('#whiteboard-main');
-        if (!main) throw new Error('Whiteboard main not found');
-
-        // Simulate Wheel
-        fireEvent.wheel(main, { deltaY: -100 });
-
-        // Advance timers if any
-        act(() => {
-            vi.advanceTimersByTime(100);
-        });
-
-        expect(container.querySelector('#whiteboard-main')).toBeTruthy();
-    });
+    // Check transform
+    const style = contentDiv.getAttribute('style');
+    expect(style).toMatch(/scale\(1\.1/);
+  });
 });

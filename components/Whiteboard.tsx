@@ -1,3 +1,5 @@
+import { DrawingPath } from '../types';
+import { DrawingLayer } from './DrawingLayer';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { BlocksLayer } from './BlocksLayer';
 import { SnapLinesOverlay } from './SnapLinesOverlay';
@@ -17,6 +19,9 @@ interface WhiteboardProps {
   onExitPresentation: () => void;
   onNextSlide: () => void;
   onPrevSlide: () => void;
+  paths: DrawingPath[];
+  onAddPath: (path: DrawingPath) => void;
+  isDrawingMode: boolean;
 }
 
 type SnapLine = {
@@ -32,10 +37,9 @@ const VELOCITY_THRESHOLD = 0.1;
 
 const Whiteboard: React.FC<WhiteboardProps> = ({ 
     blocks, onAddBlock, onUpdateBlock, onRemoveBlock, onFocusBlock, 
-    presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide
+    presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide, paths, onAddPath, isDrawingMode
 }) => {
   const [activeInteraction, setActiveInteraction] = useState<{ blockId: number, x: number, y: number, width: number, height: number } | null>(null);
-  const activeInteractionRef = useRef(activeInteraction);
   const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
   
   const [scale, setScale] = useState(1);
@@ -45,7 +49,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const isPanningRef = useRef(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
-  const isSpacePressedRef = useRef(false);
 
   // Momentum State
   const velocity = useRef({ x: 0, y: 0 });
@@ -63,19 +66,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   useEffect(() => {
     blocksRef.current = blocks;
   }, [blocks]);
-
-  // Sync state to refs for event handlers to avoid re-creation
-  useEffect(() => {
-    isPanningRef.current = isPanning;
-  }, [isPanning]);
-
-  useEffect(() => {
-    activeInteractionRef.current = activeInteraction;
-  }, [activeInteraction]);
-
-  useEffect(() => {
-    isSpacePressedRef.current = isSpacePressed;
-  }, [isSpacePressed]);
 
   const snapPointsCache = useRef<{ vPoints: number[], hPoints: number[] } | null>(null);
 
@@ -107,13 +97,15 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   }, [updateTransform]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (activeInteractionRef.current) return;
+    if (isDrawingMode) return;
+    if (activeInteraction) return;
 
     const target = e.target as HTMLElement;
     const isBackground = target.id === 'whiteboard-background' || target.id === 'whiteboard-main' || target.id === 'whiteboard-content';
 
-    if (e.button === 1 || e.button === 2 || (e.button === 0 && (isBackground || isSpacePressedRef.current))) {
+    if (e.button === 1 || e.button === 2 || (e.button === 0 && (isBackground || isSpacePressed))) {
       setIsPanning(true);
+      isPanningRef.current = true;
       lastMousePos.current = { x: e.clientX, y: e.clientY };
       lastTimestamp.current = performance.now();
 
@@ -128,7 +120,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       e.stopPropagation();
       logger?.startActivity('canvas_panning', 'movement', 'Canvas Panning');
     }
-  }, [logger]);
+  }, [activeInteraction, isSpacePressed, logger]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isPanningRef.current) {
@@ -159,6 +151,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const handleMouseUp = useCallback(() => {
     if(isPanningRef.current) {
         setIsPanning(false);
+        isPanningRef.current = false;
         logger?.endActivity();
 
         // Start Momentum
@@ -170,8 +163,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     e.preventDefault();
     if (rafId.current) cancelAnimationFrame(rafId.current); // Stop momentum on wheel
 
-    const currentScale = scaleRef.current;
     const zoomFactor = Math.exp(-e.deltaY * 0.001); 
+    const currentScale = scaleRef.current;
     const newScale = Math.min(Math.max(0.1, currentScale * zoomFactor), 4);
     
     if (containerRef.current) {
@@ -187,14 +180,17 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
         pan.current = { x: newPanX, y: newPanY };
 
-        // Update ref immediately for consistency in rapid events
-        scaleRef.current = newScale;
-
         // Update transform immediately
-        updateTransform();
+        if (canvasRef.current) {
+            canvasRef.current.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px) scale(${newScale})`;
+        }
+        if (backgroundRef.current) {
+            backgroundRef.current.style.backgroundPosition = `${Math.round(pan.current.x)}px ${Math.round(pan.current.y)}px`;
+        }
     }
+    scaleRef.current = newScale;
     setScale(newScale);
-  }, [updateTransform]);
+  }, []);
 
   useEffect(() => {
     scaleRef.current = scale;
@@ -203,7 +199,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   useEffect(() => {
       // Update transform whenever scale changes via state (for wheel)
       updateTransform();
-  }, [scale]);
+  }, [scale, updateTransform]);
 
   const isFirstRender = useRef(true);
   // Debounced activity logging for Zoom
@@ -355,7 +351,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     <main 
       ref={containerRef}
       id="whiteboard-main"
-      className={`flex-grow bg-slate-200 relative overflow-hidden ${isPanning ? 'cursor-grabbing' : (isSpacePressed ? 'cursor-grab' : 'cursor-default')} font-casual`}
+      className={`flex-grow bg-slate-200 relative overflow-hidden ${isDrawingMode ? 'cursor-crosshair' : (isPanning ? 'cursor-grabbing' : (isSpacePressed ? 'cursor-grab' : 'cursor-default'))} font-casual`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -400,6 +396,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             onDrop={handleDrop}
         >
             <SnapLinesOverlay lines={snapLines} scale={scale} />
+            <DrawingLayer paths={paths} onAddPath={onAddPath} isDrawingMode={isDrawingMode} scale={scale} />
 
             <BlocksLayer
                 blocks={blocks}
@@ -414,6 +411,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
                 onNextSlide={onNextSlide}
                 onPrevSlide={onPrevSlide}
                 scaleRef={scaleRef}
+                disableInteraction={isDrawingMode}
             />
         </div>
     </main>
