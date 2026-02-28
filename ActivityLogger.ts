@@ -269,9 +269,14 @@ export class ActivityLogger {
       return;
     }
 
-    const SANITY_PROJECT_ID = 'rzug0rgk';
-    const SANITY_DATASET = 'production';
-    const SANITY_WRITE_TOKEN = 'sk5fB5q2p6y198yTliBWRc7FeIS016mATj0roXMnmo2JppoCMsWWZSUch7jx4a0YqvqW3baLMN2cv3UmtoeoWJRJ5iO0E0V75xo5PbeGxmCfxXYHeQbYsYIaCvKAyg1iunSEmWI7fckw7vmExWiEoCw8NR1CWxwv1aoBGLIwI4HLu5WgrZnh';
+    const SANITY_PROJECT_ID = import.meta.env.VITE_SANITY_PROJECT_ID || 'rzug0rgk';
+    const SANITY_DATASET = import.meta.env.VITE_SANITY_DATASET || 'production';
+    const SANITY_WRITE_TOKEN = import.meta.env.VITE_SANITY_WRITE_TOKEN;
+
+    if (!SANITY_WRITE_TOKEN) {
+      console.warn('[Sanity] No write token configured - skipping activity sync');
+      return;
+    }
 
     const SANITY_API_URL = `https://${SANITY_PROJECT_ID}.api.sanity.io/v2024-01-01/data/mutate/${SANITY_DATASET}`;
 
