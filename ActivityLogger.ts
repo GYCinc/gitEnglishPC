@@ -229,7 +229,7 @@ export class ActivityLogger {
     this.timestampEnd = new Date().toISOString();
     console.log(`[ActivityLogger] Session ended.`);
 
-    return {
+    const payload = {
       module_id: this.moduleId,
       student_id: this.studentId,
       session_id: this.sessionId,
@@ -237,6 +237,8 @@ export class ActivityLogger {
       timestamp_end: this.timestampEnd,
       activities: this.activities,
     };
+    
+    return payload;
   }
 
   /**
@@ -258,5 +260,65 @@ export class ActivityLogger {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     console.log(`[ActivityLogger] Log downloaded as ${filename}`);
+  }
+
+  async sendToSanity(): Promise<void> {
+    const payload = this.endSession();
+    
+    if (!payload.student_id || !payload.activities?.length) {
+      return;
+    }
+
+    const SANITY_PROJECT_ID = 'rzug0rgk';
+    const SANITY_DATASET = 'production';
+    const SANITY_WRITE_TOKEN = 'sk5fB5q2p6y198yTliBWRc7FeIS016mATj0roXMnmo2JppoCMsWWZSUch7jx4a0YqvqW3baLMN2cv3UmtoeoWJRJ5iO0E0V75xo5PbeGxmCfxXYHeQbYsYIaCvKAyg1iunSEmWI7fckw7vmExWiEoCw8NR1CWxwv1aoBGLIwI4HLu5WgrZnh';
+
+    const SANITY_API_URL = `https://${SANITY_PROJECT_ID}.api.sanity.io/v2024-01-01/data/mutate/${SANITY_DATASET}`;
+
+    const studentRef = payload.student_id;
+    
+    const mutations = payload.activities.map((activity) => ({
+      _type: 'studentActivity',
+      student: { _type: 'reference', _ref: studentRef },
+      moduleId: payload.module_id,
+      sessionId: payload.session_id,
+      timestamp: new Date().toISOString(),
+      activityId: activity.activity_id,
+      activityType: activity.activity_type,
+      activityName: activity.activity_name,
+      durationSeconds: activity.duration_seconds,
+      focusItems: activity.focus_items.map(item => ({
+        _type: 'focusItem',
+        category: item.category,
+        concept: item.concept,
+        timeSpentSeconds: item.time_spent_seconds,
+        performanceScore: item.performance_score,
+        attempts: item.attempts,
+        errors: item.errors,
+        contentText: item.content_text,
+      })),
+      metadata: activity.metadata,
+    }));
+
+    try {
+      const response = await fetch(SANITY_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SANITY_WRITE_TOKEN}`,
+        },
+        body: JSON.stringify({ mutations }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('[Sanity] Failed to send activity:', error);
+        return;
+      }
+
+      console.log('[Sanity] Activity sent successfully for student:', studentRef);
+    } catch (error) {
+      console.error('[Sanity] Error sending activity:', error);
+    }
   }
 }

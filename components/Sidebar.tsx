@@ -26,9 +26,10 @@ import {
     UserGroupIcon,
     DownloadIcon,
     UploadIcon,
-    TrashIcon
+    TrashIcon,
+    ExternalLinkIcon
 } from './icons';
-import { useActivityLogger } from '../ActivityContext';
+import { useActivityLogger, useStudentId } from '../ActivityContext';
 
 // Map exercise types to specific icons
 const EXERCISE_ICONS: Record<ExerciseType, React.FC<{className?: string}>> = {
@@ -241,6 +242,11 @@ const Sidebar = React.memo(({
 }: SidebarProps) => {
   const [openCategory, setOpenCategory] = useState<string | null>('PPP');
   const { logger, logFocusItem } = useActivityLogger();
+  const studentId = useStudentId();
+
+  const sanityUrl = studentId 
+    ? `https://gitenglish.sanity.studio/desk/studentProfile;${studentId}`
+    : null;
 
   // Log sidebar open/close
   useEffect(() => {
@@ -305,6 +311,17 @@ const Sidebar = React.memo(({
       
       <div className="p-4 border-t border-white/5 bg-slate-900/20 backdrop-blur-sm space-y-3 z-10">
            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Actions</h3>
+           {sanityUrl && (
+             <a 
+               href={sanityUrl}
+               target="_blank"
+               rel="noopener noreferrer"
+               className="flex items-center justify-center gap-2 p-2.5 text-xs font-bold text-slate-300 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 hover:border-purple-500/50 rounded-xl transition-all active:scale-95"
+               aria-label="View in Sanity"
+             >
+               <ExternalLinkIcon className="w-4 h-4 text-purple-400" /> View in Sanity
+             </a>
+           )}
            <div className="grid grid-cols-2 gap-2">
                 <button onClick={handleExportClick} className="col-span-1 flex items-center justify-center gap-2 p-2.5 text-xs font-bold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl transition-all active:scale-95" aria-label="Export current project">
                     <DownloadIcon className="w-4 h-4 text-blue-400" /> Export

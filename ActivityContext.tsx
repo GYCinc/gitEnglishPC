@@ -23,6 +23,11 @@ export const useActivityLogger = () => {
   return context;
 };
 
+export const useStudentId = () => {
+  const context = useContext(ActivityLoggerContext);
+  return context?.studentId ?? null;
+};
+
 interface ActivityLoggerProviderProps {
   children: React.ReactNode;
   moduleId: string;
@@ -45,12 +50,24 @@ export const ActivityLoggerProvider: React.FC<ActivityLoggerProviderProps> = ({ 
       setLogger(null);
     }
 
+    const handleBeforeUnload = () => {
+      if (newLogger) {
+        newLogger.endSession();
+        newLogger.sendToSanity();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     // Cleanup on unmount or if studentId is changed/cleared
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       if (newLogger) {
-        newLogger.endSession(); // Ensure session ends cleanly
+        newLogger.endSession();
+        newLogger.sendToSanity();
       } else if (logger) {
         logger.endSession();
+        logger.sendToSanity();
       }
     };
   }, [studentId, moduleId]);

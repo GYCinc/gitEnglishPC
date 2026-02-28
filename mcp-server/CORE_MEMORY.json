@@ -1,0 +1,13 @@
+[
+  {
+    "content": "DECISION: Implemented MCP Apps (mcpui.dev) for Gamification and Tracking telemetry, running a local Express ingestion server and serving interactive React/HTML UI widgets via @mcp-ui/server.",
+    "tags": [
+      "#architecture",
+      "#decision",
+      "scope:project"
+    ],
+    "valid_from": "2026-02-24T20:25:00Z",
+    "confidence": 1,
+    "provenance": "User instruction"
+  }
+]
