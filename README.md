@@ -47,7 +47,6 @@ This will create a `dist/` directory with optimized, minified files ready for de
 ### Deploy to Vercel (Recommended)
 
 1. Push your code to a Git repository
-2. Connect your repository to [Vercel](https://vercel.com)
 3. Add your environment variables in the Vercel dashboard:
    - `MISTRAL_API_KEY`: Your Mistral API key
 4. Vercel will automatically detect the Vite project and build it

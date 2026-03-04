@@ -56,7 +56,6 @@ We prioritize speed, clarity, and user experience.
     *   Example: `logger?.logFocusItem(...)`
 *   **Deployment**:
     *   The project is deployed on Vercel.
-    *   `vercel.json` exists to handle SPA routing (rewrites).
     *   **Do not touch** `_microfrontends.json` unless specifically asked; it is disabled.
 *   **Mistral AI**: The app expects an API key. If missing, it falls back to mock data (which is good for testing).
 
