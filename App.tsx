@@ -10,37 +10,48 @@ import { GamificationProvider } from './GamificationContext';
 import GamificationHUD from './components/GamificationHUD';
 import { useDebouncedSave } from './hooks/useDebouncedSave';
 import { findFreePosition } from './placementUtils';
+import { useStudentId } from './ActivityContext';
 
 const APP_PREFIX = 'practiceGenie-';
-const BLOCKS_KEY = `${APP_PREFIX}blocks`;
-const PAGES_KEY = `${APP_PREFIX}pages`;
-const DIFFICULTY_KEY = `${APP_PREFIX}difficulty`;
-const TONE_KEY = `${APP_PREFIX}tone`;
-const THEME_KEY = `${APP_PREFIX}theme`;
-const VOCAB_KEY = `${APP_PREFIX}focusVocabulary`;
-const INCLUSION_RATE_KEY = `${APP_PREFIX}inclusionRate`;
-const GRAMMAR_KEY = `${APP_PREFIX}focusGrammar`;
-const GRAMMAR_RATE_KEY = `${APP_PREFIX}grammarInclusionRate`;
+
+const getStorageKey = (baseKey: string, studentId: string | null): string => {
+  return studentId ? `${APP_PREFIX}${studentId}-${baseKey}` : `${APP_PREFIX}${baseKey}`;
+};
+
+const useStudentStorageKeys = (studentId: string | null) => {
+  return useMemo(() => ({
+    BLOCKS_KEY: getStorageKey('blocks', studentId),
+    PATHS_KEY: getStorageKey('paths', studentId),
+    PAGES_KEY: getStorageKey('pages', studentId),
+    DIFFICULTY_KEY: getStorageKey('difficulty', studentId),
+    TONE_KEY: getStorageKey('tone', studentId),
+    THEME_KEY: getStorageKey('theme', studentId),
+    VOCAB_KEY: getStorageKey('focusVocabulary', studentId),
+    INCLUSION_RATE_KEY: getStorageKey('inclusionRate', studentId),
+    GRAMMAR_KEY: getStorageKey('focusGrammar', studentId),
+    GRAMMAR_RATE_KEY: getStorageKey('grammarInclusionRate', studentId),
+  }), [studentId]);
+};
 
 const App: React.FC = () => {
+  const studentId = useStudentId();
+  const storageKeys = useStudentStorageKeys(studentId);
+
   const [blocks, setBlocks] = useState<ExerciseBlockState[]>(() => {
-  const [paths, setPaths] = useState<DrawingPath[]>([]);
-  const [isDrawingMode, setIsDrawingMode] = useState(false);
     try {
-      const savedPages = localStorage.getItem(PAGES_KEY);
+      const savedPages = localStorage.getItem(storageKeys.PAGES_KEY);
       if (savedPages) {
           const parsedPages = JSON.parse(savedPages);
           if (Array.isArray(parsedPages) && parsedPages.length > 0 && 'blocks' in parsedPages[0]) {
-              console.log("Migrating from pages to infinite canvas...");
               const migratedBlocks = parsedPages.flatMap((page: any) => 
                 page.blocks.map((b: any) => ({...b, isGenerated: false}))
               );
-              localStorage.removeItem(PAGES_KEY);
+              localStorage.removeItem(storageKeys.PAGES_KEY);
               return migratedBlocks;
           }
       }
 
-      const savedBlocks = localStorage.getItem(BLOCKS_KEY);
+      const savedBlocks = localStorage.getItem(storageKeys.BLOCKS_KEY);
       const parsedBlocks = savedBlocks ? JSON.parse(savedBlocks) : [];
       if (Array.isArray(parsedBlocks)) {
           return parsedBlocks.map((b: any) => ({ ...b, isGenerated: false }));
@@ -51,81 +62,76 @@ const App: React.FC = () => {
     }
   });
 
+  const [paths, setPaths] = useState<DrawingPath[]>(() => {
+    try {
+      const saved = localStorage.getItem(storageKeys.PATHS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+
   const [difficulty, setDifficulty] = useState<Difficulty>(() => {
-      const saved = localStorage.getItem(DIFFICULTY_KEY);
+      const saved = localStorage.getItem(storageKeys.DIFFICULTY_KEY);
       if (saved && Object.values(Difficulty).includes(saved as Difficulty)) {
           return saved as Difficulty;
       }
       return Difficulty.B1;
   });
-  const [tone, setTone] = useState<Tone>(() => (localStorage.getItem(TONE_KEY) as Tone) || Tone.Casual);
-  const [theme, setTheme] = useState<string>(() => localStorage.getItem(THEME_KEY) || 'Daily Conversations');
+  const [tone, setTone] = useState<Tone>(() => (localStorage.getItem(storageKeys.TONE_KEY) as Tone) || Tone.Casual);
+  const [theme, setTheme] = useState<string>(() => localStorage.getItem(storageKeys.THEME_KEY) || 'Daily Conversations');
   
   const [focusVocabulary, setFocusVocabulary] = useState<string[]>(() => {
       try {
-          const saved = localStorage.getItem(VOCAB_KEY);
+          const saved = localStorage.getItem(storageKeys.VOCAB_KEY);
           return saved ? JSON.parse(saved) : [];
       } catch {
           return [];
       }
   });
   const [inclusionRate, setInclusionRate] = useState<number>(() => {
-      const saved = localStorage.getItem(INCLUSION_RATE_KEY);
+      const saved = localStorage.getItem(storageKeys.INCLUSION_RATE_KEY);
       return saved ? Number(saved) : 50;
   });
 
   const [focusGrammar, setFocusGrammar] = useState<string[]>(() => {
     try {
-        const saved = localStorage.getItem(GRAMMAR_KEY);
+        const saved = localStorage.getItem(storageKeys.GRAMMAR_KEY);
         return saved ? JSON.parse(saved) : [];
     } catch {
         return [];
     }
   });
   const [grammarInclusionRate, setGrammarInclusionRate] = useState<number>(() => {
-      const saved = localStorage.getItem(GRAMMAR_RATE_KEY);
+      const saved = localStorage.getItem(storageKeys.GRAMMAR_RATE_KEY);
       return saved ? Number(saved) : 50;
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  // Settings Modal State Management
   const [settingsModalTab, setSettingsModalTab] = useState<'General' | 'Vocabulary' | 'Grammar' | null>(null);
-
   const [presentingBlockId, setPresentingBlockId] = useState<number | null>(null);
 
   const stateRef = useRef({
-      blocks,
-      difficulty,
-      tone,
-      theme,
-      focusVocabulary,
-      inclusionRate,
-      focusGrammar,
-      grammarInclusionRate
+      blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
   });
 
   useEffect(() => {
       stateRef.current = {
-          blocks,
-          difficulty,
-          tone,
-          theme,
-          focusVocabulary,
-          inclusionRate,
-          focusGrammar,
-          grammarInclusionRate
+          blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
       };
   }, [blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
 
-  useDebouncedSave(BLOCKS_KEY, blocks, 500);
-  useDebouncedSave(DIFFICULTY_KEY, difficulty);
-  useDebouncedSave(TONE_KEY, tone);
-  useDebouncedSave(THEME_KEY, theme);
-  useDebouncedSave(VOCAB_KEY, focusVocabulary);
-  useDebouncedSave(INCLUSION_RATE_KEY, inclusionRate);
-  useDebouncedSave(GRAMMAR_KEY, focusGrammar);
-  useDebouncedSave(GRAMMAR_RATE_KEY, grammarInclusionRate);
+  useDebouncedSave(storageKeys.BLOCKS_KEY, blocks, 500);
+  useDebouncedSave(storageKeys.PATHS_KEY, paths, 500);
+  useDebouncedSave(storageKeys.DIFFICULTY_KEY, difficulty);
+  useDebouncedSave(storageKeys.TONE_KEY, tone);
+  useDebouncedSave(storageKeys.THEME_KEY, theme);
+  useDebouncedSave(storageKeys.VOCAB_KEY, focusVocabulary);
+  useDebouncedSave(storageKeys.INCLUSION_RATE_KEY, inclusionRate);
+  useDebouncedSave(storageKeys.GRAMMAR_KEY, focusGrammar);
+  useDebouncedSave(storageKeys.GRAMMAR_RATE_KEY, grammarInclusionRate);
 
   const totalTime = useMemo(() => {
       return blocks.reduce((sum, block) => sum + calculateExerciseDuration(block.exerciseType, block.height, block.quantity), 0);
@@ -137,9 +143,7 @@ const App: React.FC = () => {
       setSettingsModalTab(null);
   }, []);
 
-  const exitPresentation = useCallback(() => {
-      setPresentingBlockId(null);
-  }, []);
+  const exitPresentation = useCallback(() => setPresentingBlockId(null), []);
 
   const nextSlide = useCallback(() => {
       if (presentingBlockId === null) return;
@@ -158,23 +162,10 @@ const App: React.FC = () => {
   }, [blocks, presentingBlockId]);
 
   const handleExportState = useCallback(() => {
-      const {
-          blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
-      } = stateRef.current;
-
+      const { blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate } = stateRef.current;
       const data = {
-          version: '2.1.0',
-          timestamp: new Date().toISOString(),
-          state: {
-              blocks,
-              difficulty,
-              tone,
-              theme,
-              focusVocabulary,
-              inclusionRate,
-              focusGrammar,
-              grammarInclusionRate
-          }
+          version: '2.1.0', timestamp: new Date().toISOString(),
+          state: { blocks, paths, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate }
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -185,12 +176,11 @@ const App: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-  }, []);
+  }, [paths]);
 
   const handleImportState = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = (event) => {
           try {
@@ -198,6 +188,7 @@ const App: React.FC = () => {
               if (json.state) {
                   const { state } = json;
                   if (state.blocks) setBlocks(state.blocks);
+                  if (state.paths) setPaths(state.paths);
                   if (state.difficulty) setDifficulty(state.difficulty);
                   if (state.tone) setTone(state.tone);
                   if (state.theme) setTheme(state.theme);
@@ -205,10 +196,8 @@ const App: React.FC = () => {
                   if (state.inclusionRate) setInclusionRate(state.inclusionRate);
                   if (state.focusGrammar) setFocusGrammar(state.focusGrammar);
                   if (state.grammarInclusionRate) setGrammarInclusionRate(state.grammarInclusionRate);
-                  
               }
           } catch (error) {
-              console.error("Failed to parse project file", error);
               alert("Invalid project file.");
           }
       };
@@ -219,61 +208,29 @@ const App: React.FC = () => {
   const handleClearBoard = useCallback(() => {
       if (window.confirm("Are you sure you want to clear the entire whiteboard?")) {
           setBlocks([]);
+          setPaths([]);
       }
   }, []);
 
-
   const addBlock = useCallback((type: ExerciseType, dropX?: number, dropY?: number) => {
-    const {
-        difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
-    } = stateRef.current;
-
+    const { difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate } = stateRef.current;
     setBlocks(prevBlocks => {
       const { width: newBlockWidth, height: newBlockHeight } = EXERCISE_SIZE_OVERRIDES[type] || DEFAULT_BLOCK_DIMENSIONS;
-
-      let finalPos;
-
-      if (dropX !== undefined && dropY !== undefined) {
-          finalPos = { x: Math.max(0, dropX - newBlockWidth / 2), y: Math.max(0, dropY - newBlockHeight / 2) };
-      } else {
-          finalPos = findFreePosition(prevBlocks, newBlockWidth, newBlockHeight);
-      }
-
+      let finalPos = (dropX !== undefined && dropY !== undefined) 
+          ? { x: Math.max(0, dropX - newBlockWidth / 2), y: Math.max(0, dropY - newBlockHeight / 2) }
+          : findFreePosition(prevBlocks, newBlockWidth, newBlockHeight);
       let maxZ = 0;
-      for (const b of prevBlocks) {
-          const z = b.zIndex || 0;
-          if (z > maxZ) maxZ = z;
-      }
-      const newZ = maxZ + 1;
-
+      for (const b of prevBlocks) { if ((b.zIndex || 0) > maxZ) maxZ = b.zIndex || 0; }
       const newBlock: ExerciseBlockState = {
-        id: Date.now(),
-        exerciseType: type,
-        difficulty,
-        tone,
-        theme,
-        focusVocabulary,
-        inclusionRate,
-        focusGrammar,
-        grammarInclusionRate,
-        x: finalPos.x,
-        y: finalPos.y,
-        width: newBlockWidth,
-        height: newBlockHeight,
-        zIndex: newZ,
-        isGenerated: false,
+        id: Date.now(), exerciseType: type, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate,
+        x: finalPos.x, y: finalPos.y, width: newBlockWidth, height: newBlockHeight, zIndex: maxZ + 1, isGenerated: false,
       };
-
       return [...prevBlocks, newBlock];
     });
   }, []);
 
   const updateBlock = useCallback((blockId: number, updates: Partial<ExerciseBlockState>) => {
-    setBlocks(prevBlocks =>
-      prevBlocks.map(block =>
-        block.id === blockId ? { ...block, ...updates } : block
-      )
-    );
+    setBlocks(prevBlocks => prevBlocks.map(block => block.id === blockId ? { ...block, ...updates } : block));
   }, []);
 
   const removeBlock = useCallback((blockId: number) => {
@@ -286,26 +243,13 @@ const App: React.FC = () => {
       let maxZ = 0;
       let currentZ = -1;
       let maxZCount = 0;
-
       for (const b of prevBlocks) {
           const z = b.zIndex || 0;
-          if (z > maxZ) {
-              maxZ = z;
-              maxZCount = 1;
-          } else if (z === maxZ) {
-              maxZCount++;
-          }
-
+          if (z > maxZ) { maxZ = z; maxZCount = 1; } else if (z === maxZ) { maxZCount++; }
           if (b.id === blockId) currentZ = z;
       }
-
       if (currentZ === maxZ && maxZCount === 1) return prevBlocks;
-
-      const newZ = maxZ + 1;
-
-      return prevBlocks.map(block =>
-        block.id === blockId ? { ...block, zIndex: newZ } : block
-      );
+      return prevBlocks.map(block => block.id === blockId ? { ...block, zIndex: maxZ + 1 } : block);
     });
   }, []);
 
@@ -321,18 +265,22 @@ const App: React.FC = () => {
   const handleToggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), []);
   const handleCloseSettings = useCallback(() => setSettingsModalTab(null), []);
   const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
+  const handleAddPath = useCallback((path: DrawingPath) => setPaths(prev => [...prev, path]), []);
+  const handleToggleDrawing = useCallback(() => setIsDrawingMode(prev => !prev), []);
 
   return (
     <GamificationProvider>
-    <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800">
+    <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800 text-slate-200">
       <GamificationHUD />
 
       <RadialMenu 
-          onOpenSettings={handleOpenSettings}
+          onToggleSettings={() => setSettingsModalTab('General')}
           onToggleSidebar={handleToggleSidebar}
           onExportState={handleExportState}
           difficulty={difficulty}
           onCycleDifficulty={cycleDifficulty}
+          isDrawingMode={isDrawingMode}
+          onToggleDrawing={handleToggleDrawing}
       />
 
       {settingsModalTab && (
@@ -358,7 +306,6 @@ const App: React.FC = () => {
         onClearBoard={handleClearBoard}
       />
       
-      {/* Overlay for mobile - Smooth transition */}
       <div 
           onClick={handleCloseSidebar}
           className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ease-in-out ${
@@ -379,6 +326,9 @@ const App: React.FC = () => {
           onExitPresentation={exitPresentation}
           onNextSlide={nextSlide}
           onPrevSlide={prevSlide}
+          paths={paths}
+          onAddPath={handleAddPath}
+          isDrawingMode={isDrawingMode}
         />
       </div>
     </div>

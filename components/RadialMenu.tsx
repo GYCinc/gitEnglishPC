@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SettingsIcon, DifficultyIcon, DownloadIcon, MenuIcon, XMarkIcon, ThemeIcon } from './icons';
+import { SettingsIcon, DifficultyIcon, DownloadIcon, MenuIcon, XMarkIcon, ThemeIcon, PencilIcon } from './icons';
 
 interface RadialMenuProps {
     onToggleSettings: () => void;
@@ -7,16 +7,18 @@ interface RadialMenuProps {
     onExportState: () => void;
     difficulty: string;
     onCycleDifficulty: () => void;
+    isDrawingMode: boolean;
+    onToggleDrawing: () => void;
 }
 
-const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportState, difficulty, onCycleDifficulty }: RadialMenuProps) => {
+const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportState, difficulty, onCycleDifficulty, isDrawingMode, onToggleDrawing }: RadialMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
 
     // Close menu on click outside or Escape
     useEffect(() => {
         const handleGlobalClick = (e: MouseEvent) => {
-            // Prevent closing if clicking inside the menu container itself (handled by stopPropagation, but extra safety here)
+            // Prevent closing if clicking inside the menu container itself
             if (isOpen && !(e.target as Element).closest('#radial-menu-container')) {
                 setIsOpen(false);
             }
@@ -37,20 +39,24 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
         { icon: <SettingsIcon className="w-5 h-5" />, label: "Config", action: onToggleSettings },
         { icon: <DifficultyIcon className="w-5 h-5" />, label: `Difficulty: ${difficulty}`, action: onCycleDifficulty },
         { icon: <DownloadIcon className="w-5 h-5" />, label: "Export", action: onExportState },
-        { icon: <ThemeIcon className="w-5 h-5" />, label: "Themes", action: () => console.log("Theme toggle - Future feature"), /* Placeholder for future theme logic */ }, 
+        { 
+          icon: <PencilIcon className={`w-5 h-5 ${isDrawingMode ? 'text-amber-500' : ''}`} />, 
+          label: isDrawingMode ? "Stop Drawing" : "Draw Mode", 
+          action: onToggleDrawing 
+        },
+        { icon: <ThemeIcon className="w-5 h-5" />, label: "Themes", action: () => console.log("Theme toggle - Future feature") }, 
     ];
 
-    const radius = 80; // Distance of satellites from center
+    const radius = 80;
 
     return (
         <div id="radial-menu-container" className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center justify-center font-casual"
              onMouseEnter={() => !isOpen && setHoveredLabel('Menu')}
              onMouseLeave={() => setHoveredLabel(null)}
         >
-            {/* Main Orb */}
             <button
                 onClick={(e) => {
-                    e.stopPropagation(); // Prevent global click listener from immediately closing it
+                    e.stopPropagation();
                     setIsOpen(!isOpen);
                 }}
                 className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 z-[102]
@@ -64,18 +70,16 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
                 {isOpen ? <XMarkIcon className="w-7 h-7" /> : <MenuIcon className="w-7 h-7" />}
             </button>
 
-            {/* Satellites */}
             {menuItems.map((item, index) => {
-                // Distribute items in a semi-circle below the main button
-                const angleDegree = 160 - (index * 40); // From 160deg (left-down) to 40deg (right-down)
+                const angleDegree = 160 - (index * (120 / (menuItems.length - 1)));
                 const angleRad = (angleDegree * Math.PI) / 180;
                 
                 const x = radius * Math.cos(angleRad);
                 const y = radius * Math.sin(angleRad);
 
-                const style: React.CSSProperties = isOpen
+                const style = isOpen
                     ? { transform: `translate(${x}px, ${y}px) scale(1)`, opacity: 1, pointerEvents: 'auto', transitionDelay: `${index * 50}ms` }
-                    : { transform: `translate(0px, 0px) scale(0.5)`, opacity: 0, pointerEvents: 'none', transitionDelay: `${(menuItems.length - 1 - index) * 50}ms` }; // Reverse delay for closing
+                    : { transform: `translate(0px, 0px) scale(0.5)`, opacity: 0, pointerEvents: 'none', transitionDelay: `${(menuItems.length - 1 - index) * 50}ms` };
 
                 return (
                     <button
@@ -87,8 +91,8 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
                         style={style}
                         className="absolute w-10 h-10 bg-white text-blue-800 rounded-full shadow-lg border border-slate-200 
                                    flex items-center justify-center transition-all duration-300 hover:bg-blue-50 hover:text-blue-600 hover:scale-110"
-                        title={item.label} // Keep native title for fallback
-                        aria-label={item.label} // Accessible label
+                        title={item.label}
+                        aria-label={item.label}
                         onMouseEnter={() => setHoveredLabel(item.label)}
                         onMouseLeave={() => setHoveredLabel(null)}
                     >
@@ -97,7 +101,6 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
                 );
             })}
             
-            {/* Central Label tooltip */}
             {hoveredLabel && (
                  <div className="absolute top-16 text-[10px] font-bold uppercase tracking-widest text-slate-600 bg-white/90 px-2 py-1 rounded-md shadow-sm border border-slate-100 animate-in fade-in slide-in-from-top-1 whitespace-nowrap z-[101]">
                      {hoveredLabel}
