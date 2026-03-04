@@ -63,8 +63,10 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const { logger } = useActivityLogger();
 
   const blocksRef = useRef(blocks);
+  const blocksMapRef = useRef<Map<number, ExerciseBlockState>>(new Map());
   useEffect(() => {
     blocksRef.current = blocks;
+    blocksMapRef.current = new Map(blocks.map(b => [b.id, b]));
   }, [blocks]);
 
   const snapPointsCache = useRef<{ vPoints: number[], hPoints: number[] } | null>(null);
@@ -273,13 +275,13 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   }, []);
 
   const calculateSnapping = useCallback((
-      movingBlock: ExerciseBlockState, 
+      movingBlockId: number,
       allBlocks: ExerciseBlockState[],
       newPosition: { x: number, y: number, width: number, height: number }
   ) => {
       let points = snapPointsCache.current;
       if (!points) {
-         points = getSnapPoints(allBlocks, movingBlock.id);
+         points = getSnapPoints(allBlocks, movingBlockId);
          snapPointsCache.current = points;
       }
 
@@ -315,10 +317,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
   const handleInteraction = useCallback((blockId: number, newPos: {x: number, y: number, width: number, height: number}) => {
     const currentBlocks = blocksRef.current;
-    const block = currentBlocks.find(b => b.id === blockId);
-    if (!block) return;
+    if (!blocksMapRef.current.has(blockId)) return;
 
-    const { snappedX, snappedY, newSnapLines } = calculateSnapping(block, currentBlocks, newPos);
+    const { snappedX, snappedY, newSnapLines } = calculateSnapping(blockId, currentBlocks, newPos);
     setSnapLines(newSnapLines);
     setActiveInteraction({ blockId, ...newPos, x: snappedX, y: snappedY });
   }, [calculateSnapping]);
@@ -326,13 +327,13 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const handleInteractionStop = useCallback((blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => {
       // Recalculate snap on drop to ensure the block lands on the line
       const currentBlocks = blocksRef.current;
-      const block = currentBlocks.find(b => b.id === blockId);
+      const hasBlock = blocksMapRef.current.has(blockId);
 
       let finalX = finalPos.x;
       let finalY = finalPos.y;
 
-      if (block) {
-          const { snappedX, snappedY } = calculateSnapping(block, currentBlocks, finalPos);
+      if (hasBlock) {
+          const { snappedX, snappedY } = calculateSnapping(blockId, currentBlocks, finalPos);
           finalX = snappedX;
           finalY = snappedY;
       }
