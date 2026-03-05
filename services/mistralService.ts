@@ -805,7 +805,8 @@ export const generateExercises = async (
   }
 
   if (!import.meta.env.VITE_MISTRAL_API_KEY) {
-      console.warn("Using DUMMY data for verification as VITE_MISTRAL_API_KEY is missing.");
+      console.warn("Using DUMMY data as VITE_MISTRAL_API_KEY is missing.");
+      console.log("Available env vars:", import.meta.env);
       // Dummy data map for verification
       if (exerciseType === ExerciseType.FITB) {
           return Array.from({ length: amount }).map((_, i) => ({
