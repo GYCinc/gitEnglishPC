@@ -804,8 +804,8 @@ export const generateExercises = async (
     return generatedExercises;
   }
 
-  if (process.env.MISTRAL_API_KEY === undefined) {
-      console.warn("Using DUMMY data for verification as MISTRAL_API_KEY is missing.");
+  if (!import.meta.env.VITE_MISTRAL_API_KEY) {
+      console.warn("Using DUMMY data for verification as VITE_MISTRAL_API_KEY is missing.");
       // Dummy data map for verification
       if (exerciseType === ExerciseType.FITB) {
           return Array.from({ length: amount }).map((_, i) => ({
@@ -1055,7 +1055,7 @@ export const generateExercises = async (
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`
+        "Authorization": `Bearer ${import.meta.env.VITE_MISTRAL_API_KEY}`
       },
       body: JSON.stringify({
         model: "mistral-large-latest", // Using Mistral's most capable model
@@ -1102,10 +1102,10 @@ export const checkAnswerWithAI = async (
   exerciseContext: any,
   userResponse: any
 ): Promise<string> => { // Keep string return type but formatted as JSON now
-  if (process.env.MISTRAL_API_KEY === undefined) {
+  if (!import.meta.env.VITE_MISTRAL_API_KEY) {
       return JSON.stringify({
           isCorrect: true,
-          feedback: "This is dummy feedback because the MISTRAL_API_KEY is missing. Great job!"
+          feedback: "This is dummy feedback because the VITE_MISTRAL_API_KEY is missing. Great job!"
       });
   }
 
@@ -1129,7 +1129,7 @@ export const checkAnswerWithAI = async (
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`
+        "Authorization": `Bearer ${import.meta.env.VITE_MISTRAL_API_KEY}`
       },
       body: JSON.stringify({
         model: "mistral-small-latest", // Using Mistral's efficient model for quick feedback
