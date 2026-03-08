@@ -1239,7 +1239,9 @@ export const InteractiveRegisterSort: React.FC<{ exercise: IRegisterSortExercise
         }
         newClassified[category] = [...newClassified[category], phrase];
         setClassified(newClassified);
-        setUnclassified(prev => prev.filter(p => p !== phrase));
+        if (unclassified.includes(phrase)) {
+            setUnclassified(prev => prev.filter(p => p !== phrase));
+        }
     };
 
     const handleDragStart = (e: React.DragEvent<HTMLSpanElement>, phrase: string) => {
