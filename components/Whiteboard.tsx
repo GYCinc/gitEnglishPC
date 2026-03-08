@@ -271,6 +271,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             hPoints.push(block.y, block.y + block.height / 2, block.y + block.height);
         }
     });
+    // Sort arrays to enable O(log N) binary search for closest snap point
+    vPoints.sort((a, b) => a - b);
+    hPoints.sort((a, b) => a - b);
     return { vPoints, hPoints };
   }, []);
 
@@ -292,25 +295,47 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       const movingVPoints = [newPosition.x, newPosition.x + newPosition.width / 2, newPosition.x + newPosition.width];
       const movingHPoints = [newPosition.y, newPosition.y + newPosition.height / 2, newPosition.y + newPosition.height];
 
-      for (const vp of vPoints) {
-          for (let i = 0; i < movingVPoints.length; i++) {
-              if (Math.abs(movingVPoints[i] - vp) < SNAP_THRESHOLD) {
-                  snappedX = vp - (i * (newPosition.width / 2));
-                  newSnapLines.push({ axis: 'x', position: vp, start: newPosition.y - 100, end: newPosition.y + newPosition.height + 100 });
-                  break;
-              }
+      // Helper for binary search of the closest point
+      const findClosestBinarySearch = (arr: number[], val: number): number | null => {
+          if (arr.length === 0) return null;
+          let low = 0;
+          let high = arr.length - 1;
+          while (low <= high) {
+              const mid = Math.floor((low + high) / 2);
+              if (arr[mid] === val) return arr[mid];
+              else if (arr[mid] < val) low = mid + 1;
+              else high = mid - 1;
           }
-          if (snappedX !== newPosition.x) break;
+          let closest = null;
+          let minDiff = Infinity;
+          if (low < arr.length) {
+              const diff = Math.abs(arr[low] - val);
+              if (diff < minDiff) { minDiff = diff; closest = arr[low]; }
+          }
+          if (high >= 0) {
+              const diff = Math.abs(arr[high] - val);
+              if (diff < minDiff) { minDiff = diff; closest = arr[high]; }
+          }
+          if (minDiff < SNAP_THRESHOLD) return closest;
+          return null;
+      };
+
+      for (let i = 0; i < movingVPoints.length; i++) {
+          const snappedPoint = findClosestBinarySearch(vPoints, movingVPoints[i]);
+          if (snappedPoint !== null) {
+              snappedX = snappedPoint - (i * (newPosition.width / 2));
+              newSnapLines.push({ axis: 'x', position: snappedPoint, start: newPosition.y - 100, end: newPosition.y + newPosition.height + 100 });
+              break;
+          }
       }
-      for (const hp of hPoints) {
-          for (let i = 0; i < movingHPoints.length; i++) {
-              if (Math.abs(movingHPoints[i] - hp) < SNAP_THRESHOLD) {
-                  snappedY = hp - (i * (newPosition.height / 2));
-                  newSnapLines.push({ axis: 'y', position: hp, start: newPosition.x - 100, end: newPosition.x + newPosition.width + 100 });
-                  break;
-              }
+
+      for (let i = 0; i < movingHPoints.length; i++) {
+          const snappedPoint = findClosestBinarySearch(hPoints, movingHPoints[i]);
+          if (snappedPoint !== null) {
+              snappedY = snappedPoint - (i * (newPosition.height / 2));
+              newSnapLines.push({ axis: 'y', position: snappedPoint, start: newPosition.x - 100, end: newPosition.x + newPosition.width + 100 });
+              break;
           }
-          if (snappedY !== newPosition.y) break;
       }
       return { snappedX, snappedY, newSnapLines };
   }, [getSnapPoints]);
