@@ -9,10 +9,10 @@ describe('ActivityLogger', () => {
         logger.startSession();
     });
 
-    it('should log stream events correctly within buffer limit', () => {
+    it('should log stream events correctly', () => {
         logger.startActivity('act-1', 'drill', 'Test Activity');
 
-        // Log less than BUFFER_LIMIT (500)
+        // Log a batch of events
         for (let i = 0; i < 100; i++) {
             logger.logStreamEvent('test-event', { index: i });
         }
@@ -29,10 +29,10 @@ describe('ActivityLogger', () => {
         }
     });
 
-    it('should handle large number of events exceeding buffer', () => {
+    it('should handle large number of stream events', () => {
         logger.startActivity('act-2', 'drill', 'Large Activity');
 
-        // Log more than BUFFER_LIMIT (500)
+        // Log a large batch of events
         for (let i = 0; i < 600; i++) {
             logger.logStreamEvent('test-event', { index: i });
         }
