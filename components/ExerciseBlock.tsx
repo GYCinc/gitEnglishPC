@@ -33,6 +33,7 @@ export interface ExerciseBlockProps {
   onNextSlide: () => void; // Global next slide (for next block in app.tsx)
   onPrevSlide: () => void; // Global prev slide (for prev block in app.tsx)
   scale?: number; // Current zoom scale of the whiteboard
+  disableInteraction?: boolean;
 }
 
 // Helper for accessible icon buttons with tooltips
@@ -458,7 +459,8 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     blockState, onUpdate, onRemove, onFocus,
     onInteraction, onInteractionStop,
     isPresenting, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide,
-    scale = 1
+    scale = 1,
+    disableInteraction = false
 }) => {
     const { id, x, y, width, height, zIndex, exerciseType, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate, isGenerated, quantity } = blockState;
     const [content, setContent] = useState<any[] | { error: string }>([]);
@@ -688,8 +690,8 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
             onDragStop={handleDragStop}
             onResize={handleResize}
             onResizeStop={handleResizeStop}
-            disableDragging={isPresenting}
-            enableResizing={!isPresenting}
+            disableDragging={isPresenting || disableInteraction}
+            enableResizing={!isPresenting && !disableInteraction}
             minWidth={350}
             minHeight={150}
             // Remove bounds="parent" to allow dragging anywhere, including "above" the initial viewport

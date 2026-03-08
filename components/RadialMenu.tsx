@@ -36,6 +36,7 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
     }, [isOpen]);
 
     const menuItems = [
+        { icon: <MenuIcon className="w-5 h-5" />, label: "Exercises", action: onToggleSidebar },
         { icon: <SettingsIcon className="w-5 h-5" />, label: "Config", action: onToggleSettings },
         { icon: <DifficultyIcon className="w-5 h-5" />, label: `Difficulty: ${difficulty}`, action: onCycleDifficulty },
         { icon: <DownloadIcon className="w-5 h-5" />, label: "Export", action: onExportState },
@@ -71,7 +72,7 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
             </button>
 
             {menuItems.map((item, index) => {
-                const angleDegree = 160 - (index * (120 / (menuItems.length - 1)));
+                const angleDegree = 180 - (index * (180 / (menuItems.length - 1)));
                 const angleRad = (angleDegree * Math.PI) / 180;
                 
                 const x = radius * Math.cos(angleRad);
