@@ -53,7 +53,7 @@ export interface Activity {
   activity_name: string; // Human readable name
   duration_seconds: number;
   focus_items: FocusItem[];
-  stream_data: StreamEvent[]; // Buffer for high-frequency data
+  stream_data: StreamEvent[]; // Stores high-frequency data directly (no intermediate buffer)
   metadata: { [key: string]: any }; // Additional data
 }
 
