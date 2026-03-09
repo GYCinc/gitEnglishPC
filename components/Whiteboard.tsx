@@ -291,28 +291,51 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       let snappedX = newPosition.x;
       let snappedY = newPosition.y;
       const newSnapLines: SnapLine[] = [];
-      const movingVPoints = [newPosition.x, newPosition.x + newPosition.width / 2, newPosition.x + newPosition.width];
-      const movingHPoints = [newPosition.y, newPosition.y + newPosition.height / 2, newPosition.y + newPosition.height];
+      const w2 = newPosition.width / 2;
+      const w = newPosition.width;
+      const h2 = newPosition.height / 2;
+      const h = newPosition.height;
 
-      for (const vp of vPoints) {
-          for (let i = 0; i < movingVPoints.length; i++) {
-              if (Math.abs(movingVPoints[i] - vp) < SNAP_THRESHOLD) {
-                  snappedX = vp - (i * (newPosition.width / 2));
-                  newSnapLines.push({ axis: 'x', position: vp, start: newPosition.y - 100, end: newPosition.y + newPosition.height + 100 });
-                  break;
-              }
+      const mx0 = newPosition.x;
+      const mx1 = newPosition.x + w2;
+      const mx2 = newPosition.x + w;
+
+      const my0 = newPosition.y;
+      const my1 = newPosition.y + h2;
+      const my2 = newPosition.y + h;
+
+      for (let i = 0, len = vPoints.length; i < len; i++) {
+          const vp = vPoints[i];
+          if (Math.abs(mx0 - vp) < SNAP_THRESHOLD) {
+              snappedX = vp;
+              newSnapLines.push({ axis: 'x', position: vp, start: newPosition.y - 100, end: newPosition.y + h + 100 });
+              break;
+          } else if (Math.abs(mx1 - vp) < SNAP_THRESHOLD) {
+              snappedX = vp - w2;
+              newSnapLines.push({ axis: 'x', position: vp, start: newPosition.y - 100, end: newPosition.y + h + 100 });
+              break;
+          } else if (Math.abs(mx2 - vp) < SNAP_THRESHOLD) {
+              snappedX = vp - w;
+              newSnapLines.push({ axis: 'x', position: vp, start: newPosition.y - 100, end: newPosition.y + h + 100 });
+              break;
           }
-          if (snappedX !== newPosition.x) break;
       }
-      for (const hp of hPoints) {
-          for (let i = 0; i < movingHPoints.length; i++) {
-              if (Math.abs(movingHPoints[i] - hp) < SNAP_THRESHOLD) {
-                  snappedY = hp - (i * (newPosition.height / 2));
-                  newSnapLines.push({ axis: 'y', position: hp, start: newPosition.x - 100, end: newPosition.x + newPosition.width + 100 });
-                  break;
-              }
+
+      for (let i = 0, len = hPoints.length; i < len; i++) {
+          const hp = hPoints[i];
+          if (Math.abs(my0 - hp) < SNAP_THRESHOLD) {
+              snappedY = hp;
+              newSnapLines.push({ axis: 'y', position: hp, start: newPosition.x - 100, end: newPosition.x + w + 100 });
+              break;
+          } else if (Math.abs(my1 - hp) < SNAP_THRESHOLD) {
+              snappedY = hp - h2;
+              newSnapLines.push({ axis: 'y', position: hp, start: newPosition.x - 100, end: newPosition.x + w + 100 });
+              break;
+          } else if (Math.abs(my2 - hp) < SNAP_THRESHOLD) {
+              snappedY = hp - h;
+              newSnapLines.push({ axis: 'y', position: hp, start: newPosition.x - 100, end: newPosition.x + w + 100 });
+              break;
           }
-          if (snappedY !== newPosition.y) break;
       }
       return { snappedX, snappedY, newSnapLines };
   }, [getSnapPoints]);

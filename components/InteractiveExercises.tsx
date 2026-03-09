@@ -1232,18 +1232,28 @@ export const InteractiveRegisterSort: React.FC<{ exercise: IRegisterSortExercise
     const handleDrop = (e: React.DragEvent<HTMLDivElement>, category: string) => {
         e.preventDefault();
         const phrase = e.dataTransfer.getData('text/plain');
+        const sourceCategory = e.dataTransfer.getData('source-category');
         
         let newClassified = { ...classified };
-        for(const cat in newClassified) {
-            newClassified[cat] = newClassified[cat].filter(p => p !== phrase);
+
+        if (sourceCategory && newClassified[sourceCategory]) {
+            newClassified[sourceCategory] = newClassified[sourceCategory].filter(p => p !== phrase);
+        } else {
+            for(const cat in newClassified) {
+                newClassified[cat] = newClassified[cat].filter(p => p !== phrase);
+            }
         }
+
         newClassified[category] = [...newClassified[category], phrase];
         setClassified(newClassified);
         setUnclassified(prev => prev.filter(p => p !== phrase));
     };
 
-    const handleDragStart = (e: React.DragEvent<HTMLSpanElement>, phrase: string) => {
+    const handleDragStart = (e: React.DragEvent<HTMLSpanElement>, phrase: string, sourceCategory?: string) => {
         e.dataTransfer.setData('text/plain', phrase);
+        if (sourceCategory) {
+            e.dataTransfer.setData('source-category', sourceCategory);
+        }
     };
 
     return (
@@ -1271,7 +1281,7 @@ export const InteractiveRegisterSort: React.FC<{ exercise: IRegisterSortExercise
                         <h5 className={`font-black text-center text-sm uppercase mb-3 tracking-wider ${colors.chip.text}`}>{category}</h5>
                         <div className="space-y-2 flex flex-col items-start">
                             {classified[category].map(phrase => (
-                               <Chip key={phrase} text={phrase} draggable onDragStart={(e) => handleDragStart(e, phrase)} chipColors={colors.chip} />
+                               <Chip key={phrase} text={phrase} draggable onDragStart={(e) => handleDragStart(e, phrase, category)} chipColors={colors.chip} />
                             ))}
                         </div>
                     </div>
