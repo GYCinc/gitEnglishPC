@@ -274,7 +274,7 @@ const App: React.FC = () => {
       <GamificationHUD />
 
       <RadialMenu 
-          onToggleSettings={() => setSettingsModalTab('General')}
+          onOpenSettingsTab={handleOpenSettings}
           onToggleSidebar={handleToggleSidebar}
           onExportState={handleExportState}
           difficulty={difficulty}
