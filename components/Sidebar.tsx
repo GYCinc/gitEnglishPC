@@ -280,7 +280,6 @@ const Sidebar = React.memo(({
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-40 w-80 bg-slate-900/40 backdrop-blur-xl text-white flex flex-col h-screen transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform border-r border-white/5 shadow-2xl
-                     lg:static lg:translate-x-0
                      ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} font-casual`}>
       
       {/* Prominent Logo Area */}

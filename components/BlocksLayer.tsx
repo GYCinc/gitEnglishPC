@@ -15,6 +15,7 @@ interface BlocksLayerProps {
     onNextSlide: () => void;
     onPrevSlide: () => void;
     scaleRef: React.MutableRefObject<number>;
+    disableInteraction?: boolean;
 }
 
 export const BlocksLayer: React.FC<BlocksLayerProps> = React.memo(({
@@ -29,7 +30,8 @@ export const BlocksLayer: React.FC<BlocksLayerProps> = React.memo(({
     onExitPresentation,
     onNextSlide,
     onPrevSlide,
-    scaleRef
+    scaleRef,
+    disableInteraction
 }) => {
     return (
         <>
@@ -48,6 +50,7 @@ export const BlocksLayer: React.FC<BlocksLayerProps> = React.memo(({
                     onNextSlide={onNextSlide}
                     onPrevSlide={onPrevSlide}
                     scaleRef={scaleRef}
+                    disableInteraction={disableInteraction}
                 />
             ))}
         </>

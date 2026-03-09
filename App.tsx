@@ -274,7 +274,7 @@ const App: React.FC = () => {
       <GamificationHUD />
 
       <RadialMenu 
-          onToggleSettings={() => setSettingsModalTab('General')}
+          onOpenSettingsTab={handleOpenSettings}
           onToggleSidebar={handleToggleSidebar}
           onExportState={handleExportState}
           difficulty={difficulty}
@@ -308,7 +308,7 @@ const App: React.FC = () => {
       
       <div 
           onClick={handleCloseSidebar}
-          className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ease-in-out ${
+          className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 transition-opacity duration-300 ease-in-out ${
             isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
           aria-hidden="true"
@@ -329,6 +329,7 @@ const App: React.FC = () => {
           paths={paths}
           onAddPath={handleAddPath}
           isDrawingMode={isDrawingMode}
+          disableInteraction={isSidebarOpen}
         />
       </div>
     </div>

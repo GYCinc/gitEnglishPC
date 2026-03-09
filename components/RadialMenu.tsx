@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { SettingsIcon, DifficultyIcon, DownloadIcon, MenuIcon, XMarkIcon, ThemeIcon, PencilIcon } from './icons';
+import { DifficultyIcon, DownloadIcon, MenuIcon, XMarkIcon, ThemeIcon, PencilIcon, ToneIcon, VocabularyIcon, GrammarIcon } from './icons';
 
 interface RadialMenuProps {
-    onToggleSettings: () => void;
+    onOpenSettingsTab: (tab: 'General' | 'Vocabulary' | 'Grammar') => void;
     onToggleSidebar: () => void;
     onExportState: () => void;
     difficulty: string;
@@ -11,7 +11,7 @@ interface RadialMenuProps {
     onToggleDrawing: () => void;
 }
 
-const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportState, difficulty, onCycleDifficulty, isDrawingMode, onToggleDrawing }: RadialMenuProps) => {
+const RadialMenu = React.memo(({ onOpenSettingsTab, onToggleSidebar, onExportState, difficulty, onCycleDifficulty, isDrawingMode, onToggleDrawing }: RadialMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
 
@@ -35,16 +35,18 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
         };
     }, [isOpen]);
 
-    const menuItems = [
-        { icon: <SettingsIcon className="w-5 h-5" />, label: "Config", action: onToggleSettings },
+        const menuItems = [
+        { icon: <MenuIcon className="w-5 h-5" />, label: "Exercises", action: onToggleSidebar },
         { icon: <DifficultyIcon className="w-5 h-5" />, label: `Difficulty: ${difficulty}`, action: onCycleDifficulty },
+        { icon: <ToneIcon className="w-5 h-5" />, label: "Tone & Theme", action: () => onOpenSettingsTab('General') },
+        { icon: <VocabularyIcon className="w-5 h-5" />, label: "Vocab Focus", action: () => onOpenSettingsTab('Vocabulary') },
+        { icon: <GrammarIcon className="w-5 h-5" />, label: "Grammar Focus", action: () => onOpenSettingsTab('Grammar') },
         { icon: <DownloadIcon className="w-5 h-5" />, label: "Export", action: onExportState },
         { 
           icon: <PencilIcon className={`w-5 h-5 ${isDrawingMode ? 'text-amber-500' : ''}`} />, 
           label: isDrawingMode ? "Stop Drawing" : "Draw Mode", 
           action: onToggleDrawing 
-        },
-        { icon: <ThemeIcon className="w-5 h-5" />, label: "Themes", action: () => console.log("Theme toggle - Future feature") }, 
+        }
     ];
 
     const radius = 80;
@@ -71,7 +73,7 @@ const RadialMenu = React.memo(({ onToggleSettings, onToggleSidebar, onExportStat
             </button>
 
             {menuItems.map((item, index) => {
-                const angleDegree = 160 - (index * (120 / (menuItems.length - 1)));
+                const angleDegree = 180 - (index * (180 / (menuItems.length - 1)));
                 const angleRad = (angleDegree * Math.PI) / 180;
                 
                 const x = radius * Math.cos(angleRad);

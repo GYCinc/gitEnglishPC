@@ -33,6 +33,7 @@ export default defineConfig(({ mode }) => {
         'process.env.API_KEY': JSON.stringify(env.MISTRAL_API_KEY),
         'process.env.MISTRAL_API_KEY': JSON.stringify(env.MISTRAL_API_KEY),
         'import.meta.env': JSON.stringify({
+          VITE_MISTRAL_API_KEY: env.VITE_MISTRAL_API_KEY,
           VITE_SANITY_PROJECT_ID: env.VITE_SANITY_PROJECT_ID,
           VITE_SANITY_DATASET: env.VITE_SANITY_DATASET,
           VITE_SANITY_WRITE_TOKEN: env.VITE_SANITY_WRITE_TOKEN,
