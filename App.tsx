@@ -37,7 +37,8 @@ const App: React.FC = () => {
   const studentId = useStudentId();
   const storageKeys = useStudentStorageKeys(studentId);
 
-  const [blocks, setBlocks] = useState<ExerciseBlockState[]>(() => {
+  const [{ blocks, totalTime }, setBoardState] = useState<{blocks: ExerciseBlockState[], totalTime: number}>(() => {
+    let initialBlocks: ExerciseBlockState[] = [];
     try {
       const savedPages = localStorage.getItem(storageKeys.PAGES_KEY);
       if (savedPages) {
@@ -47,19 +48,22 @@ const App: React.FC = () => {
                 page.blocks.map((b: any) => ({...b, isGenerated: false}))
               );
               localStorage.removeItem(storageKeys.PAGES_KEY);
-              return migratedBlocks;
+              initialBlocks = migratedBlocks;
           }
       }
 
-      const savedBlocks = localStorage.getItem(storageKeys.BLOCKS_KEY);
-      const parsedBlocks = savedBlocks ? JSON.parse(savedBlocks) : [];
-      if (Array.isArray(parsedBlocks)) {
-          return parsedBlocks.map((b: any) => ({ ...b, isGenerated: false }));
+      if (initialBlocks.length === 0) {
+        const savedBlocks = localStorage.getItem(storageKeys.BLOCKS_KEY);
+        const parsedBlocks = savedBlocks ? JSON.parse(savedBlocks) : [];
+        if (Array.isArray(parsedBlocks)) {
+            initialBlocks = parsedBlocks.map((b: any) => ({ ...b, isGenerated: false }));
+        }
       }
-      return [];
     } catch {
-      return [];
+      // Ignore
     }
+    const initialTime = initialBlocks.reduce((sum, block) => sum + calculateExerciseDuration(block.exerciseType, block.height, block.quantity), 0);
+    return { blocks: initialBlocks, totalTime: initialTime };
   });
 
   const [paths, setPaths] = useState<DrawingPath[]>(() => {
@@ -133,9 +137,7 @@ const App: React.FC = () => {
   useDebouncedSave(storageKeys.GRAMMAR_KEY, focusGrammar);
   useDebouncedSave(storageKeys.GRAMMAR_RATE_KEY, grammarInclusionRate);
 
-  const totalTime = useMemo(() => {
-      return blocks.reduce((sum, block) => sum + calculateExerciseDuration(block.exerciseType, block.height, block.quantity), 0);
-  }, [blocks]);
+
 
   const enterPresentation = useCallback((blockId: number) => {
       setPresentingBlockId(blockId);
@@ -187,7 +189,7 @@ const App: React.FC = () => {
               const json = JSON.parse(event.target?.result as string);
               if (json.state) {
                   const { state } = json;
-                  if (state.blocks) setBlocks(state.blocks);
+                  if (state.blocks) setBoardState({ blocks: state.blocks, totalTime: state.blocks.reduce((sum: number, block: ExerciseBlockState) => sum + calculateExerciseDuration(block.exerciseType, block.height, block.quantity), 0) });
                   if (state.paths) setPaths(state.paths);
                   if (state.difficulty) setDifficulty(state.difficulty);
                   if (state.tone) setTone(state.tone);
@@ -207,14 +209,15 @@ const App: React.FC = () => {
 
   const handleClearBoard = useCallback(() => {
       if (window.confirm("Are you sure you want to clear the entire whiteboard?")) {
-          setBlocks([]);
+          setBoardState({ blocks: [], totalTime: 0 });
           setPaths([]);
       }
   }, []);
 
   const addBlock = useCallback((type: ExerciseType, dropX?: number, dropY?: number) => {
     const { difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate } = stateRef.current;
-    setBlocks(prevBlocks => {
+    setBoardState(prevState => {
+      const prevBlocks = prevState.blocks;
       const { width: newBlockWidth, height: newBlockHeight } = EXERCISE_SIZE_OVERRIDES[type] || DEFAULT_BLOCK_DIMENSIONS;
       let finalPos = (dropX !== undefined && dropY !== undefined) 
           ? { x: Math.max(0, dropX - newBlockWidth / 2), y: Math.max(0, dropY - newBlockHeight / 2) }
@@ -225,21 +228,61 @@ const App: React.FC = () => {
         id: Date.now(), exerciseType: type, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate,
         x: finalPos.x, y: finalPos.y, width: newBlockWidth, height: newBlockHeight, zIndex: maxZ + 1, isGenerated: false,
       };
-      return [...prevBlocks, newBlock];
+
+      const duration = calculateExerciseDuration(newBlock.exerciseType, newBlock.height, newBlock.quantity);
+
+      return {
+          blocks: [...prevBlocks, newBlock],
+          totalTime: prevState.totalTime + duration
+      };
     });
   }, []);
 
   const updateBlock = useCallback((blockId: number, updates: Partial<ExerciseBlockState>) => {
-    setBlocks(prevBlocks => prevBlocks.map(block => block.id === blockId ? { ...block, ...updates } : block));
+    setBoardState(prevState => {
+      const prevBlocks = prevState.blocks;
+      const blockIndex = prevBlocks.findIndex(b => b.id === blockId);
+      if (blockIndex === -1) return prevState;
+
+      const block = prevBlocks[blockIndex];
+      const updatedBlock = { ...block, ...updates };
+
+      const oldDuration = calculateExerciseDuration(block.exerciseType, block.height, block.quantity);
+      const newDuration = calculateExerciseDuration(updatedBlock.exerciseType, updatedBlock.height, updatedBlock.quantity);
+
+      const newBlocks = [...prevBlocks];
+      newBlocks[blockIndex] = updatedBlock;
+
+      return {
+          blocks: newBlocks,
+          totalTime: prevState.totalTime - oldDuration + newDuration
+      };
+    });
   }, []);
 
   const removeBlock = useCallback((blockId: number) => {
-    setBlocks(prevBlocks => prevBlocks.filter(block => block.id !== blockId));
+    setBoardState(prevState => {
+      const prevBlocks = prevState.blocks;
+      const blockIndex = prevBlocks.findIndex(b => b.id === blockId);
+      if (blockIndex === -1) return prevState;
+
+      const block = prevBlocks[blockIndex];
+      const duration = calculateExerciseDuration(block.exerciseType, block.height, block.quantity);
+
+      const newBlocks = [...prevBlocks];
+      newBlocks.splice(blockIndex, 1);
+
+      return {
+          blocks: newBlocks,
+          totalTime: prevState.totalTime - duration
+      };
+    });
     if (presentingBlockId === blockId) exitPresentation();
   }, [presentingBlockId, exitPresentation]);
 
   const focusBlock = useCallback((blockId: number) => {
-    setBlocks(prevBlocks => {
+    setBoardState(prevState => {
+      const prevBlocks = prevState.blocks;
       let maxZ = 0;
       let currentZ = -1;
       let maxZCount = 0;
@@ -248,8 +291,11 @@ const App: React.FC = () => {
           if (z > maxZ) { maxZ = z; maxZCount = 1; } else if (z === maxZ) { maxZCount++; }
           if (b.id === blockId) currentZ = z;
       }
-      if (currentZ === maxZ && maxZCount === 1) return prevBlocks;
-      return prevBlocks.map(block => block.id === blockId ? { ...block, zIndex: maxZ + 1 } : block);
+      if (currentZ === maxZ && maxZCount === 1) return prevState;
+      return {
+          ...prevState,
+          blocks: prevBlocks.map(block => block.id === blockId ? { ...block, zIndex: maxZ + 1 } : block)
+      };
     });
   }, []);
 
