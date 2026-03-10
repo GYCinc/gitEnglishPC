@@ -15,15 +15,17 @@ const CANVAS_SIZE = 3000;
  * This allows O(1) checks for occupancy relative to N (number of existing blocks),
  * ensuring performance remains stable even with thousands of blocks.
  */
+const GRID_ROWS = Math.ceil(CANVAS_SIZE / GRID_STEP);
+const GRID_COLS = Math.ceil(CANVAS_SIZE / GRID_STEP);
+const sharedGrid = new Uint8Array(GRID_ROWS * GRID_COLS);
+
 export function findFreePosition(
   prevBlocks: ExerciseBlockState[],
   newBlockWidth: number,
   newBlockHeight: number
 ): Point {
-  const GRID_ROWS = Math.ceil(CANVAS_SIZE / GRID_STEP);
-  const GRID_COLS = Math.ceil(CANVAS_SIZE / GRID_STEP);
-  // 0 = free, 1 = occupied
-  const grid = new Uint8Array(GRID_ROWS * GRID_COLS);
+  const grid = sharedGrid;
+  grid.fill(0);
 
   // Mark occupied cells
   for (const b of prevBlocks) {
