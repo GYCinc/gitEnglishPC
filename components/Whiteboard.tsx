@@ -68,7 +68,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const blocksMapRef = useRef<Map<number, ExerciseBlockState>>(new Map());
   useEffect(() => {
     blocksRef.current = blocks;
-    blocksMapRef.current = new Map(blocks.map(b => [b.id, b]));
+    const map = blocksMapRef.current;
+    map.clear();
+    for (const b of blocks) {
+        map.set(b.id, b);
+    }
   }, [blocks]);
 
   const snapPointsCache = useRef<{ vPoints: number[], hPoints: number[] } | null>(null);
