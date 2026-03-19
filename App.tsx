@@ -241,15 +241,34 @@ const App: React.FC = () => {
   const focusBlock = useCallback((blockId: number) => {
     setBlocks(prevBlocks => {
       let maxZ = 0;
-      let currentZ = -1;
       let maxZCount = 0;
-      for (const b of prevBlocks) {
+      let blockIndex = -1;
+      let currentZ = -1;
+
+      for (let i = 0; i < prevBlocks.length; i++) {
+          const b = prevBlocks[i];
           const z = b.zIndex || 0;
-          if (z > maxZ) { maxZ = z; maxZCount = 1; } else if (z === maxZ) { maxZCount++; }
-          if (b.id === blockId) currentZ = z;
+
+          if (z > maxZ) {
+              maxZ = z;
+              maxZCount = 1;
+          } else if (z === maxZ) {
+              maxZCount++;
+          }
+
+          if (b.id === blockId) {
+              blockIndex = i;
+              currentZ = z;
+          }
       }
-      if (currentZ === maxZ && maxZCount === 1) return prevBlocks;
-      return prevBlocks.map(block => block.id === blockId ? { ...block, zIndex: maxZ + 1 } : block);
+
+      if (blockIndex === -1 || (currentZ === maxZ && maxZCount === 1)) {
+          return prevBlocks;
+      }
+
+      const newBlocks = [...prevBlocks];
+      newBlocks[blockIndex] = { ...newBlocks[blockIndex], zIndex: maxZ + 1 };
+      return newBlocks;
     });
   }, []);
 
