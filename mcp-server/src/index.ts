@@ -7,6 +7,12 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Dynamic imports for services (loaded at runtime to avoid Vite env issues)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.join(__dirname, '../..');
+const servicesPath = path.join(projectRoot, 'services');
 
 // Basic in-memory stores for telemetry (in a real app, this might be saved to files or DB)
 let gamificationState = { xp: 0, level: 1, streak: 0, lastActiveDate: null };
@@ -53,6 +59,47 @@ app.post('/api/memory', (req, res) => {
 
 app.get('/api/state', (req, res) => {
   res.json({ gamification: gamificationState, activities: recentActivities, coreMemory });
+});
+
+// --- EXERCISE GENERATION ENDPOINT (for GitEnglishHub) ---
+app.post('/api/generate-exercises', async (req, res) => {
+  try {
+    const {
+      exerciseType = 'FITB',
+      difficulty = 'B1',
+      tone = 'Casual',
+      theme = 'general topics',
+      amount = 5,
+      focusVocabulary = [],
+      inclusionRate = 30,
+      focusGrammar = [],
+      grammarInclusionRate = 25
+    } = req.body;
+
+    // Dynamic import to avoid Vite env issues at startup
+    const { generateExercises } = await import(path.join(servicesPath, 'mistralService.ts'));
+    const { ExerciseType, Difficulty, Tone } = await import(path.join(projectRoot, 'enums.ts'));
+
+    const exercises = await generateExercises(
+      ExerciseType[exerciseType] || exerciseType,
+      Difficulty[difficulty] || difficulty,
+      Tone[tone] || tone,
+      theme,
+      amount,
+      focusVocabulary,
+      inclusionRate,
+      focusGrammar,
+      grammarInclusionRate
+    );
+
+    res.json({ success: true, exercises });
+  } catch (error: any) {
+    console.error('[Exercise Generation Error]', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Exercise generation failed' 
+    });
+  }
 });
 
 // Start Express server in the background (so MCP standard I/O works smoothly)
