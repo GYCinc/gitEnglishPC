@@ -22,6 +22,7 @@ interface WhiteboardProps {
   paths: DrawingPath[];
   onAddPath: (path: DrawingPath) => void;
   isDrawingMode: boolean;
+  disableInteraction?: boolean;
 }
 
 type SnapLine = {
@@ -37,7 +38,8 @@ const VELOCITY_THRESHOLD = 0.1;
 
 const Whiteboard: React.FC<WhiteboardProps> = ({ 
     blocks, onAddBlock, onUpdateBlock, onRemoveBlock, onFocusBlock, 
-    presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide, paths, onAddPath, isDrawingMode
+    presentingBlockId, onEnterPresentation, onExitPresentation, onNextSlide, onPrevSlide, paths, onAddPath, isDrawingMode,
+  disableInteraction
 }) => {
   const [activeInteraction, setActiveInteraction] = useState<{ blockId: number, x: number, y: number, width: number, height: number } | null>(null);
   const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
@@ -66,7 +68,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const blocksMapRef = useRef<Map<number, ExerciseBlockState>>(new Map());
   useEffect(() => {
     blocksRef.current = blocks;
-    blocksMapRef.current = new Map(blocks.map(b => [b.id, b]));
+    const map = blocksMapRef.current;
+    map.clear();
+    for (const b of blocks) {
+        map.set(b.id, b);
+    }
   }, [blocks]);
 
   const snapPointsCache = useRef<{ vPoints: number[], hPoints: number[] } | null>(null);
@@ -435,7 +441,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
                 onNextSlide={onNextSlide}
                 onPrevSlide={onPrevSlide}
                 scaleRef={scaleRef}
-                disableInteraction={isDrawingMode}
+                disableInteraction={isDrawingMode || disableInteraction}
             />
         </div>
     </main>

@@ -10,7 +10,7 @@ import { GamificationProvider } from './GamificationContext';
 import GamificationHUD from './components/GamificationHUD';
 import { useDebouncedSave } from './hooks/useDebouncedSave';
 import { findFreePosition } from './placementUtils';
-import { useStudentId } from './ActivityContext';
+import { useStudentId, useActivityLogger } from './ActivityContext';
 
 const APP_PREFIX = 'practiceGenie-';
 
@@ -35,9 +35,12 @@ const useStudentStorageKeys = (studentId: string | null) => {
 
 const App: React.FC = () => {
   const studentId = useStudentId();
+  const { logFocusItem, logger } = useActivityLogger();
   const storageKeys = useStudentStorageKeys(studentId);
+  const initializationErrors = useRef<{key: string, error: string}[]>([]);
 
   const [blocks, setBlocks] = useState<ExerciseBlockState[]>(() => {
+    let currentKey = storageKeys.PAGES_KEY;
     try {
       const savedPages = localStorage.getItem(storageKeys.PAGES_KEY);
       if (savedPages) {
@@ -51,13 +54,17 @@ const App: React.FC = () => {
           }
       }
 
+      currentKey = storageKeys.BLOCKS_KEY;
       const savedBlocks = localStorage.getItem(storageKeys.BLOCKS_KEY);
       const parsedBlocks = savedBlocks ? JSON.parse(savedBlocks) : [];
       if (Array.isArray(parsedBlocks)) {
           return parsedBlocks.map((b: any) => ({ ...b, isGenerated: false }));
       }
       return [];
-    } catch {
+    } catch (err: any) {
+      const msg = err?.message || 'Unknown error';
+      console.error(`[App] LocalStorage initialization error for key "${currentKey}":`, msg);
+      initializationErrors.current.push({ key: currentKey, error: msg });
       return [];
     }
   });
@@ -66,7 +73,10 @@ const App: React.FC = () => {
     try {
       const saved = localStorage.getItem(storageKeys.PATHS_KEY);
       return saved ? JSON.parse(saved) : [];
-    } catch {
+    } catch (err: any) {
+      const msg = err?.message || 'Unknown error';
+      console.error(`[App] LocalStorage initialization error for key "${storageKeys.PATHS_KEY}":`, msg);
+      initializationErrors.current.push({ key: storageKeys.PATHS_KEY, error: msg });
       return [];
     }
   });
@@ -87,7 +97,10 @@ const App: React.FC = () => {
       try {
           const saved = localStorage.getItem(storageKeys.VOCAB_KEY);
           return saved ? JSON.parse(saved) : [];
-      } catch {
+      } catch (err: any) {
+          const msg = err?.message || 'Unknown error';
+          console.error(`[App] LocalStorage initialization error for key "${storageKeys.VOCAB_KEY}":`, msg);
+          initializationErrors.current.push({ key: storageKeys.VOCAB_KEY, error: msg });
           return [];
       }
   });
@@ -100,7 +113,10 @@ const App: React.FC = () => {
     try {
         const saved = localStorage.getItem(storageKeys.GRAMMAR_KEY);
         return saved ? JSON.parse(saved) : [];
-    } catch {
+    } catch (err: any) {
+        const msg = err?.message || 'Unknown error';
+        console.error(`[App] LocalStorage initialization error for key "${storageKeys.GRAMMAR_KEY}":`, msg);
+        initializationErrors.current.push({ key: storageKeys.GRAMMAR_KEY, error: msg });
         return [];
     }
   });
@@ -122,6 +138,15 @@ const App: React.FC = () => {
           blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate
       };
   }, [blocks, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate]);
+
+  useEffect(() => {
+    if (logger && initializationErrors.current.length > 0) {
+      initializationErrors.current.forEach(({ key, error }) => {
+        logFocusItem('General UI', 'LocalStorage Corruption', 0, null, 1, [error], key);
+      });
+      initializationErrors.current = [];
+    }
+  }, [logFocusItem, logger]);
 
   useDebouncedSave(storageKeys.BLOCKS_KEY, blocks, 500);
   useDebouncedSave(storageKeys.PATHS_KEY, paths, 500);
@@ -241,15 +266,34 @@ const App: React.FC = () => {
   const focusBlock = useCallback((blockId: number) => {
     setBlocks(prevBlocks => {
       let maxZ = 0;
-      let currentZ = -1;
       let maxZCount = 0;
-      for (const b of prevBlocks) {
+      let blockIndex = -1;
+      let currentZ = -1;
+
+      for (let i = 0; i < prevBlocks.length; i++) {
+          const b = prevBlocks[i];
           const z = b.zIndex || 0;
-          if (z > maxZ) { maxZ = z; maxZCount = 1; } else if (z === maxZ) { maxZCount++; }
-          if (b.id === blockId) currentZ = z;
+
+          if (z > maxZ) {
+              maxZ = z;
+              maxZCount = 1;
+          } else if (z === maxZ) {
+              maxZCount++;
+          }
+
+          if (b.id === blockId) {
+              blockIndex = i;
+              currentZ = z;
+          }
       }
-      if (currentZ === maxZ && maxZCount === 1) return prevBlocks;
-      return prevBlocks.map(block => block.id === blockId ? { ...block, zIndex: maxZ + 1 } : block);
+
+      if (blockIndex === -1 || (currentZ === maxZ && maxZCount === 1)) {
+          return prevBlocks;
+      }
+
+      const newBlocks = [...prevBlocks];
+      newBlocks[blockIndex] = { ...newBlocks[blockIndex], zIndex: maxZ + 1 };
+      return newBlocks;
     });
   }, []);
 
@@ -274,7 +318,7 @@ const App: React.FC = () => {
       <GamificationHUD />
 
       <RadialMenu 
-          onToggleSettings={() => setSettingsModalTab('General')}
+          onOpenSettingsTab={handleOpenSettings}
           onToggleSidebar={handleToggleSidebar}
           onExportState={handleExportState}
           difficulty={difficulty}
@@ -308,7 +352,7 @@ const App: React.FC = () => {
       
       <div 
           onClick={handleCloseSidebar}
-          className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ease-in-out ${
+          className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 transition-opacity duration-300 ease-in-out ${
             isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
           aria-hidden="true"
@@ -329,6 +373,7 @@ const App: React.FC = () => {
           paths={paths}
           onAddPath={handleAddPath}
           isDrawingMode={isDrawingMode}
+          disableInteraction={isSidebarOpen}
         />
       </div>
     </div>
