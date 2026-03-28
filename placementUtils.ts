@@ -57,9 +57,9 @@ export function findFreePosition(
          let occupied = false;
 
          checkLoop:
-         for (let cy = 0; cy < reqRowsH; cy++) {
-             const checkRowOffset = (gy + cy) * GRID_COLS;
-             for (let cx = 0; cx < reqColsW; cx++) {
+         for (let cx = reqColsW - 1; cx >= 0; cx--) {
+             for (let cy = 0; cy < reqRowsH; cy++) {
+                 const checkRowOffset = (gy + cy) * GRID_COLS;
                  if (grid[checkRowOffset + gx + cx] === 1) {
                      occupied = true;
                      gx += cx; // Optimization: skip past blockage
