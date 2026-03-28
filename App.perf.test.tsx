@@ -2,6 +2,7 @@ import { render, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { flushSync } from 'react-dom';
 import App from './App';
+import { ActivityLoggerProvider } from './ActivityContext';
 import React from 'react';
 
 // Mock child components
@@ -39,7 +40,11 @@ describe('App Performance', () => {
   });
 
   it('debounces localStorage updates for high-frequency state changes', () => {
-    const { getByTestId } = render(<App />);
+    const { getByTestId } = render(
+      <ActivityLoggerProvider>
+        <App />
+      </ActivityLoggerProvider>
+    );
     const updateBtn = getByTestId('cycle-difficulty');
 
     const UPDATE_COUNT = 20;
