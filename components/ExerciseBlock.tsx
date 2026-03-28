@@ -447,13 +447,18 @@ const ExerciseContent: React.FC<{ type: ExerciseType; content: any[]; colors: an
     return <div className="space-y-8">{content.map((ex, i) => renderExercise(ex, i))}</div>;
 });
 
-const PlaceholderView: React.FC<{ amount: number; exerciseType: ExerciseType; }> = React.memo(({ amount, exerciseType }) => (
-    <div className="space-y-4">
-        {Array.from({ length: amount }).map((_, i) => (
-            <ExerciseTemplate key={i} type={exerciseType} index={i} />
-        ))}
-    </div>
-));
+const PlaceholderView: React.FC<{ amount: number; exerciseType: ExerciseType; }> = React.memo(({ amount, exerciseType }) => {
+    const templates = [];
+    for (let i = 0; i < amount; i++) {
+        templates.push(<ExerciseTemplate key={i} type={exerciseType} index={i} />);
+    }
+
+    return (
+        <div className="space-y-4">
+            {templates}
+        </div>
+    );
+});
 
 const ExerciseBlock: React.FC<ExerciseBlockProps> = React.memo(({
     blockState, onUpdate, onRemove, onFocus,
