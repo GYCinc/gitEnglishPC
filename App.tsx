@@ -38,6 +38,7 @@ const App: React.FC = () => {
   const { logFocusItem, logger } = useActivityLogger();
   const storageKeys = useStudentStorageKeys(studentId);
   const initializationErrors = useRef<{key: string, error: string}[]>([]);
+  const maxZIndexRef = useRef(0);
 
   const [blocks, setBlocks] = useState<ExerciseBlockState[]>(() => {
     let currentKey = storageKeys.PAGES_KEY;
@@ -50,6 +51,7 @@ const App: React.FC = () => {
                 page.blocks.map((b: any) => ({...b, isGenerated: false}))
               );
               localStorage.removeItem(storageKeys.PAGES_KEY);
+              maxZIndexRef.current = migratedBlocks.length > 0 ? Math.max(0, ...migratedBlocks.map((b: any) => b.zIndex || 0)) : 0;
               return migratedBlocks;
           }
       }
@@ -58,7 +60,9 @@ const App: React.FC = () => {
       const savedBlocks = localStorage.getItem(storageKeys.BLOCKS_KEY);
       const parsedBlocks = savedBlocks ? JSON.parse(savedBlocks) : [];
       if (Array.isArray(parsedBlocks)) {
-          return parsedBlocks.map((b: any) => ({ ...b, isGenerated: false }));
+          const mappedBlocks = parsedBlocks.map((b: any) => ({ ...b, isGenerated: false }));
+          maxZIndexRef.current = mappedBlocks.length > 0 ? Math.max(0, ...mappedBlocks.map((b: any) => b.zIndex || 0)) : 0;
+          return mappedBlocks;
       }
       return [];
     } catch (err: any) {
@@ -244,11 +248,10 @@ const App: React.FC = () => {
       let finalPos = (dropX !== undefined && dropY !== undefined) 
           ? { x: Math.max(0, dropX - newBlockWidth / 2), y: Math.max(0, dropY - newBlockHeight / 2) }
           : findFreePosition(prevBlocks, newBlockWidth, newBlockHeight);
-      let maxZ = 0;
-      for (const b of prevBlocks) { if ((b.zIndex || 0) > maxZ) maxZ = b.zIndex || 0; }
+      maxZIndexRef.current += 1;
       const newBlock: ExerciseBlockState = {
         id: Date.now(), exerciseType: type, difficulty, tone, theme, focusVocabulary, inclusionRate, focusGrammar, grammarInclusionRate,
-        x: finalPos.x, y: finalPos.y, width: newBlockWidth, height: newBlockHeight, zIndex: maxZ + 1, isGenerated: false,
+        x: finalPos.x, y: finalPos.y, width: newBlockWidth, height: newBlockHeight, zIndex: maxZIndexRef.current, isGenerated: false,
       };
       return [...prevBlocks, newBlock];
     });
@@ -265,34 +268,24 @@ const App: React.FC = () => {
 
   const focusBlock = useCallback((blockId: number) => {
     setBlocks(prevBlocks => {
-      let maxZ = 0;
-      let maxZCount = 0;
-      let blockIndex = -1;
-      let currentZ = -1;
+      const blockIndex = prevBlocks.findIndex(b => b.id === blockId);
+      if (blockIndex === -1) return prevBlocks;
 
-      for (let i = 0; i < prevBlocks.length; i++) {
-          const b = prevBlocks[i];
-          const z = b.zIndex || 0;
-
-          if (z > maxZ) {
-              maxZ = z;
-              maxZCount = 1;
-          } else if (z === maxZ) {
-              maxZCount++;
+      const currentZ = prevBlocks[blockIndex].zIndex || 0;
+      let countAtTop = 0;
+      if (currentZ === maxZIndexRef.current) {
+          for (let i = 0; i < prevBlocks.length; i++) {
+              if (prevBlocks[i].zIndex === maxZIndexRef.current) {
+                  countAtTop++;
+                  if (countAtTop > 1) break;
+              }
           }
-
-          if (b.id === blockId) {
-              blockIndex = i;
-              currentZ = z;
-          }
+          if (countAtTop === 1) return prevBlocks;
       }
 
-      if (blockIndex === -1 || (currentZ === maxZ && maxZCount === 1)) {
-          return prevBlocks;
-      }
-
+      maxZIndexRef.current += 1;
       const newBlocks = [...prevBlocks];
-      newBlocks[blockIndex] = { ...newBlocks[blockIndex], zIndex: maxZ + 1 };
+      newBlocks[blockIndex] = { ...newBlocks[blockIndex], zIndex: maxZIndexRef.current };
       return newBlocks;
     });
   }, []);
