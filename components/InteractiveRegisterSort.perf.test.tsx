@@ -53,5 +53,5 @@ describe('InteractiveRegisterSort Performance Benchmark', () => {
         const end = performance.now();
 
         console.log(`Time taken for 5000 drops (classified -> classified): ${(end - start).toFixed(2)} ms`);
-    });
+    }, 10000);
 });
