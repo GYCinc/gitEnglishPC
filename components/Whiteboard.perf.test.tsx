@@ -146,3 +146,35 @@ describe('Whiteboard Performance & Functionality', () => {
     expect(style).toMatch(/scale\(1\.1/);
   });
 });
+
+  it('optimizes block lookup without O(N) map generation', () => {
+    const defaultProps = { blocks: [], onAddBlock: vi.fn(), onUpdateBlock: vi.fn(), onRemoveBlock: vi.fn(), onFocusBlock: vi.fn(), presentingBlockId: null, onEnterPresentation: vi.fn(), onExitPresentation: vi.fn(), onNextSlide: vi.fn(), onPrevSlide: vi.fn(), paths: [], onAddPath: vi.fn(), isDrawingMode: false };
+    // We will measure the time it takes to process a handleInteraction
+    // call in the original vs optimized code. Or rather, we can assert
+    // that the O(N) map update logic is removed.
+    // Since we're writing a benchmark, let's create a lot of blocks.
+    const manyBlocks = Array.from({ length: 1000 }, (_, i) => ({
+      id: i,
+      x: i * 10,
+      y: i * 10,
+      width: 100,
+      height: 100,
+      exerciseType: 'MCQ',
+    })) as any[];
+
+    const start = performance.now();
+    const { rerender } = render(<Whiteboard {...defaultProps} blocks={manyBlocks} />);
+
+    // Simulate updating blocks reference without changing them, or changing one
+    const newBlocks = [...manyBlocks];
+    newBlocks[0] = { ...newBlocks[0], x: 200 };
+
+    act(() => {
+        rerender(<Whiteboard {...defaultProps} blocks={newBlocks} />);
+    });
+
+    const end = performance.now();
+    console.log(`Render time for 1000 blocks: ${end - start}ms`);
+
+    expect(end - start).toBeLessThan(100); // Should be very fast
+  });

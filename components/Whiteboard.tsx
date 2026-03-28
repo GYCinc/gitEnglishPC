@@ -65,14 +65,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const { logger } = useActivityLogger();
 
   const blocksRef = useRef(blocks);
-  const blocksMapRef = useRef<Map<number, ExerciseBlockState>>(new Map());
+
   useEffect(() => {
     blocksRef.current = blocks;
-    const map = blocksMapRef.current;
-    map.clear();
-    for (const b of blocks) {
-        map.set(b.id, b);
-    }
   }, [blocks]);
 
   const snapPointsCache = useRef<{ vPoints: number[], hPoints: number[] } | null>(null);
@@ -346,7 +341,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
   const handleInteraction = useCallback((blockId: number, newPos: {x: number, y: number, width: number, height: number}) => {
     const currentBlocks = blocksRef.current;
-    if (!blocksMapRef.current.has(blockId)) return;
+
+    const hasBlock = currentBlocks.some(b => b.id === blockId);
+    if (!hasBlock) return;
 
     const { snappedX, snappedY, newSnapLines } = calculateSnapping(blockId, currentBlocks, newPos);
     setSnapLines(newSnapLines);
@@ -356,7 +353,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const handleInteractionStop = useCallback((blockId: number, finalPos: {x: number, y: number, width: number, height: number}) => {
       // Recalculate snap on drop to ensure the block lands on the line
       const currentBlocks = blocksRef.current;
-      const hasBlock = blocksMapRef.current.has(blockId);
+
+      const hasBlock = currentBlocks.some(b => b.id === blockId);
 
       let finalX = finalPos.x;
       let finalY = finalPos.y;
