@@ -11,9 +11,6 @@ importers:
       '@google/genai':
         specifier: ^1.40.0
         version: 1.40.0
-      kilocode:
-        specifier: ^1.2.0
-        version: 1.2.0
       react:
         specifier: ^19.1.0
         version: 19.2.1
@@ -1971,9 +1968,6 @@ packages:
 
   jws@4.0.1:
     resolution: {integrity: sha512-EKI/M/yqPncGUUh44xz0PxSidXFr/+r0pA70+gIYhjv+et7yxM+s29Y+VGDkovRofQem0fs7Uvf4+YmAdyRduA==}
-
-  kilocode@1.2.0:
-    resolution: {integrity: sha512-2TzcDvhDxIJCp7MX+iaEOMYi3VpImQtFuOcuhGulYgTP2n/vagNxsPLO3LUb5tm+yBNEpZPcCn2TMDJ8klkxZw==}
 
   kind-of@1.1.0:
     resolution: {integrity: sha512-aUH6ElPnMGon2/YkxRIigV32MOpTVcoXQ1Oo8aYn40s+sJ3j+0gFZsT8HKDcxNy7Fi9zuquWtGaGAahOdv5p/g==}
@@ -5498,8 +5492,6 @@ snapshots:
     dependencies:
       jwa: 2.0.1
       safe-buffer: 5.2.1
-
-  kilocode@1.2.0: {}
 
   kind-of@1.1.0: {}
 

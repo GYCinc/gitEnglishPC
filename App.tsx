@@ -6,8 +6,8 @@ import GlobalSettings from './components/GlobalSettings';
 import { ExerciseType, Difficulty, Tone } from './enums';
 import { DrawingPath, ExerciseBlockState } from "./types";
 import { EXERCISE_SIZE_OVERRIDES, DEFAULT_BLOCK_DIMENSIONS, calculateExerciseDuration, DIFFICULTY_LEVELS } from './constants';
-import { GamificationProvider } from './GamificationContext';
-import GamificationHUD from './components/GamificationHUD';
+
+
 import { useDebouncedSave } from './hooks/useDebouncedSave';
 import { findFreePosition } from './placementUtils';
 import { useStudentId, useActivityLogger } from './ActivityContext';
@@ -313,9 +313,9 @@ const App: React.FC = () => {
   const handleToggleDrawing = useCallback(() => setIsDrawingMode(prev => !prev), []);
 
   return (
-    <GamificationProvider>
+
     <div className="h-screen w-screen flex font-casual antialiased overflow-hidden bg-slate-800 text-slate-200">
-      <GamificationHUD />
+
 
       <RadialMenu 
           onOpenSettingsTab={handleOpenSettings}
@@ -377,7 +377,7 @@ const App: React.FC = () => {
         />
       </div>
     </div>
-    </GamificationProvider>
+
   );
 };
 
