@@ -49,10 +49,10 @@ const RadialMenu = React.memo(({ onOpenSettingsTab, onToggleSidebar, onExportSta
         }
     ];
 
-    const radius = 80;
+    const radius = 120;
 
     return (
-        <div id="radial-menu-container" className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center justify-center font-casual"
+        <div id="radial-menu-container" className="fixed bottom-6 left-6 z-[100] flex flex-col items-center justify-center font-casual"
              onMouseEnter={() => !isOpen && setHoveredLabel('Menu')}
              onMouseLeave={() => setHoveredLabel(null)}
         >
@@ -73,7 +73,7 @@ const RadialMenu = React.memo(({ onOpenSettingsTab, onToggleSidebar, onExportSta
             </button>
 
             {menuItems.map((item, index) => {
-                const angleDegree = 180 - (index * (180 / (menuItems.length - 1)));
+                const angleDegree = -90 + (index * (90 / (menuItems.length - 1)));
                 const angleRad = (angleDegree * Math.PI) / 180;
                 
                 const x = radius * Math.cos(angleRad);
@@ -104,7 +104,7 @@ const RadialMenu = React.memo(({ onOpenSettingsTab, onToggleSidebar, onExportSta
             })}
             
             {hoveredLabel && (
-                 <div className="absolute top-16 text-[10px] font-bold uppercase tracking-widest text-slate-600 bg-white/90 px-2 py-1 rounded-md shadow-sm border border-slate-100 animate-in fade-in slide-in-from-top-1 whitespace-nowrap z-[101]">
+                 <div className="absolute bottom-16 left-0 text-[10px] font-bold uppercase tracking-widest text-slate-600 bg-white/90 px-2 py-1 rounded-md shadow-sm border border-slate-100 animate-in fade-in slide-in-from-top-1 whitespace-nowrap z-[101]">
                      {hoveredLabel}
                  </div>
             )}
