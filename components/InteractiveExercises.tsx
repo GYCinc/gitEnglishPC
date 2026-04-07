@@ -14,7 +14,6 @@ import {
 } from '../types';
 import { checkAnswerWithAI } from '../services/mistralService';
 import { LoadingIcon, SpeakerWaveIcon, SparklesIcon } from './icons';
-import { useGamification } from '../GamificationContext';
 import { soundEffects } from '../services/SoundEffectsService';
 import Confetti from './Confetti';
 
@@ -85,7 +84,7 @@ FeedbackSection.displayName = 'FeedbackSection';
 export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationExercise | IPhrasalVerbGapFillExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const [droppedWord, setDroppedWord] = useState<string | null>(null);
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     const handleDrop = (e: React.DragEvent<HTMLSpanElement>) => {
@@ -96,8 +95,8 @@ export const InteractiveFITB: React.FC<{ exercise: IFITBExercise | ICollocationE
         if (word === exercise.answer) {
             setStatus('correct');
             soundEffects.playCorrect();
-            addXP(10);
-            checkStreak();
+
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -138,7 +137,7 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
     const [userInput, setUserInput] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
@@ -158,8 +157,8 @@ export const InteractiveWordFormation: React.FC<{ exercise: IWordFormationExerci
 
         if (result.isCorrect) {
             soundEffects.playCorrect();
-            addXP(20);
-            checkStreak();
+
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -212,7 +211,7 @@ const MCQOptionButton = React.memo(({ option, onClick, disabled, className }: { 
 export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPredictionExercise | IRuleDiscoveryExercise | ISpotTheDifferenceExercise | IPolitenessScenariosExercise | IInferringMeaningExercise; colors: any; }> = React.memo(({ exercise, colors }) => {
     const [selected, setSelected] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     const handleClick = React.useCallback((option: string) => {
@@ -223,8 +222,8 @@ export const InteractiveMCQ: React.FC<{ exercise: IMultipleChoiceExercise | IPre
         const isCorrect = option === exercise.correctAnswer;
         if (isCorrect) {
             soundEffects.playCorrect();
-            addXP(10);
-            checkStreak();
+
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -297,7 +296,7 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
     const [bank, setBank] = useState<ScrambledWord[]>([]);
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     useEffect(() => {
@@ -336,8 +335,8 @@ export const InteractiveSentenceScramble: React.FC<{ exercise: ISentenceScramble
         setLoading(false);
         if (result.isCorrect) {
             soundEffects.playCorrect();
-            addXP(15);
-            checkStreak();
+
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -382,7 +381,7 @@ export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExe
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
@@ -402,8 +401,8 @@ export const InteractiveClozeOrDialogue: React.FC<{ exercise: IClozeParagraphExe
 
         if (result.isCorrect) {
             soundEffects.playCorrect();
-            addXP(25); // Higher XP for harder task
-            checkStreak();
+             // Higher XP for harder task
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -452,7 +451,7 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
     const [shuffledAnswers, setShuffledAnswers] = useState(() => shuffleArray(exercise.answers || []));
     const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
     const [matches, setMatches] = useState<Record<number, MatchInfo>>({});
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     useEffect(() => {
@@ -477,13 +476,13 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
 
         if (isCorrect) {
             soundEffects.playCorrect();
-            addXP(5);
+
             // Check if all matched
             if (Object.keys(matches).length + 1 === exercise.answers.length) {
-                checkStreak();
+
                 setShowConfetti(true);
                 setTimeout(() => setShowConfetti(false), 3000);
-                addXP(20); // Bonus for completion
+                 // Bonus for completion
             }
         } else {
              soundEffects.playIncorrect();
@@ -540,7 +539,7 @@ export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionEx
     const [userInput, setUserInput] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
@@ -560,8 +559,8 @@ export const InteractiveErrorCorrection: React.FC<{ exercise: IErrorCorrectionEx
 
         if (result.isCorrect) {
             soundEffects.playCorrect();
-            addXP(15);
-            checkStreak();
+
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -640,7 +639,7 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
     const [status, setStatus] = useState<'correct' | 'incorrect' | 'neutral'>('neutral');
     const dragItem = useRef<number | null>(null);
     const dragOverItem = useRef<number | null>(null);
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     // Stable Handlers
@@ -682,8 +681,8 @@ export const InteractiveStorySequencing: React.FC<{ exercise: IStorySequencingEx
 
         if (isCorrect) {
             soundEffects.playCorrect();
-            addXP(30); // High reward for sequencing
-            checkStreak();
+             // High reward for sequencing
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -752,7 +751,7 @@ export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExerci
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
@@ -772,8 +771,8 @@ export const InteractiveReadingDetail: React.FC<{ exercise: IReadingDetailExerci
 
         if (result.isCorrect) {
             soundEffects.playCorrect();
-            addXP(20);
-            checkStreak();
+
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -822,7 +821,7 @@ export const InteractivePicturePrompt: React.FC<{ exercise: IPicturePromptExerci
   const [response, setResponse] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { addXP, checkStreak } = useGamification();
+
   const [showConfetti, setShowConfetti] = useState(false);
 
   const handleCheck = async () => {
@@ -842,8 +841,8 @@ export const InteractivePicturePrompt: React.FC<{ exercise: IPicturePromptExerci
 
       if (result.isCorrect) {
             soundEffects.playCorrect();
-            addXP(15);
-            checkStreak();
+
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -887,7 +886,7 @@ export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExer
   const [response, setResponse] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { addXP, checkStreak } = useGamification();
+
   const [showConfetti, setShowConfetti] = useState(false);
 
   let promptContent: React.ReactNode | string = '';
@@ -946,8 +945,8 @@ export const InteractiveOpenResponseTask: React.FC<{ exercise: IMoralDilemmaExer
 
       if (result.isCorrect) {
             soundEffects.playCorrect();
-            addXP(25);
-            checkStreak();
+
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -991,7 +990,7 @@ export const InteractiveDictoGloss: React.FC<{ exercise: IDictoGlossExercise; co
     const [response, setResponse] = useState('');
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
@@ -1011,8 +1010,8 @@ export const InteractiveDictoGloss: React.FC<{ exercise: IDictoGlossExercise; co
 
         if (result.isCorrect) {
             soundEffects.playCorrect();
-            addXP(20);
-            checkStreak();
+
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -1074,7 +1073,7 @@ export const InteractiveInformationTransfer: React.FC<{ exercise: IInformationTr
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
@@ -1094,8 +1093,8 @@ export const InteractiveInformationTransfer: React.FC<{ exercise: IInformationTr
 
         if (result.isCorrect) {
             soundEffects.playCorrect();
-            addXP(15);
-            checkStreak();
+
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
@@ -1156,7 +1155,7 @@ export const InteractiveListening: React.FC<{ exercise: IListeningSpecificInfoEx
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [feedback, setFeedback] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { addXP, checkStreak } = useGamification();
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     const handleCheck = async () => {
@@ -1176,8 +1175,8 @@ export const InteractiveListening: React.FC<{ exercise: IListeningSpecificInfoEx
 
         if (result.isCorrect) {
             soundEffects.playCorrect();
-            addXP(15);
-            checkStreak();
+
+
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 3000);
         } else {
