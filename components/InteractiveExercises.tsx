@@ -489,6 +489,15 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
         }
     };
 
+    const answerToMatchMap = useMemo(() => {
+        const map = new Map<number, MatchInfo>();
+        Object.values(matches).forEach((value) => {
+            const m = value as MatchInfo;
+            map.set(m.answerIndex, m);
+        });
+        return map;
+    }, [matches]);
+
     return (
         <div className={`text-base font-casual ${colors.textOnLight}`}>
             <Confetti active={showConfetti} />
@@ -514,12 +523,11 @@ export const InteractiveMatching: React.FC<{ exercise: IMatchingExercise | IFunc
                 </div>
                 <div className="flex-1 space-y-2">
                     {shuffledAnswers.map((answer, answerIndex) => {
-                        const matchEntry = Object.entries(matches).find(([, value]) => (value as MatchInfo).answerIndex === answerIndex);
-                        const isMatched = !!matchEntry;
+                        const match = answerToMatchMap.get(answerIndex);
+                        const isMatched = !!match;
                         
                         let buttonClass = `bg-white border-2 ${colors.chip.border} ${colors.chip.text}`;
-                        if (isMatched) {
-                            const match = matchEntry[1] as MatchInfo;
+                        if (match) {
                             buttonClass = match.isCorrect 
                                ? 'bg-green-100 text-green-900 border-green-500' 
                                : 'bg-red-100 text-red-900 border-red-500';
